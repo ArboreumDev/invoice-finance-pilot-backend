@@ -69,6 +69,7 @@ def read_root():
 
 @app.get("/invoices", response_model=List[Invoice])
 def get_invoices():
+    # check cache, if older than X hours, re-fetch from Tusker API and update DB with it
     return list(invoices.values())
 
 
@@ -77,5 +78,21 @@ def update_invoice(invoice: Invoice):
     invoices[invoice.id] = invoice
     return invoice
 
+# TODO
+# add /finance endoint
+#  - verify if invoice is ok for financing 
+#    - (e.g. if it has a bill of sufficient quality attached to it?)
+#    - if amount does not exceed current credit line
+#  - send email to RC
+#  - change status of invoice
+
+# TODO
+# add /repayment endoint
+#  - ??? get banking info reference id to put on repayment?
+
+
+# Add filterLogic:
+# takes invoices and filters them (for starters, just return all of them)
 
 # @app.post("/email", response_model=TODO}
+# should send an email to rupeeCircle
