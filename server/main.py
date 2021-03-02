@@ -11,10 +11,12 @@ origins = [
     "http://localhost:3000",
 ]
 
+
 class ShipmentStatus(str, Enum):
     AWAITING_SHIPMENT = "AWAITING_SHIPMENT"
     SHIPPING = "SHIPPING"
     DELIVERED = "DELIVERED"
+
 
 class FinanceStatus(str, Enum):
     NONE = "NONE"
@@ -26,10 +28,12 @@ class FinanceStatus(str, Enum):
 def to_camel(string):
     return camelize(string)
 
+
 class CamelModel(BaseModel):
     class Config:
         alias_generator = to_camel
         allow_population_by_field_name = True
+
 
 class Invoice(CamelModel):
     id: int
@@ -41,12 +45,12 @@ class Invoice(CamelModel):
 
 def init_invoices():
     _invoices = [
-        {"id":1,"amount":1000,"destination":"Ramesh","shipping_status":"AWAITING_SHIPMENT"},
-        {"id":2,"amount":1000,"destination":"Ajit","shipping_status":"AWAITING_SHIPMENT"},
-        {"id":3,"amount":1000,"destination":"Pavan","shipping_status":"SHIPPING"}
+        {"id": 1, "amount": 1000, "destination": "Ramesh", "shipping_status": "AWAITING_SHIPMENT"},
+        {"id": 2, "amount": 1000, "destination": "Ajit", "shipping_status": "AWAITING_SHIPMENT"},
+        {"id": 3, "amount": 1000, "destination": "Pavan", "shipping_status": "SHIPPING"},
     ]
 
-    return {invoice['id']: Invoice(**invoice) for invoice in _invoices}
+    return {invoice["id"]: Invoice(**invoice) for invoice in _invoices}
 
 
 invoices = init_invoices()
@@ -78,9 +82,10 @@ def update_invoice(invoice: Invoice):
     invoices[invoice.id] = invoice
     return invoice
 
+
 # TODO
 # add /finance endoint
-#  - verify if invoice is ok for financing 
+#  - verify if invoice is ok for financing
 #    - (e.g. if it has a bill of sufficient quality attached to it?)
 #    - if amount does not exceed current credit line
 #  - send email to RC
