@@ -1,6 +1,12 @@
 # Tusker Pilot Stack
 
 The simplemost hacky solution to get us started
+## setup
+
+create a `.env.staging` file and add the following variables
+```
+JWT_SECRET_KEY="someSecretKey"
+```
 
 ## Backend
 
