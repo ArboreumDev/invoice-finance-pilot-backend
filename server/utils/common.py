@@ -2,6 +2,7 @@ from enum import Enum
 
 from humps import camelize
 from pydantic import BaseModel
+from typing import Dict
 
 
 class ShipmentStatus(str, Enum):
