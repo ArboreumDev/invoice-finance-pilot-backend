@@ -25,12 +25,12 @@ app.add_middleware(
 )
 
 
-@app.get("/")
+@app.get("/", tags=["health"])
 def read_root():
     return {"Hello": "World"}
 
 
-@app.post("/token", description=TOKEN_DESCRIPTION, summary="JWT")
+@app.post("/token", description=TOKEN_DESCRIPTION, summary="JWT Auth", tags=["auth"])
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     jwt_user_dict = {"username": form_data.username, "password": form_data.password}
     jwt_user = JWTUser(**jwt_user_dict)

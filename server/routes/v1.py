@@ -25,13 +25,13 @@ app_v1 = APIRouter()
 # /invoice/<id>  - Get getches with that index, and so on
 
 
-@app_v1.get("/invoice", response_model=List[Invoice])
+@app_v1.get("/invoice", response_model=List[Invoice], tags=["invoice"])
 def get_invoices():
     # TODO check cache, if older than X hours, re-fetch from Tusker API and update DB with it
     return list(invoices.values())
 
 
-@app_v1.post("/invoice", response_model=Invoice)
+@app_v1.post("/invoice", response_model=Invoice, tags=["invoice"])
 def update_invoice(invoice: Invoice):
     invoices[invoice.id] = invoice
     return invoice
