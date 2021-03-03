@@ -1,34 +1,39 @@
 from enum import Enum
 from typing import List
-
-from fastapi import FastAPI
+from starlette.status import HTTP_401_UNAUTHORIZED
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from utils.security import check_jwt_token
+from routes.v1 import app_v1
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from utils.common import (
-    Invoice
+    Invoice,
+    JWTUser
 )
+from utils.constant import (
+    TOKEN_DESCRIPTION,
+)
+
+from utils.security import (
+    create_jwt_token,
+    authenticate_user
+)
+
+
 
 origins = [
     "http://localhost",
     "http://localhost:3000",
 ]
-
-
-
-def init_invoices():
-    _invoices = [
-        {"id": 1, "amount": 1000, "destination": "Ramesh", "shipping_status": "AWAITING_SHIPMENT"},
-        {"id": 2, "amount": 1000, "destination": "Ajit", "shipping_status": "AWAITING_SHIPMENT"},
-        {"id": 3, "amount": 1000, "destination": "Pavan", "shipping_status": "SHIPPING"},
-    ]
-
-    return {invoice["id"]: Invoice(**invoice) for invoice in _invoices}
-
-
-invoices = init_invoices()
-
 app = FastAPI()
+
+app.include_router(
+    app_v1,
+    prefix="/v1",
+    dependencies=[Depends(check_jwt_token)]
+)
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -44,33 +49,18 @@ def read_root():
     return {"Hello": "World"}
 
 
-@app.get("/invoices", response_model=List[Invoice])
-def get_invoices():
-    # check cache, if older than X hours, re-fetch from Tusker API and update DB with it
-    return list(invoices.values())
+@app.post("/token", description=TOKEN_DESCRIPTION, summary="JWT")
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    jwt_user_dict = {"username": form_data.username, "password": form_data.password}
+    jwt_user = JWTUser(**jwt_user_dict)
+    
+
+    if not authenticate_user(jwt_user):
+        raise HTTPException(
+            status_code=HTTP_401_UNAUTHORIZED, detail='Invalid Credentials'
+        )
+
+    jwt_token = create_jwt_token(jwt_user)
+    return {"access_token": jwt_token}
 
 
-@app.post("/invoice", response_model=Invoice)
-def update_invoice(invoice: Invoice):
-    invoices[invoice.id] = invoice
-    return invoice
-
-
-# TODO
-# add /finance endoint
-#  - verify if invoice is ok for financing
-#    - (e.g. if it has a bill of sufficient quality attached to it?)
-#    - if amount does not exceed current credit line
-#  - send email to RC
-#  - change status of invoice
-
-# TODO
-# add /repayment endoint
-#  - ??? get banking info reference id to put on repayment?
-
-
-# Add filterLogic:
-# takes invoices and filters them (for starters, just return all of them)
-
-# @app.post("/email", response_model=TODO}
-# should send an email to rupeeCircle
