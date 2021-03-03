@@ -5,9 +5,7 @@ JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_TIME_MINUTES = 60 * 24 * 5
 
 # ENDPOINT DESCRIPTIONS
-TOKEN_DESCRIPTION = (
-    "It checks username and password if they are true, it returns JWT token to you."
-)
+TOKEN_DESCRIPTION = "It checks username and password if they are true, it returns JWT token to you."
 
 # DUMMY DB
 # constructed by doing:
@@ -16,7 +14,7 @@ TOKEN_DESCRIPTION = (
 # TODO use actual DB
 USER_DB = {
     "test_user": "$2b$12$bLi2J2RtLNMTFiH3lE/SfuLtwk9XkECRxReGZm9Wd1ei5hY.X9RUW",
-    "admin": "$2b$12$pctc/ptXhlxEkHIknQTbw.zzYRzifEJkSuR0HwTkqtL4O.o7J30MO"
+    "admin": "$2b$12$pctc/ptXhlxEkHIknQTbw.zzYRzifEJkSuR0HwTkqtL4O.o7J30MO",
 }
 
 USERS = list(USER_DB.keys())

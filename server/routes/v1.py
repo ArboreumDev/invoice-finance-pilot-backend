@@ -1,6 +1,8 @@
-from fastapi import FastAPI, Body, Header, File, APIRouter
 from typing import List
+
+from fastapi import APIRouter
 from utils.common import Invoice
+
 
 # FIXTURES to use instead of DB for now
 def init_invoices():
@@ -12,6 +14,7 @@ def init_invoices():
 
     return {invoice["id"]: Invoice(**invoice) for invoice in _invoices}
 
+
 invoices = init_invoices()
 
 # ===================== routes ==========================
@@ -20,6 +23,7 @@ app_v1 = APIRouter()
 # PLAN
 # /invoice  - Get - fetches all, Update - updates all, Delete - deletes all
 # /invoice/<id>  - Get getches with that index, and so on
+
 
 @app_v1.get("/invoice", response_model=List[Invoice])
 def get_invoices():
@@ -51,6 +55,3 @@ def update_invoice(invoice: Invoice):
 
 # @app.post("/email", response_model=TODO}
 # should send an email to rupeeCircle
-
-
-

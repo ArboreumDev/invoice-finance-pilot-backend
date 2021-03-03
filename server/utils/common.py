@@ -1,7 +1,8 @@
 from enum import Enum
-from typing import List
-from pydantic import BaseModel
+
 from humps import camelize
+from pydantic import BaseModel
+
 
 class ShipmentStatus(str, Enum):
     AWAITING_SHIPMENT = "AWAITING_SHIPMENT"

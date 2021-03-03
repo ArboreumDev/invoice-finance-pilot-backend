@@ -1,26 +1,11 @@
-from enum import Enum
-from typing import List
-from starlette.status import HTTP_401_UNAUTHORIZED
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from utils.security import check_jwt_token
+from fastapi.security import OAuth2PasswordRequestForm
 from routes.v1 import app_v1
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from utils.common import (
-    Invoice,
-    JWTUser
-)
-from utils.constant import (
-    TOKEN_DESCRIPTION,
-)
-
-from utils.security import (
-    create_jwt_token,
-    authenticate_user
-)
-
-
+from starlette.status import HTTP_401_UNAUTHORIZED
+from utils.common import JWTUser
+from utils.constant import TOKEN_DESCRIPTION
+from utils.security import authenticate_user, check_jwt_token, create_jwt_token
 
 origins = [
     "http://localhost",
@@ -28,11 +13,7 @@ origins = [
 ]
 app = FastAPI()
 
-app.include_router(
-    app_v1,
-    prefix="/v1",
-    dependencies=[Depends(check_jwt_token)]
-)
+app.include_router(app_v1, prefix="/v1", dependencies=[Depends(check_jwt_token)])
 
 
 app.add_middleware(
@@ -53,14 +34,9 @@ def read_root():
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     jwt_user_dict = {"username": form_data.username, "password": form_data.password}
     jwt_user = JWTUser(**jwt_user_dict)
-    
 
     if not authenticate_user(jwt_user):
-        raise HTTPException(
-            status_code=HTTP_401_UNAUTHORIZED, detail='Invalid Credentials'
-        )
+        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Invalid Credentials")
 
     jwt_token = create_jwt_token(jwt_user)
     return {"access_token": jwt_token}
-
-
