@@ -5,7 +5,12 @@ dev-webapp:
 	cd webapp; yarn dev
 
 lint:
-	echo TODO
+	flake8 server --max-line-length=120
+
+lint-format:
+	black server --line-length=120
+	autoflake server --remove-unused-variables --remove-all-unused-imports --in-place -r
+	isort server
 
 test: 
 	echo TODO
