@@ -33,3 +33,8 @@ class Invoice(CamelModel):
     shipping_status: ShipmentStatus = ShipmentStatus.AWAITING_SHIPMENT
     status: FinanceStatus = FinanceStatus.NONE
 
+
+class JWTUser(BaseModel):
+    username: str
+    password: str
+    role: str = None
