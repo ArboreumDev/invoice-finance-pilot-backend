@@ -9,6 +9,8 @@ lint:
 
 lint-format:
 	black server --line-length=120
+	autoflake server --remove-unused-variables --remove-all-unused-imports --in-place -r
+	isort server
 
 test: 
 	echo TODO

@@ -1,10 +1,10 @@
-from typing import Optional, Dict, List
+from enum import Enum
+from typing import List
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
-from enum import Enum
-import datetime
 from humps import camelize
+from pydantic import BaseModel
 
 origins = [
     "http://localhost",
