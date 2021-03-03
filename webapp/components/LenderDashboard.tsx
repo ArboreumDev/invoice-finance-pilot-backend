@@ -2,7 +2,9 @@ import {Box, Button, Grid, Heading, HStack, Text} from "@chakra-ui/react"
 import {Line} from 'react-chartjs-2';
 import useSWR from 'swr'
 import AmountInput from "./AmountInput"
-import {Invoice, fetcher} from "./Main"
+import {Invoice, fetcher, axiosInstance} from "./Main"
+import { useRouter } from "next/router";
+import React, { useEffect } from "react";
 
 interface Props {
   invoices: Invoice[],
@@ -14,10 +16,16 @@ const LenderDashboard = ({invoices, isLoading, isError}: Props) => {
   const onInvest = () => {
     // invest in loan
     console.log("invested")
-  }
-  console.log(invoices)
+  }  
 
   // const { data: profits, error: profitError } = useSWR('/profit', fetcher, { refreshInterval: 1000 })
+  // const r = axiosInstance.get("/v1/invoice", {}).then( (res) => {
+    // console.log('res of get', res)
+    // console.log('inv', invoices)
+    // invoices = res.data
+    // this.props.invoices = []
+  // })
+
 
   if (isLoading) {
     return <Heading as="h2" size="lg" fontWeight="400" color="gray.500">

@@ -10,16 +10,34 @@ import {
 import Router from "next/dist/next-server/lib/router/router";
 import React, { useState } from "react";
 import { useRouter } from "next/router";
+import {fetcher, axiosInstance} from "../components/Main"
 
 export default function Login() {
   const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    alert(`Email: ${email} & Password: ${password}`);
-    router.push("/");
+    // const { data: profits, error: profitError } = useSWR('/profit', fetcher, { refreshInterval: 1000 })
+    var bodyFormData = new FormData();
+    bodyFormData.append('username', 'rc');
+    bodyFormData.append('password', 'test_rc');
+    try {
+      const res = await axiosInstance.post("/token", bodyFormData)
+      if (res.status === 200) {
+        window.localStorage.setItem("arboreum:info", JSON.stringify({
+          token: res.data.access_token,
+          role: res.data.role,
+          email: email
+        }))
+        router.push("/");
+      } else {
+        console.log("some error!", res.data)
+      }
+    } catch {
+      alert("wrong pw")
+    }
   };
   return (
     <Flex width="full" align="center" justifyContent="center">
