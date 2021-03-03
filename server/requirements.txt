@@ -6,3 +6,6 @@ isort==5.6.4
 autoflake==1.4
 pydantic==1.6.1
 pyhumps
+PyJWT==2.0.1
+passlib==1.7.4
+bcrypt==3.2.0
