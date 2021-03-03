@@ -33,8 +33,8 @@ def authenticate_user(user: JWTUser):
     returns role of the user
     """
     if user.username in USERS:
-        if verify_password(plain_password=user.password, hashed_password=USER_DB[user.username]['hashed_password']):
-            return USER_DB[user.username]['role']
+        if verify_password(plain_password=user.password, hashed_password=USER_DB[user.username]["hashed_password"]):
+            return USER_DB[user.username]["role"]
     # TODO throw different errors for unknown username / password (or maybe not?)
     return False
 
@@ -42,11 +42,7 @@ def authenticate_user(user: JWTUser):
 # Create access JWT token
 def create_jwt_token(user: JWTUser):
     expiration = datetime.utcnow() + timedelta(minutes=JWT_EXPIRATION_TIME_MINUTES)
-    jwt_payload = {
-        "sub": user.username,
-        "exp": expiration,
-        "role": user.role
-    }
+    jwt_payload = {"sub": user.username, "exp": expiration, "role": user.role}
     jwt_token = jwt.encode(jwt_payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
 
     return jwt_token
@@ -59,7 +55,7 @@ def check_jwt_token(token: str = Depends(oauth_schema)):
         username = jwt_payload.get("sub")
         expiration = jwt_payload.get("exp")
         role = jwt_payload.get("role")
-        print('r', role)
+        print("r", role)
         if time.time() < expiration:
             if username in USERS:
                 return role
@@ -78,5 +74,5 @@ def check_jwt_token(token: str = Depends(oauth_schema)):
 #         return True
 #     if not auth_level:
 #         return True
-#     else: 
+#     else:
 #         return auth_level == role

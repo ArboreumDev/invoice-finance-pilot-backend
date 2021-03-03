@@ -1,8 +1,8 @@
 from enum import Enum
+from typing import Dict
 
 from humps import camelize
 from pydantic import BaseModel
-from typing import Dict
 
 
 class ShipmentStatus(str, Enum):
@@ -41,9 +41,11 @@ class JWTUser(BaseModel):
     password: str
     role: str = None
 
+
 class FundAllocation(BaseModel):
     total_amount: int
     lender_contributions: Dict[str, float]
+
 
 class Listing(BaseModel):
     listing_id: str

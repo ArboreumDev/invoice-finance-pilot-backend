@@ -2,7 +2,7 @@ from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
 from starlette.status import HTTP_401_UNAUTHORIZED
-from utils.common import Invoice, Listing, FundAllocation
+from utils.common import FundAllocation, Invoice, Listing
 from utils.security import check_jwt_token
 
 
@@ -42,18 +42,17 @@ def update_invoice(invoice: Invoice):
 # response_model=Invoice, tags=["invoice"])
 @app_v1.get("/mapping")
 def get_mapping(listing: Listing, role: str = Depends(check_jwt_token)):
-    if not role == "rc_admin" and not role == 'admin':
+    if not role == "rc_admin" and not role == "admin":
         raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Wrong permissions")
-    # TODO 
+    # TODO
     # get lender mappings from RC-API
     # call fulfill module
 
     # return dummy value
     return FundAllocation(
         total_amount=listing.total_amount,
-        lender_contributions={"l1": listing.total_amount / 2, "l2": listing.total_amount / 2}
+        lender_contributions={"l1": listing.total_amount / 2, "l2": listing.total_amount / 2},
     )
-
 
 
 # TODO
