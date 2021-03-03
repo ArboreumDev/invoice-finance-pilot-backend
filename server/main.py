@@ -31,12 +31,15 @@ def read_root():
 
 
 @app.post("/token", description=TOKEN_DESCRIPTION, summary="JWT Auth", tags=["auth"])
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    """ create a token with role set to whatever is in our database """
     jwt_user_dict = {"username": form_data.username, "password": form_data.password}
     jwt_user = JWTUser(**jwt_user_dict)
 
-    if not authenticate_user(jwt_user):
+    role = authenticate_user(jwt_user)
+    if not role:
         raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Invalid Credentials")
+    jwt_user.role = role
 
     jwt_token = create_jwt_token(jwt_user)
     return {"access_token": jwt_token}

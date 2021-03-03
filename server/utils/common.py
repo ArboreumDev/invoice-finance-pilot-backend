@@ -39,3 +39,11 @@ class JWTUser(BaseModel):
     username: str
     password: str
     role: str = None
+
+class FundAllocation(BaseModel):
+    total_amount: int
+    lender_contributions: Dict[str, float]
+
+class Listing(BaseModel):
+    listing_id: str
+    total_amount: float

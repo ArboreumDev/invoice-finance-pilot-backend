@@ -28,9 +28,13 @@ def verify_password(plain_password: str, hashed_password: str):
 
 # Authenticate username and password to give JWT token
 def authenticate_user(user: JWTUser):
+    """
+    checks whether user is in DB, the given password is correct
+    returns role of the user
+    """
     if user.username in USERS:
-        if verify_password(plain_password=user.password, hashed_password=USER_DB[user.username]):
-            return True
+        if verify_password(plain_password=user.password, hashed_password=USER_DB[user.username]['hashed_password']):
+            return USER_DB[user.username]['role']
     # TODO throw different errors for unknown username / password (or maybe not?)
     return False
 
@@ -40,8 +44,8 @@ def create_jwt_token(user: JWTUser):
     expiration = datetime.utcnow() + timedelta(minutes=JWT_EXPIRATION_TIME_MINUTES)
     jwt_payload = {
         "sub": user.username,
-        "exp": expiration
-        # "role": user.role,
+        "exp": expiration,
+        "role": user.role
     }
     jwt_token = jwt.encode(jwt_payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
 
@@ -54,10 +58,12 @@ def check_jwt_token(token: str = Depends(oauth_schema)):
         jwt_payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=JWT_ALGORITHM)
         username = jwt_payload.get("sub")
         expiration = jwt_payload.get("exp")
-        # role = jwt_payload.get("role")
+        role = jwt_payload.get("role")
+        print('r', role)
         if time.time() < expiration:
             if username in USERS:
-                return final_checks()  # role)
+                return role
+                # return final_checks(role, auth_level)
             else:
                 raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Unknown User")
         else:
@@ -67,6 +73,10 @@ def check_jwt_token(token: str = Depends(oauth_schema)):
 
 
 # Last checking and returning the final result
-def final_checks():
-    # TODO do somemore complicate checks on the role
-    return True
+# def final_checks(role: str, auth_level: str):
+#     if role == "admin":
+#         return True
+#     if not auth_level:
+#         return True
+#     else: 
+#         return auth_level == role
