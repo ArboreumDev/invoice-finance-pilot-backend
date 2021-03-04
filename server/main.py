@@ -42,4 +42,4 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     jwt_user.role = role
 
     jwt_token = create_jwt_token(jwt_user)
-    return {"access_token": jwt_token}
+    return {"access_token": jwt_token, "role": role}

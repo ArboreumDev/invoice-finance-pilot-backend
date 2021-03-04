@@ -25,8 +25,9 @@ const AppBar = () => (
     </Flex>
     <Box flex="1"></Box>
     <HStack className="navButtons">
-      <Button size="lg" variant="ghost">
-        Signin
+      {/* <Button size="lg" variant="ghost"> */}
+      <Button size="lg" colorScheme="teal">
+        Signin (TODO)
       </Button>
       <Button size="lg" colorScheme="teal">
         Sign up

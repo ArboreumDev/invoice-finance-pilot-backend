@@ -21,6 +21,7 @@ TOKEN_DESCRIPTION = "It checks username and password if they are true, it return
 # DUMMY DB
 # constructed by doing:
 # "test_user": get_hashed_password("test_password"),
+# "rc": get_hashed_password("test_rc"),
 # "admin": get_hashed_password("admin_password")
 # TODO use actual DB
 USER_DB = {
