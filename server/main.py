@@ -1,61 +1,20 @@
-from enum import Enum
-from typing import List
-
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from humps import camelize
-from pydantic import BaseModel
+from fastapi.security import OAuth2PasswordRequestForm
+from routes.v1 import app_v1
+from starlette.status import HTTP_401_UNAUTHORIZED
+from utils.common import JWTUser
+from utils.constant import TOKEN_DESCRIPTION
+from utils.security import authenticate_user, check_jwt_token, create_jwt_token
 
 origins = [
     "http://localhost",
     "http://localhost:3000",
 ]
-
-
-class ShipmentStatus(str, Enum):
-    AWAITING_SHIPMENT = "AWAITING_SHIPMENT"
-    SHIPPING = "SHIPPING"
-    DELIVERED = "DELIVERED"
-
-
-class FinanceStatus(str, Enum):
-    NONE = "NONE"
-    FINANCED = "FINANCED"
-    REPAID = "REPAID"
-    DEFAULTED = "DEFAULTED"
-
-
-def to_camel(string):
-    return camelize(string)
-
-
-class CamelModel(BaseModel):
-    class Config:
-        alias_generator = to_camel
-        allow_population_by_field_name = True
-
-
-class Invoice(CamelModel):
-    id: int
-    amount: int
-    destination: str
-    shipping_status: ShipmentStatus = ShipmentStatus.AWAITING_SHIPMENT
-    status: FinanceStatus = FinanceStatus.NONE
-
-
-def init_invoices():
-    _invoices = [
-        {"id": 1, "amount": 1000, "destination": "Ramesh", "shipping_status": "AWAITING_SHIPMENT"},
-        {"id": 2, "amount": 1000, "destination": "Ajit", "shipping_status": "AWAITING_SHIPMENT"},
-        {"id": 3, "amount": 1000, "destination": "Pavan", "shipping_status": "SHIPPING"},
-    ]
-
-    return {invoice["id"]: Invoice(**invoice) for invoice in _invoices}
-
-
-invoices = init_invoices()
-
 app = FastAPI()
+
+app.include_router(app_v1, prefix="/v1", dependencies=[Depends(check_jwt_token)])
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -66,38 +25,21 @@ app.add_middleware(
 )
 
 
-@app.get("/")
+@app.get("/", tags=["health"])
 def read_root():
     return {"Hello": "World"}
 
 
-@app.get("/invoices", response_model=List[Invoice])
-def get_invoices():
-    # check cache, if older than X hours, re-fetch from Tusker API and update DB with it
-    return list(invoices.values())
+@app.post("/token", description=TOKEN_DESCRIPTION, summary="JWT Auth", tags=["auth"])
+def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    """ create a token with role set to whatever is in our database """
+    jwt_user_dict = {"username": form_data.username, "password": form_data.password}
+    jwt_user = JWTUser(**jwt_user_dict)
 
+    role = authenticate_user(jwt_user)
+    if not role:
+        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Invalid Credentials")
+    jwt_user.role = role
 
-@app.post("/invoice", response_model=Invoice)
-def update_invoice(invoice: Invoice):
-    invoices[invoice.id] = invoice
-    return invoice
-
-
-# TODO
-# add /finance endoint
-#  - verify if invoice is ok for financing
-#    - (e.g. if it has a bill of sufficient quality attached to it?)
-#    - if amount does not exceed current credit line
-#  - send email to RC
-#  - change status of invoice
-
-# TODO
-# add /repayment endoint
-#  - ??? get banking info reference id to put on repayment?
-
-
-# Add filterLogic:
-# takes invoices and filters them (for starters, just return all of them)
-
-# @app.post("/email", response_model=TODO}
-# should send an email to rupeeCircle
+    jwt_token = create_jwt_token(jwt_user)
+    return {"access_token": jwt_token}

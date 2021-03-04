@@ -6,8 +6,12 @@ import BorrowerDashboard from "./BorrowerDashboard";
 import AdminDashboard from "./AdminDashboard";
 import React from "react";
 
+const SUPER_AUTH_TOKEN =
+  "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6MjA0Njc5MDEyNiwicm9sZSI6ImFkbWluIn0.t_hWTRfUaVvuyh67RqxpxaeHtKCrqsLm2wzmxBcDSIU";
+
 export const axiosInstance = axios.create({
   baseURL: "http://localhost:8000/",
+  headers: { Authorization: SUPER_AUTH_TOKEN },
 });
 
 export enum ShipmentStatus {
@@ -61,7 +65,7 @@ const invoice_fixtures: Invoice[] = [
 export const fetcher = (url) => axiosInstance.get(url).then((res) => res.data);
 
 const getInvoices = () => {
-  const { data, error } = useSWR<Invoice[]>("invoices", fetcher, {
+  const { data, error } = useSWR<Invoice[]>("/v1/invoice", fetcher, {
     refreshInterval: 1000,
   });
   console.log("invoices", data);
