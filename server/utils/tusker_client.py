@@ -1,5 +1,6 @@
 # %%
 import requests
+from utils.invoice import raw_order_to_invoice
 
 # TODO save thie in .env
 TUSKER_TOKEN = "EKtk84IF9xzutyEMD-I_w35SlqcaXlOrKGcHIoxm3Ow"
@@ -8,6 +9,7 @@ TUSKER_USER_URL = "/search/users/suggestions"
 TUSKER_ORDER_URL = "/orders/search"
 
 class TuskerClient:
+    """ code to connect Tusker API to our DB """
     def __init__(self, base_url):
         """ initialize client and """
         # TODO properly add logger
@@ -21,7 +23,8 @@ class TuskerClient:
         self.customer_id = "58f1e776-c372-4ec5-8fa4-f30ab74ca631"
 
     
-    def get_latest_orders(self):
+    def get_latest_invoices(self):
+        # prob we need to add a parameter here to only fetch the latest invoices
         input = {
             "pl": {
                 "c_f_dt": 1575868644499,
@@ -38,13 +41,19 @@ class TuskerClient:
         }
         response = requests.post(self.base_url + TUSKER_ORDER_URL, json=input, headers=self.headers)
         if response.status_code == 200:
-            return response.json()
+            raw_orders = response.json()
+            return [raw_order_to_invoice(order) for order in raw_orders]
+
         else: 
             # TODO implement custom exception class
             raise NotImplementedError(str(response.json()))
 
+    def fetch_one_order(self, order_id):
+        """ update a specific order """
+        pass
+
 # %%
-# tc = TuskerClient(TUSKER_STAGING_BASE_URL)
+tusker_client = TuskerClient(TUSKER_STAGING_BASE_URL)
 # res = tc.get_latest_orders()
 # 
 # print(orders.json())
