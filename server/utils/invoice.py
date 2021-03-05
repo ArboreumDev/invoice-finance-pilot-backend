@@ -24,7 +24,7 @@ def raw_order_to_invoice(raw_order: Dict):
         "amount": 3,
         "shipping_status": order_to_shipping_status(raw_order),
         "status": FinanceStatus.NONE,
-        "destination": order_to_destination(raw_orde"r")
+        "destination": order_to_destination(raw_order)
     })
 
 def insert_invoice_into_db():
