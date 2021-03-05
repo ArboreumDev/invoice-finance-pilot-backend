@@ -27,9 +27,10 @@ class CamelModel(BaseModel):
         alias_generator = to_camel
         allow_population_by_field_name = True
 
-
-class Invoice(CamelModel):
+class BaseInvoice(CamelModel):
     id: int
+
+class Invoice(BaseInvoice):
     amount: int
     destination: str
     shipping_status: ShipmentStatus = ShipmentStatus.AWAITING_SHIPMENT

@@ -2,9 +2,11 @@ from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
 from starlette.status import HTTP_401_UNAUTHORIZED
-from utils.common import FundAllocation, Invoice, Listing
+from utils.common import FundAllocation, Invoice, Listing, BaseInvoice
 from utils.security import check_jwt_token
 from utils.tusker_client import tusker_client
+from utils.invoice import invoice_to_terms
+import datetime as dt
 
 
 # FIXTURES to use instead of DB for now
@@ -57,6 +59,19 @@ def get_mapping(listing: Listing, role: str = Depends(check_jwt_token)):
         total_amount=listing.total_amount,
         lender_contributions={"l1": listing.total_amount / 2, "l2": listing.total_amount / 2},
     )
+
+@app_v1.post("/fund", tags=["invoice"])
+def fund_invoice(input: BaseInvoice, str= Depends(check_jwt_token)):
+    # get invoiceInfo
+    # TODO get actual invoice start date & amount here using input.id
+    start_date = dt.datetime.utcnow()
+    amount = 1000
+    # calculate repayment info
+    terms = invoice_to_terms(amount, start_date)
+    # send email to Tusker with FundRequest
+    # change status of invoice in DB
+    return {"status": "OK"}
+
 
 
 # TODO

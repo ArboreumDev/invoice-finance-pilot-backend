@@ -1,6 +1,8 @@
 from pydantic import BaseModel
 from utils.common import Invoice, ShipmentStatus, FinanceStatus
 from typing import Dict
+import datetime as dt
+from datetime import timedelta
 
 class InvoiceData(Invoice):
     """ class to store all info that we want to keep on invoices in our DB """
@@ -29,3 +31,11 @@ def raw_order_to_invoice(raw_order: Dict):
 
 def insert_invoice_into_db():
     pass
+
+
+def invoice_to_terms(amount: float, start_date: dt.datetime):
+    # TODO @gsVam what makes sense here?
+    return {
+        amount_to_repay: amount * 1.2,
+        due_date: start_date + dt.timedelta(days=90)
+    }
