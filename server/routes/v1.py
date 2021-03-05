@@ -1,14 +1,14 @@
+import datetime as dt
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
-from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_500_INTERNAL_SERVER_ERROR
-from utils.common import FundAllocation, Invoice, Listing, BaseInvoice
-from utils.security import check_jwt_token
-from utils.tusker_client import tusker_client
-from utils.invoice import invoice_to_terms
-from utils.email import EmailClient, terms_to_email_body
+from starlette.status import (HTTP_401_UNAUTHORIZED,
+                              HTTP_500_INTERNAL_SERVER_ERROR)
+from utils.common import BaseInvoice, FundAllocation, Invoice, Listing
 from utils.constant import DISBURSAL_EMAIL
-import datetime as dt
+from utils.email import EmailClient, terms_to_email_body
+from utils.invoice import invoice_to_terms
+from utils.security import check_jwt_token
 
 
 # FIXTURES to use instead of DB for now
@@ -34,7 +34,8 @@ app_v1 = APIRouter()
 
 @app_v1.get("/invoice", response_model=List[Invoice], tags=["invoice"])
 def get_invoices():
-    # TODO (later) check cache, if older than X hours, re-fetch from Tusker API and update DB with it / alternative use cron job 
+    # TODO (later) check cache, if older than X hours,
+    # re-fetch from Tusker API and update DB with it / alternative use cron job
 
     # UDIT # insert code that fetches all invoices from the DB and strips away what we dont want to have in the frontend
 
@@ -62,8 +63,9 @@ def get_mapping(listing: Listing, role: str = Depends(check_jwt_token)):
         lender_contributions={"l1": listing.total_amount / 2, "l2": listing.total_amount / 2},
     )
 
+
 @app_v1.post("/fund", tags=["invoice"])
-def fund_invoice(input: BaseInvoice, str= Depends(check_jwt_token)):
+def fund_invoice(input: BaseInvoice, str=Depends(check_jwt_token)):
     # get invoiceInfo
     # TODO verify that invoice has been uploaded
     # TODO get actual invoice start date & amount here using input.id
@@ -74,18 +76,13 @@ def fund_invoice(input: BaseInvoice, str= Depends(check_jwt_token)):
     # send email to Tusker with FundRequest
     try:
         ec = EmailClient()
-        ec.send_email(
-            body=msg,
-            subject="Arboreum Disbursal Request",
-            targets=[DISBURSAL_EMAIL]
-        )
+        ec.send_email(body=msg, subject="Arboreum Disbursal Request", targets=[DISBURSAL_EMAIL])
     except Exception as e:
         raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
-    print('email sent')
+    print("email sent")
 
     # change status of invoice in DB
     return {"status": "Request has been sent"}
-
 
 
 # TODO

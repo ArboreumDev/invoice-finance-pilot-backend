@@ -1,9 +1,9 @@
+import datetime as dt
 from enum import Enum
 from typing import Dict
 
 from humps import camelize
 from pydantic import BaseModel
-import datetime as dt
 
 
 class ShipmentStatus(str, Enum):
@@ -28,8 +28,10 @@ class CamelModel(BaseModel):
         alias_generator = to_camel
         allow_population_by_field_name = True
 
+
 class BaseInvoice(CamelModel):
     id: str
+
 
 class Invoice(BaseInvoice):
     amount: int
