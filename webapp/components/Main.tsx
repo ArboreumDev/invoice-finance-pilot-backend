@@ -4,10 +4,14 @@ import axios from "axios";
 import LenderDashboard from "./LenderDashboard";
 import BorrowerDashboard from "./BorrowerDashboard";
 import AdminDashboard from "./AdminDashboard";
-import React from "react";
+// import React from "react";
+import { useRouter } from "next/router";
+import React, { useEffect } from "react";
 
 const SUPER_AUTH_TOKEN =
   "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6MjA0Njc5MDEyNiwicm9sZSI6ImFkbWluIn0.t_hWTRfUaVvuyh67RqxpxaeHtKCrqsLm2wzmxBcDSIU";
+
+
 
 export const axiosInstance = axios.create({
   baseURL: "http://localhost:8000/",
@@ -65,6 +69,20 @@ const invoice_fixtures: Invoice[] = [
 export const fetcher = (url) => axiosInstance.get(url).then((res) => res.data);
 
 const getInvoices = () => {
+  const router = useRouter();
+  useEffect(function mount() {
+    console.log('washere')
+    const r = JSON.parse(window.localStorage.getItem("arboreum:info"))
+    if (!r) {
+      console.log("couldnt find user info!")
+      router.push("/login");
+    } else {
+      console.log("found user info. set token to the one from storage", r)
+      axiosInstance.defaults.headers.common["Auth-Token"] = r.token
+    }
+  })  
+
+
   const { data, error } = useSWR<Invoice[]>("/v1/invoice", fetcher, {
     refreshInterval: 1000,
   });
@@ -73,10 +91,6 @@ const getInvoices = () => {
     invoices: data,
     isLoading: !error && !data,
     isError: error,
-
-    // invoices: invoice_fixtures,
-    // isLoading: false,
-    // isError: false
   };
 };
 
