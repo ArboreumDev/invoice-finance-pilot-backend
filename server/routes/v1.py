@@ -3,8 +3,11 @@ from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
 from starlette.status import (HTTP_401_UNAUTHORIZED,
-                              HTTP_500_INTERNAL_SERVER_ERROR)
-from utils.common import BaseInvoice, FundAllocation, Invoice, Listing
+                              HTTP_500_INTERNAL_SERVER_ERROR,
+                              HTTP_404_NOT_FOUND,
+                              HTTP_400_BAD_REQUEST,
+                              )
+from utils.common import BaseInvoice, FundAllocation, Invoice, Listing, FinanceStatus
 from utils.constant import DISBURSAL_EMAIL
 from utils.email import EmailClient, terms_to_email_body
 from utils.invoice import invoice_to_terms
@@ -14,9 +17,9 @@ from utils.security import check_jwt_token
 # FIXTURES to use instead of DB for now
 def init_invoices():
     _invoices = [
-        {"id": 1, "amount": 1000, "destination": "Ramesh", "shipping_status": "AWAITING_SHIPMENT"},
-        {"id": 2, "amount": 1000, "destination": "Ajit", "shipping_status": "AWAITING_SHIPMENT"},
-        {"id": 3, "amount": 1000, "destination": "Pavan", "shipping_status": "SHIPPING"},
+        {"id": "id1", "amount": 1000, "destination": "Ramesh", "shipping_status": "AWAITING_SHIPMENT"},
+        {"id": "id2", "amount": 1000, "destination": "Ajit", "shipping_status": "AWAITING_SHIPMENT"},
+        {"id": "id3", "amount": 1000, "destination": "Pavan", "shipping_status": "SHIPPING"},
     ]
 
     return {invoice["id"]: Invoice(**invoice) for invoice in _invoices}
@@ -66,14 +69,23 @@ def get_mapping(listing: Listing, role: str = Depends(check_jwt_token)):
 
 @app_v1.post("/fund", tags=["invoice"])
 def fund_invoice(input: BaseInvoice, str=Depends(check_jwt_token)):
+    # ========== BASIC CHECKS ==================
     # get invoiceInfo
+    if input.id not in invoices:
+        raise HTTPException(HTTP_404_NOT_FOUND, "unknown invoice id")
+    invoice = invoices[input.id]
+    if invoice.status != FinanceStatus.NONE:
+        raise HTTPException(HTTP_400_BAD_REQUEST, "Invoice not ready to be financed")
     # TODO verify that invoice has been uploaded
+
+    # ============== get loan terms ==========
+    # calculate repayment info
     # TODO get actual invoice start date & amount here using input.id
     start_date = dt.datetime.utcnow()
     amount = 1000
-    # calculate repayment info
     msg = terms_to_email_body(invoice_to_terms(input.id, amount, start_date))
-    # send email to Tusker with FundRequest
+
+    # ================= send email to Tusker with FundRequest
     try:
         ec = EmailClient()
         ec.send_email(body=msg, subject="Arboreum Disbursal Request", targets=[DISBURSAL_EMAIL])
@@ -81,7 +93,8 @@ def fund_invoice(input: BaseInvoice, str=Depends(check_jwt_token)):
         raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
     print("email sent")
 
-    # change status of invoice in DB
+    # ========== change status of invoice in DB ==================
+    invoice.status = FinanceStatus.FINANCED
     return {"status": "Request has been sent"}
 
 
