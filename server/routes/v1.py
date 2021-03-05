@@ -92,6 +92,7 @@ def fund_invoice(input: BaseInvoice, str=Depends(check_jwt_token)):
     except Exception as e:
         raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
     print("email sent")
+    # TODO send confirmation mail to GP
 
     # ========== change status of invoice in DB ==================
     invoice.status = FinanceStatus.FINANCED
