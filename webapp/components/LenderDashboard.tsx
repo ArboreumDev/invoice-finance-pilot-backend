@@ -21,10 +21,14 @@ const LenderDashboard = ({invoices, isLoading, isError}: Props) => {
   }  
   
   const handleFinance = (id) => {
-    console.log('fund: ', id)
+    console.log('try fund: ', id)
     axiosInstance.post("/v1/fund", {id: id})
       .then((result)=>{
         console.log('got', result)
+        alert("Tusker has been notified.")
+      })
+      .catch((err) => {
+        console.log('err', err)
       })
 }
 
