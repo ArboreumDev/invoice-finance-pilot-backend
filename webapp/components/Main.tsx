@@ -100,12 +100,12 @@ const Main = () => {
         isLoading={isLoading}
         isError={isError}
       />
-      <AdminDashboard
+      {/* <AdminDashboard
         invoices={invoices}
         isLoading={isLoading}
         isError={isError}
       />
-      <BorrowerDashboard />
+      <BorrowerDashboard /> */}
     </VStack>
   );
 };
