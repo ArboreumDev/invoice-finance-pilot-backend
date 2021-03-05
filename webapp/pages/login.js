@@ -21,16 +21,18 @@ export default function Login() {
     event.preventDefault();
     // const { data: profits, error: profitError } = useSWR('/profit', fetcher, { refreshInterval: 1000 })
     var bodyFormData = new FormData();
-    bodyFormData.append('username', 'rc');
-    bodyFormData.append('password', 'test_rc');
+    bodyFormData.append('username', email);
+    bodyFormData.append('password', password);
     try {
       const res = await axiosInstance.post("/token", bodyFormData)
+      console.log('loginres', res)
       if (res.status === 200) {
         window.localStorage.setItem("arboreum:info", JSON.stringify({
           token: res.data.access_token,
           role: res.data.role,
           email: email
         }))
+        console.log('login success')
         router.push("/");
       } else {
         console.log("some error!", res.data)

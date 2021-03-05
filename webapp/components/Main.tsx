@@ -8,9 +8,8 @@ import AdminDashboard from "./AdminDashboard";
 import { useRouter } from "next/router";
 import React, { useEffect } from "react";
 
-const SUPER_AUTH_TOKEN =
-  "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6MjA0Njc5MDEyNiwicm9sZSI6ImFkbWluIn0.t_hWTRfUaVvuyh67RqxpxaeHtKCrqsLm2wzmxBcDSIU";
-
+// for rc-admin role
+const SUPER_AUTH_TOKEN = "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJyYyIsImV4cCI6MjA0Njk2MzQ1Niwicm9sZSI6InJjX2FkbWluIn0.GV0Q2mPmMUT4In6ro8QL_LO-nsXqUIV6NUlg46Q2_eg"
 
 
 export const axiosInstance = axios.create({
@@ -79,14 +78,12 @@ const getInvoices = () => {
     } else {
       console.log("found user info. set token to the one from storage", r)
       axiosInstance.defaults.headers.common["Auth-Token"] = r.token
+      console.log(axiosInstance.defaults.headers)
     }
   })  
-
-
   const { data, error } = useSWR<Invoice[]>("/v1/invoice", fetcher, {
     refreshInterval: 1000,
   });
-  console.log("invoices", data);
   return {
     invoices: data,
     isLoading: !error && !data,
