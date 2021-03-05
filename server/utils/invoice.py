@@ -46,7 +46,7 @@ def invoice_to_terms(id: str, amount: float, start_date: dt.datetime):
     return LoanTerms(
         invoice_id=id,
         principal=amount,
-        interest=amount * 0.2,
+        interest=amount * 0.05,
         start_date=start_date,
         collection_date=start_date + dt.timedelta(days=90),
     )

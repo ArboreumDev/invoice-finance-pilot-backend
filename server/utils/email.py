@@ -3,7 +3,7 @@ from email.mime.text import MIMEText
 
 from utils.common import LoanTerms
 from utils.constant import (EMAIL_HOST, EMAIL_PASSWORD, EMAIL_PORT,
-                            EMAIL_USERNAME)
+                            EMAIL_USERNAME, MONTHLY_INTEREST)
 
 
 class EmailClient:
@@ -31,6 +31,8 @@ def terms_to_email_body(terms: LoanTerms):
     msg = f"""
     Hello Tusker,
     Gurugrupa has request to finance invoice {terms.invoice_id}
+    agreed terms: {MONTHLY_INTEREST}
     {terms} TODO format this properly
+
     """
     return msg

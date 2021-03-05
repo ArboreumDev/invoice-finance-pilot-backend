@@ -39,3 +39,4 @@ USER_DB = {
 USERS = list(USER_DB.keys())
 
 DISBURSAL_EMAIL = "julius@arboreum.dev"
+MONTHLY_INTEREST = 0.0165
