@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from starlette.status import HTTP_401_UNAUTHORIZED
 from utils.common import FundAllocation, Invoice, Listing
 from utils.security import check_jwt_token
+from db.utils import get_invoices
 
 
 # FIXTURES to use instead of DB for now
@@ -28,8 +29,8 @@ app_v1 = APIRouter()
 
 
 @app_v1.get("/invoice", response_model=List[Invoice], tags=["invoice"])
-def get_invoices():
-    # TODO check cache, if older than X hours, re-fetch from Tusker API and update DB with it
+def get_invoices_route():
+    print(get_invoices())
     return list(invoices.values())
 
 
