@@ -1,11 +1,13 @@
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
-from starlette.status import HTTP_401_UNAUTHORIZED
+from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_500_INTERNAL_SERVER_ERROR
 from utils.common import FundAllocation, Invoice, Listing, BaseInvoice
 from utils.security import check_jwt_token
 from utils.tusker_client import tusker_client
 from utils.invoice import invoice_to_terms
+from utils.email import EmailClient, terms_to_email_body
+from utils.constant import DISBURSAL_EMAIL
 import datetime as dt
 
 
@@ -63,24 +65,28 @@ def get_mapping(listing: Listing, role: str = Depends(check_jwt_token)):
 @app_v1.post("/fund", tags=["invoice"])
 def fund_invoice(input: BaseInvoice, str= Depends(check_jwt_token)):
     # get invoiceInfo
+    # TODO verify that invoice has been uploaded
     # TODO get actual invoice start date & amount here using input.id
     start_date = dt.datetime.utcnow()
     amount = 1000
     # calculate repayment info
-    terms = invoice_to_terms(amount, start_date)
+    msg = terms_to_email_body(invoice_to_terms(input.id, amount, start_date))
     # send email to Tusker with FundRequest
+    try:
+        ec = EmailClient()
+        ec.send_email(
+            body=msg,
+            subject="Arboreum Disbursal Request",
+            targets=[DISBURSAL_EMAIL]
+        )
+    except Exception as e:
+        raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+    print('email sent')
+
     # change status of invoice in DB
-    return {"status": "OK"}
+    return {"status": "Request has been sent"}
 
 
-
-# TODO
-# add /finance endoint
-#  - verify if invoice is ok for financing
-#    - (e.g. if it has a bill of sufficient quality attached to it?)
-#    - if amount does not exceed current credit line
-#  - send email to RC
-#  - change status of invoice
 
 # TODO
 # add /repayment endoint

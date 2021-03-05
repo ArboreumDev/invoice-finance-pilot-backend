@@ -3,6 +3,7 @@ from typing import Dict
 
 from humps import camelize
 from pydantic import BaseModel
+import datetime as dt
 
 
 class ShipmentStatus(str, Enum):
@@ -28,7 +29,7 @@ class CamelModel(BaseModel):
         allow_population_by_field_name = True
 
 class BaseInvoice(CamelModel):
-    id: int
+    id: str
 
 class Invoice(BaseInvoice):
     amount: int
@@ -51,3 +52,11 @@ class FundAllocation(BaseModel):
 class Listing(BaseModel):
     listing_id: str
     total_amount: float
+
+
+class LoanTerms(BaseModel):
+    principal: float
+    invoice_id: str
+    interest: float
+    start_date: dt.datetime
+    collection_date: dt.datetime

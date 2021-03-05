@@ -1,15 +1,22 @@
 import smtplib
 from email.mime.text import MIMEText
 from utils.common import LoanTerms
+from utils.constant import (
+    EMAIL_PASSWORD, EMAIL_HOST, EMAIL_PORT, EMAIL_USERNAME
+)
+import os
+
 
 
 class EmailClient:
     def __init__(self):
         # TODO get this from .env
-        smtp_ssl_host = "email-smtp.eu-west-2.amazonaws.com"
-        smtp_ssl_port = 465
-        username = "AKIA2AU4HUXQSXJSDCU7"
-        password = "BLDEEAm/2Guhse+I9dZt2ZY60LU/DYl4EL1A/0lA22b7"
+        smtp_ssl_host = EMAIL_HOST 
+        smtp_ssl_port = EMAIL_PORT
+        username = EMAIL_USERNAME 
+        password = EMAIL_PASSWORD 
+        if not EMAIL_USERNAME: 
+            raise NotImplementedError("missing secret")
         self.sender = "dev@arboreum.dev"
         self.server = smtplib.SMTP_SSL(smtp_ssl_host, smtp_ssl_port)
         self.server.login(username, password)

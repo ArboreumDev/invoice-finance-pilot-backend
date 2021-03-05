@@ -1,8 +1,9 @@
+# %%
 import os
 
 from dotenv import load_dotenv
 
-load_dotenv(dotenv_path="./.env.staging")
+load_dotenv()
 
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 if not JWT_SECRET_KEY:
@@ -11,6 +12,11 @@ if not JWT_SECRET_KEY:
     # to create a key like this:
     JWT_SECRET_KEY = "OHOc07e154e8067407c909be11132e7d1bcee77542afd6c26ba613e2ffd9c3375ea"
     print("...using a hardcoded value for now")
+# %%
+EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
+EMAIL_PORT = os.getenv("EMAIL_PORT")
+EMAIL_USERNAME = os.getenv("EMAIL_USERNAME")
+EMAIL_HOST = os.getenv("EMAIL_HOST")
 
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_TIME_MINUTES = 60 * 24 * 5
@@ -31,3 +37,5 @@ USER_DB = {
 }
 
 USERS = list(USER_DB.keys())
+
+DISBURSAL_EMAIL = "julius@arboreum.dev"
