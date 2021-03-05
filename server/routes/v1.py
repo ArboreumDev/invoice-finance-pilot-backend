@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from starlette.status import HTTP_401_UNAUTHORIZED
 from utils.common import FundAllocation, Invoice, Listing
 from utils.security import check_jwt_token
+from utils.tusker_client import tusker_client
 from db.utils import get_invoices
 
 
