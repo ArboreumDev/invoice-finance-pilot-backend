@@ -30,3 +30,9 @@ USER_DB = {
 }
 
 USERS = list(USER_DB.keys())
+
+TUSKER_API_URL = "https://tusker-staging.logistimo.com/tusker-service/orders/search"
+GURUKRUPS_TUSKER_ID = "58f1e776-c372-4ec5-8fa4-f30ab74ca631"
+"""
+Let's bring all constants here?
+"""
