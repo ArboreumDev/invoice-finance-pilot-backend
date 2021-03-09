@@ -14,7 +14,7 @@ def update_invoice_db():
     raw_latest_orders = tusker_client.get_latest_invoices(list(invoices.keys()))
     #...and update DB with em
     for order in raw_latest_orders[:1]:
-        # print(order)
+        print('updating', order.get('id'))
         update_invoice(order, invoices[order['id']])
     
 
@@ -30,7 +30,7 @@ def insert_invoice_from_order(raw_order: Dict):
     temp["source_id"] = raw_order.get("id")
     temp["created_on"] = datetime.now()
     # TODO insert raw_order as pickledump
-    Invoice.insert().values(**temp).execute()
+    InvoiceTable.insert().values(**temp).execute()
 
     return True
 
@@ -54,7 +54,7 @@ def update_invoice(raw_order: Dict, invoice: Invoice):
 # invoices = session.query(Invoice).filter(Invoice.c.finance_status!="PENDING").all()
 # invoices = query.execute()
 
-# update_invoice_db()
+update_invoice_db()
 
 # TODO
 # - get all invoices for a given list of ids

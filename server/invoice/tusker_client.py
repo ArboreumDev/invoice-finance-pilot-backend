@@ -50,25 +50,31 @@ class TuskerClient:
     def get_latest_invoices(self, invoice_ids: List[str], customer_id: str = ""):
         # prob we need to add a parameter here to only fetch the latest invoices
         print('got', invoice_ids)
+        # TODO implement pagination here if len(invoice_ids > 10)
         c_id = customer_id if customer_id else self.customer_id
-        input = {
-            "pl": {
-                "c_id": c_id,
-                "o_sts": STATUS_ELIGIBLE_FOR_FINANCING,
-                "pg_no": 1,
-                "size": 10,
-                "s_by": "crt",
-                "s_dir": 0,
+        raw_orders = []
+        while invoice_ids:
+            to_be_fetched = invoice_ids[:10]
+            del invoice_ids[:10]
+            input = {
+                "pl": {
+                    "c_id": c_id,
+                    "o_sts": STATUS_ELIGIBLE_FOR_FINANCING,
+                    "pg_no": 1,
+                    "size": 10,
+                    "s_by": "crt",
+                    "s_dir": 0,
+                    "ids": to_be_fetched
+                }
             }
-        }
-        response = requests.post(self.base_url + TUSKER_ORDER_URL, json=input, headers=self.headers)
-        if response.status_code == 200:
-            raw_orders = response.json().get("pl", {}).get("orders", [])
-            return raw_orders
-            # return [raw_order_to_invoice(order) for order in raw_orders]
-        else:
-            # TODO implement custom exception class
-            raise NotImplementedError(str(response.json()))
+            response = requests.post(self.base_url + TUSKER_ORDER_URL, json=input, headers=self.headers)
+            if response.status_code == 200:
+                orders = response.json().get("pl", {}).get("orders", [])
+                raw_orders += orders
+            else:
+                # TODO implement custom exception class
+                raise NotImplementedError(str(response.json()))
+        return raw_orders
 
     def fetch_one_order(self, order_id):
         """ update a specific order """
