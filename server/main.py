@@ -7,6 +7,7 @@ from utils.common import JWTUser
 from utils.constant import TOKEN_DESCRIPTION
 from utils.security import authenticate_user, check_jwt_token, create_jwt_token
 
+
 origins = [
     "http://localhost",
     "http://localhost:3000",
