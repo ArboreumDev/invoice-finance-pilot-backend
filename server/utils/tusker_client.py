@@ -11,8 +11,7 @@ TUSKER_ORDER_URL = "/orders/search"
 
 class TuskerClient:
     """ code to connect Tusker API to our DB """
-
-    def __init__(self, base_url):
+    def __init__(self, base_url=TUSKER_STAGING_BASE_URL):
         """ initialize client and """
         # TODO properly add logger
         # self.logger = get_logger(self.__class__.__name__)
@@ -25,20 +24,21 @@ class TuskerClient:
         # prob we need to add a parameter here to only fetch the latest invoices
         input = {
             "pl": {
-                "c_f_dt": 1575868644499,
-                "c_t_dt": 1687493544499,
                 "c_id": self.customer_id,
-                "o_sts": [3, 6, 13, 18, 21],
+                "o_sts": [3, 6, 13, 18, 21], # TODO replace those with enum
                 "pg_no": 1,
-                "size": 2,
+                "size": 10,
                 "s_by": "crt",
                 "s_dir": 0,
             }
         }
         response = requests.post(self.base_url + TUSKER_ORDER_URL, json=input, headers=self.headers)
         if response.status_code == 200:
-            raw_orders = response.json()
-            return [raw_order_to_invoice(order) for order in raw_orders]
+            raw_orders = response.json().get("pl", {}).get("orders", [])
+            print(raw_orders)
+
+            return raw_orders
+            # return [raw_order_to_invoice(order) for order in raw_orders]
 
         else:
             # TODO implement custom exception class
