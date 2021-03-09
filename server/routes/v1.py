@@ -10,9 +10,9 @@ from starlette.status import (HTTP_401_UNAUTHORIZED,
 from utils.common import BaseInvoice, FundAllocation, Invoice, Listing, FinanceStatus
 from utils.constant import DISBURSAL_EMAIL
 from utils.email import EmailClient, terms_to_email_body
-from utils.invoice import invoice_to_terms
+from invoice.invoice import invoice_to_terms
 from utils.security import check_jwt_token
-from utils.tusker_client import tusker_client
+from invoice.tusker_client import tusker_client
 from db.utils import get_invoices
 
 
@@ -44,7 +44,7 @@ def _get_invoices():
 
     # UDIT # insert code that fetches all invoices from the DB and strips away what we dont want to have in the frontend
 
-    print(get_invoices())
+    # print(get_invoices())
     return list(invoices.values())
 
 

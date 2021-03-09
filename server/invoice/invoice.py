@@ -76,3 +76,4 @@ def invoice_to_terms(id: str, amount: float, start_date: dt.datetime):
         start_date=start_date,
         collection_date=start_date + dt.timedelta(days=90),
     )
+

@@ -82,7 +82,7 @@ const getInvoices = () => {
     }
   })  
   const { data, error } = useSWR<Invoice[]>("/v1/invoice", fetcher, {
-    refreshInterval: 1000,
+    refreshInterval: 10000,
   });
   return {
     invoices: data,
