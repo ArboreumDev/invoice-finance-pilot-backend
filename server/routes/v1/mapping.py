@@ -25,6 +25,11 @@ app = FastAPI()
 # ======================== ENDPOINTS ==================================
 mapping_app = APIRouter()
 
+# #use this to exclude routes from docs
+# @mapping_app.get("/test", include_in_schema=False)
+# def t():
+#     return {"OKTEST"}
+
 
 # def _get_mapping(mapping_request: MappingInput, role: str = Depends(check_jwt_token)):
 @mapping_app.post(
