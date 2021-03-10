@@ -30,7 +30,7 @@ def result_to_balance(res):
     if type(res) == list:
         return res[0].get('available_balance', 0)
     else:
-        return 20000
+        return 0
 
 class RupeeCircleClient:
     def __init__(self, base_url: str, email: str, password: str):

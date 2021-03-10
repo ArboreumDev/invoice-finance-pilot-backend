@@ -121,8 +121,7 @@ def fulfill(
     
     #check if request is even possible
     if np.sum(ub)<loan_amount:
-        print(f"Loan Amount {loan_amount}> funds available{np.sum(ub)}")
-        raise AssertionError("insufficent funds")
+        raise AssertionError(f"Loan Amount {loan_amount}> funds available{np.sum(ub)}")
          
         #create empty dicts
         lender_balances = dict(zip(lender_IDs,lender_balances_original))
