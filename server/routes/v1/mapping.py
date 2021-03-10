@@ -16,6 +16,7 @@ from invoice.tusker_client import tusker_client
 from db.utils import get_invoices
 from fastapi.responses import JSONResponse
 from fastapi import FastAPI
+from utils.rupeecircle_client import rc_client
 
 class Item(BaseModel):
     id: str
@@ -54,7 +55,7 @@ def _get_mapping(mapping_request: MappingInput, role: str = Depends(check_jwt_to
         raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail=f"Wrong permissions, role {role} not authorized")
     # TODO
     # get lender balances from RC-api
-    lender_balances = {inv: 6000 for inv in mapping_request.investor_ids}
+    lender_balances = rc_client.get_investor_balances(investor_ids=mapping_request.investor_ids)
     print(lender_balances)
     try:
         lender_contributions, _ = fulfill(mapping_request.loan_amount, lender_balances)

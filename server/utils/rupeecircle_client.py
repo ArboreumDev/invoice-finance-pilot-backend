@@ -30,22 +30,24 @@ def result_to_balance(res):
     if type(res) == list:
         return res[0].get('available_balance', 0)
     else:
-        return 0
+        return 20000
 
 class RupeeCircleClient:
     def __init__(self, base_url: str, email: str, password: str):
         """ initialize client and get access token from RC-sandbox """
         self.base_url = base_url
+        self.password = password
+        self.username = email
+        self.headers = {}
+        self.refresh_token()
 
+    def refresh_token(self):
         form = FormData()
-        form.append("email", email)
-        form.append("password", password)
+        form.append("email", self.username)
+        form.append("password", self.password)
         auth_url = self.base_url + "/api/v1/clientSecretDetails"
-        # auth_url = "https://httpbin.org/post"
-        # authenticate to RC
         response = requests.request("POST", auth_url, data=form.data)
         data = response.json()
-        print(data, type(data))
         if not data['flag']:
             raise AttributeError(data['message'])  # TODO define exception
         else:
@@ -53,22 +55,16 @@ class RupeeCircleClient:
             self.headers = {"Authorization": f"Bearer {access_token}"}
 
     def get_investor_balances(self, investor_ids: List[str]):
+        self.refresh_token()
         url = self.base_url + "/api/v1/walletbalance"
-        print(url)
         # response = requests.request("POST", url, json={"investor_id": investor_ids})
         response = requests.request("POST", url, json={"investor_id": investor_ids}, headers=self.headers)
         data = response.json()
-        print(data, type(data))
         if not data['flag']:
             raise AttributeError(data['message'])  # TODO define exception
         else:
             balances = response.json()["data"]
-            print('got balances', balances)
             return {inv: result_to_balance(val) for inv,val in balances.items()}
-
-
-
-
 
 
 rc_client = RupeeCircleClient(
