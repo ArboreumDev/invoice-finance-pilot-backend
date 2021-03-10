@@ -49,7 +49,7 @@ def create_jwt_token(user: JWTUser):
 
 
 # Check whether JWT token is correct
-def jwt_token_role(token: str = Depends(oauth_schema)):
+def check_jwt_token_role(token: str = Depends(oauth_schema)):
     """ raise exceptions if unauthorized, else return role """
     try:
         jwt_payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=JWT_ALGORITHM)
