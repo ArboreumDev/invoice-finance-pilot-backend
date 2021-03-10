@@ -1,5 +1,6 @@
+import datetime as dt
 from enum import Enum
-from typing import Dict
+from typing import Dict, List
 
 from humps import camelize
 from pydantic import BaseModel
@@ -28,8 +29,11 @@ class CamelModel(BaseModel):
         allow_population_by_field_name = True
 
 
-class Invoice(CamelModel):
-    id: int
+class BaseInvoice(CamelModel):
+    id: str
+
+
+class Invoice(BaseInvoice):
     amount: int
     destination: str
     shipping_status: ShipmentStatus = ShipmentStatus.AWAITING_SHIPMENT
@@ -50,3 +54,20 @@ class FundAllocation(BaseModel):
 class Listing(BaseModel):
     listing_id: str
     total_amount: float
+
+
+class LoanTerms(BaseModel):
+    principal: float
+    invoice_id: str
+    interest: float
+    start_date: dt.datetime
+    collection_date: dt.datetime
+
+
+class MappingInput(CamelModel):
+    investor_ids: List[str]
+    loan_amount: float
+
+
+class Mapping(CamelModel):
+    allocations: Dict[str, float]

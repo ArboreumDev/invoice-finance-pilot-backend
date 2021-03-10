@@ -13,18 +13,25 @@ interface Props {
 }
 
 const LenderDashboard = ({invoices, isLoading, isError}: Props) => {
+  // const [invoice, setInvoice] = useState("")
+
   const onInvest = () => {
     // invest in loan
     console.log("invested")
   }  
+  
+  const handleFinance = (id) => {
+    console.log('try fund: ', id)
+    axiosInstance.post("/v1/fund", {id: id})
+      .then((result)=>{
+        console.log('got', result)
+        alert("Tusker has been notified.")
+      })
+      .catch((err) => {
+        console.log('err', err)
+      })
+}
 
-  // const { data: profits, error: profitError } = useSWR('/profit', fetcher, { refreshInterval: 1000 })
-  // const r = axiosInstance.get("/v1/invoice", {}).then( (res) => {
-    // console.log('res of get', res)
-    // console.log('inv', invoices)
-    // invoices = res.data
-    // this.props.invoices = []
-  // })
 
 
   if (isLoading) {
@@ -38,16 +45,6 @@ const LenderDashboard = ({invoices, isLoading, isError}: Props) => {
     return <Heading as="h2" size="lg" fontWeight="400" color="gray.500">
         There was an error
       </Heading>
-  }
-
-  const data = {
-    // labels: profits ? Object.keys(profits):[],
-    // datasets: [{
-    //   label: 'Profit',
-    //   data: profits ? Object.values(profits):[],
-    //   borderWidth: 1,
-    //   backgroundColor: "blue"
-    // }],
   }
 
   const chart_options = {
@@ -83,7 +80,7 @@ const LenderDashboard = ({invoices, isLoading, isError}: Props) => {
           </Grid>
 
           {invoices
-            .filter((l) => l.status == "NONE")
+            // .filter((l) => l.status == "NONE")
             .map((l, idx) => (
               <>
                 <Grid
@@ -106,15 +103,21 @@ const LenderDashboard = ({invoices, isLoading, isError}: Props) => {
                     {l.status}
                   </Box>
                   <Box width="100%" textAlign="center">
-                    {/* <AmountInput value={100} /> */}
-                    <Button size="sm">Finance</Button>
+                    <Button size="sm" onClick={() => handleFinance(l.id)} disabled={l.status!=="NONE"}>Finance</Button>
                   </Box>
                 </Grid>
               </>
             ))}
         </Box>
         <Box p={3} w="md" h="400px" bg="teal.100" >
-          <p>TODO: add data about Outstanding Debt here</p>
+          <div>
+            <p> total funded: {
+            invoices.filter(i => i.status == "FINANCED").map(i => i.amount).reduce((a, b) => a + b, 0)
+            }
+            </p>
+            <p> total debt: TODO
+            </p>
+          </div>
         </Box>
       </HStack>
     </>
