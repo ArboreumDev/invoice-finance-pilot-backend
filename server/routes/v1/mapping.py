@@ -51,9 +51,10 @@ def health():
 
 # def _get_mapping(mapping_request: MappingInput, role: str = Depends(check_jwt_token)):
 @mapping_app.post("/mapping", response_model=Mapping, tags=["RC"])
-def _get_mapping(mapping_request: MappingInput):
-    # if role != "rc_backend":
-        # raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Wrong permissions")
+# def _get_mapping(mapping_request: MappingInput):
+def _get_mapping(mapping_request: MappingInput, role: str = Depends(check_jwt_token)):
+    if role != "rc":
+        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Wrong permissions")
     # TODO
     # get lender balances from RC-api
     # call fill_loan
