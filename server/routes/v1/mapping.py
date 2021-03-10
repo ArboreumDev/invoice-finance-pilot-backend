@@ -45,7 +45,7 @@ def health():
 @mapping_app.post(
     "/mapping",
     response_model=Mapping, 
-    responses={HTTP_400_BAD_REQUEST: {"model": Message}}, 
+    responses={HTTP_400_BAD_REQUEST: {"model": Message, "description": "Invalid Funds"}}, 
     tags=["RC"]
 )
 # def _get_mapping(mapping_request: MappingInput):
