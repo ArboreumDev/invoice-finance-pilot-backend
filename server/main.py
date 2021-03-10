@@ -1,14 +1,11 @@
 from fastapi import Depends, FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
 # from routes.v1 import app_v1
 from routes.v1.mapping import mapping_app
 from starlette.status import HTTP_401_UNAUTHORIZED
 from utils.common import JWTUser
 from utils.constant import TOKEN_DESCRIPTION
-from utils.security import authenticate_user, check_jwt_token_role, create_jwt_token
-
-
+from utils.security import authenticate_user, create_jwt_token
 
 # origins = [
 #     "http://localhost",

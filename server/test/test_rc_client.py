@@ -1,5 +1,6 @@
 import pytest
-from utils.rupeecircle_client import config, RupeeCircleClient
+from utils.rupeecircle_client import RupeeCircleClient, config
+
 # from .client import RupeeCircleClient
 
 rc_client = RupeeCircleClient(
@@ -11,8 +12,7 @@ rc_client = RupeeCircleClient(
 
 valid_investor_ids = [
     "INDV-21001",
-   "INDV-22133"
-    "INDV-22095",
+    "INDV-22133" "INDV-22095",
     "INDV-22045",
     "INDV-22142",
     "INDV-22145",
@@ -22,7 +22,7 @@ valid_investor_ids = [
     "INDV-22136",
     "INDV-22134",
 ]
- 
+
 
 def test_authenticate_valid_credentials():
     assert rc_client.headers
@@ -42,6 +42,7 @@ def test_authenticate_invalid_credentials():
             email=config["RUPEE_CIRCLE_EMAIL"],
             password="deadbeef",
         )
+
 
 def test_get_balances():
     res = rc_client.get_investor_balances(investor_ids=valid_investor_ids)

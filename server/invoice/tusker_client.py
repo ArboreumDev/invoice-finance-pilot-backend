@@ -1,7 +1,7 @@
 # %%
-import requests
-from invoice.invoice import raw_order_to_invoice
 from typing import List
+
+import requests
 from utils.constant import GURUGRUPA_CUSTOMER_ID
 
 # TODO save thie in .env
@@ -27,17 +27,26 @@ code_to_order_status = {
     27: "CANCELLED",
 }
 status_to_code = {
-'DELIVERED': [21], 'CANCELLED': [24, 27], 'IN_TRANSIT': [9, 12, 13, 15, 18, 19], 'PICKED_BY_SHIPPER': [6], 'PLACED_AND_VALID': [3], 'PENDING': [2, 4]
+    "DELIVERED": [21],
+    "CANCELLED": [24, 27],
+    "IN_TRANSIT": [9, 12, 13, 15, 18, 19],
+    "PICKED_BY_SHIPPER": [6],
+    "PLACED_AND_VALID": [3],
+    "PENDING": [2, 4],
 }
 
 # TODO refactor
 STATUS_ELIGIBLE_FOR_FINANCING = [
-    *status_to_code["PICKED_BY_SHIPPER"], *status_to_code["IN_TRANSIT"], *status_to_code["DELIVERED"], *status_to_code["PLACED_AND_VALID"]
+    *status_to_code["PICKED_BY_SHIPPER"],
+    *status_to_code["IN_TRANSIT"],
+    *status_to_code["DELIVERED"],
+    *status_to_code["PLACED_AND_VALID"],
 ]
 
 
 class TuskerClient:
     """ code to connect Tusker API to our DB """
+
     def __init__(self, base_url=TUSKER_STAGING_BASE_URL):
         """ initialize client and """
         # TODO properly add logger
@@ -49,7 +58,7 @@ class TuskerClient:
 
     def get_latest_invoices(self, invoice_ids: List[str], customer_id: str = ""):
         # prob we need to add a parameter here to only fetch the latest invoices
-        print('got', invoice_ids)
+        print("got", invoice_ids)
         # TODO implement pagination here if len(invoice_ids > 10)
         c_id = customer_id if customer_id else self.customer_id
         raw_orders = []
@@ -64,7 +73,7 @@ class TuskerClient:
                     "size": 10,
                     "s_by": "crt",
                     "s_dir": 0,
-                    "ids": to_be_fetched
+                    "ids": to_be_fetched,
                 }
             }
             response = requests.post(self.base_url + TUSKER_ORDER_URL, json=input, headers=self.headers)

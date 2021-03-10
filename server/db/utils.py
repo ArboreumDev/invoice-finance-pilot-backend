@@ -4,6 +4,6 @@ from db.models import Invoice
 
 def get_invoices():
     result = session.query(Invoice).all()
-    print('allinvoices', result)
+    print("allinvoices", result)
 
     return result

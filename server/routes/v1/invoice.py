@@ -2,18 +2,15 @@ import datetime as dt
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
-from starlette.status import (HTTP_401_UNAUTHORIZED,
-                              HTTP_500_INTERNAL_SERVER_ERROR,
+from invoice.invoice import invoice_to_terms
+from starlette.status import (HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED,
                               HTTP_404_NOT_FOUND,
-                              HTTP_400_BAD_REQUEST,
-                              )
-from utils.common import BaseInvoice, FundAllocation, Invoice, Listing, FinanceStatus
+                              HTTP_500_INTERNAL_SERVER_ERROR)
+from utils.common import (BaseInvoice, FinanceStatus, FundAllocation, Invoice,
+                          Listing)
 from utils.constant import DISBURSAL_EMAIL
 from utils.email import EmailClient, terms_to_email_body
-from invoice.invoice import invoice_to_terms
 from utils.security import check_jwt_token
-from invoice.tusker_client import tusker_client
-from db.utils import get_invoices
 
 
 # FIXTURES to use instead of DB for now

@@ -5,6 +5,7 @@ from typing import List
 
 import requests
 
+
 class FormData:
     def __init__(self):
         self.data = []
@@ -15,6 +16,7 @@ class FormData:
         else:
             self.data.append((k, v))
 
+
 config = {
     "RUPEE_CIRCLE_HOSTNAME": "http://sandbox.rupeecircle.com",
     # "RUPEE_CIRCLE_VERSION": "v3",
@@ -23,14 +25,16 @@ config = {
     # "RUPEE_CIRCLE_PARTNER_ID": "PIND1500",
     # "RUPEE_CIRCLE_DISBURSAL_EMAIL": "julius@arboreum.dev",
     "INVESTOR_API_USERNAME": "testpart@gmail.com",
-    "INVESTOR_API_PASSWORD": "test123"
+    "INVESTOR_API_PASSWORD": "test123",
 }
+
 
 def result_to_balance(res):
     if type(res) == list:
-        return res[0].get('available_balance', 0)
+        return res[0].get("available_balance", 0)
     else:
         return 0
+
 
 class RupeeCircleClient:
     def __init__(self, base_url: str, email: str, password: str):
@@ -48,8 +52,8 @@ class RupeeCircleClient:
         auth_url = self.base_url + "/api/v1/clientSecretDetails"
         response = requests.request("POST", auth_url, data=form.data)
         data = response.json()
-        if not data['flag']:
-            raise AttributeError(data['message'])  # TODO define exception
+        if not data["flag"]:
+            raise AttributeError(data["message"])  # TODO define exception
         else:
             access_token = response.json()["data"]["token_details"]["access_token"]
             self.headers = {"Authorization": f"Bearer {access_token}"}
@@ -60,11 +64,11 @@ class RupeeCircleClient:
         # response = requests.request("POST", url, json={"investor_id": investor_ids})
         response = requests.request("POST", url, json={"investor_id": investor_ids}, headers=self.headers)
         data = response.json()
-        if not data['flag']:
-            raise AttributeError(data['message'])  # TODO define exception
+        if not data["flag"]:
+            raise AttributeError(data["message"])  # TODO define exception
         else:
             balances = response.json()["data"]
-            return {inv: result_to_balance(val) for inv,val in balances.items()}
+            return {inv: result_to_balance(val) for inv, val in balances.items()}
 
 
 rc_client = RupeeCircleClient(
