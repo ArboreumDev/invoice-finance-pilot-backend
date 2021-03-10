@@ -38,11 +38,6 @@ app = FastAPI()
 mapping_app = APIRouter()
 
 
-@mapping_app.get("/", tags=["RC"])
-def health():
-    return {"OK"}
-
-
 # def _get_mapping(mapping_request: MappingInput, role: str = Depends(check_jwt_token)):
 @mapping_app.post(
     "/mapping",
