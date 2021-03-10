@@ -10,38 +10,12 @@ from utils.common import Mapping, MappingInput
 from utils.constant import DISBURSAL_EMAIL
 from utils.email import EmailClient, terms_to_email_body
 from invoice.invoice import invoice_to_terms
-from utils.security import check_jwt_token
+from utils.security import jwt_token_role
 from invoice.tusker_client import tusker_client
 from db.utils import get_invoices
 
-# ==================== Input Output Classes ==========================
-# class UserStatusInput(BaseModel):
-#     user_id: str
-
-
-# class UserStatusResponse(BaseModel):
-#     user_id: str
-#     status: str
-
-
-# class UserRegistrationInput(BaseModel):
-#     name: str
-#     should_succeed: bool
-#     s3_file: str
-
-
-# class RegistrationResponse(BaseModel):
-#     flag: bool
-#     status: str
-#     user_id: str
-#     received_files: List[str]
-
-
 # ======================== ENDPOINTS ==================================
 mapping_app = APIRouter()
-
-# ======================= mock-rc-logic ===============================
-
 
 
 @mapping_app.get("/", tags=["RC"])
@@ -52,9 +26,9 @@ def health():
 # def _get_mapping(mapping_request: MappingInput, role: str = Depends(check_jwt_token)):
 @mapping_app.post("/mapping", response_model=Mapping, tags=["RC"])
 # def _get_mapping(mapping_request: MappingInput):
-def _get_mapping(mapping_request: MappingInput, role: str = Depends(check_jwt_token)):
+def _get_mapping(mapping_request: MappingInput, role: str = Depends(jwt_token_role)):
     if role != "rc":
-        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Wrong permissions")
+        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail=f"Wrong permissions, role {role} not authorized}")
     # TODO
     # get lender balances from RC-api
     # call fill_loan
