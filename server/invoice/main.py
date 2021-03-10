@@ -57,11 +57,12 @@ def update_invoice(raw_order: Dict, invoice: Invoice):
 update_invoice_db()
 
 # TODO
-# - get all invoices for a given list of ids
+# - get all invoices for a given list of ids DONE
 # - move db-definition into the repo
 # - learn how to deploy it
 # - figure out how to write to the DB DONE
 # - turn enums into strings
+
 # new_shipment_status = code_to_order_status(raw_order.get("status"))
 # if new_shipment_status != code_to_order_status(invoice.shipment_status):
 #     print('new shipment status', new_shipment_status)
