@@ -56,24 +56,46 @@ class TuskerClient:
         # TODO get this from other API
         self.customer_id = GURUGRUPA_CUSTOMER_ID
 
-    def get_latest_invoices(self, invoice_ids: List[str], customer_id: str = ""):
-        # prob we need to add a parameter here to only fetch the latest invoices
-        print("got", invoice_ids)
-        # TODO implement pagination here if len(invoice_ids > 10)
-        c_id = customer_id if customer_id else self.customer_id
+    # def get_latest_orders(self, invoice_ids: List[str], customer_id: str = ""):
+    #     """ should get all invoices since the last time we fetched """
+    #     # prob we need to add a parameter here to only fetch the latest invoices
+    #     print("got", invoice_ids)
+    #     # TODO implement pagination here if len(invoice_ids > 10)
+    #     c_id = customer_id if customer_id else self.customer_id
+    #     raw_orders = []
+    #     while invoice_ids:
+    #         to_be_fetched = invoice_ids[:10]
+    #         del invoice_ids[:10]
+    #         input = {
+    #             "pl": {
+    #                 "c_id": c_id,
+    #                 "o_sts": STATUS_ELIGIBLE_FOR_FINANCING,
+    #                 "pg_no": 1,
+    #                 "size": 10,
+    #                 "s_by": "crt",
+    #                 "s_dir": 0,
+    #                 "ids": to_be_fetched,
+    #             }
+    #         }
+    #         response = requests.post(self.base_url + TUSKER_ORDER_URL, json=input, headers=self.headers)
+    #         if response.status_code == 200:
+    #             orders = response.json().get("pl", {}).get("orders", [])
+    #             raw_orders += orders
+    #         else:
+    #             # TODO implement custom exception class
+    #             raise NotImplementedError(str(response.json()))
+    #     return raw_orders
+
+    def track_orders(self, reference_numbers: List[str], customer_id = ""):
         raw_orders = []
-        while invoice_ids:
-            to_be_fetched = invoice_ids[:10]
-            del invoice_ids[:10]
+        while reference_numbers:
+            # TODO properly understand pagination
+            to_be_fetched = reference_numbers[:10]
+            del reference_numbers[:10]
             input = {
                 "pl": {
-                    "c_id": c_id,
-                    "o_sts": STATUS_ELIGIBLE_FOR_FINANCING,
-                    "pg_no": 1,
-                    "size": 10,
-                    "s_by": "crt",
-                    "s_dir": 0,
-                    "ids": to_be_fetched,
+                    "o_ref_nos": to_be_fetched,
+                    "size": 10
                 }
             }
             response = requests.post(self.base_url + TUSKER_ORDER_URL, json=input, headers=self.headers)

@@ -13,39 +13,26 @@ JWT_SECRET_KEY="someSecretKey"
 A very simple backend with [fastAPI](https://fastapi.tiangolo.com/) to pretend connecting to a DB
 it runs at port 8000
 
-#### Setup:
-- python 3.8
-- create a virtualenv
-- cd server; pip install -r requirements.txt
+### setup 
+a local virtual env running python version 3.8
+
+e.g. using `virtualenv` -library:
+
+setup virtualenv (e.g named 'tenv') and point it to your local executable of python 3.8 like this:
+
+> virtualenv tenv --python=/usr/bin/python3.8
+> source tenv/bin/activate
+> pip install -r requirememts.txt
+
+### test
+
+> make test
 
 #### To start it up
 ``` 
-make dev-api
+make dev-server
 ```
 
 and check out the swagger-docs at http://localhost:8000/docs# (or http://localhost:8000/redoc )
 
 its possible to use the docs link to do simple testing of the APIs via the "TRY IT OUT" button
-
-
-## Frontend
-
-A simple frontend with Next.js + Tyepscript for you that...
-- shows available invoices 
-- shows total Owed (TODO) 
-- can request an invoice to be financed (TODO)
-- has an admin  interface to change the shipment or finance status of the loans (TODO)
-- can add new shipments (TODO)
-
-
-Install all requirements:
-```
-yarn
-```
-
-fire it up:
-```
-make dev-webapp
-```
-
-go to http://localhost:3000/ to see it in action 

@@ -1,0 +1,28 @@
+import datetime as dt
+import pickle
+from datetime import datetime
+from typing import Dict
+
+from db.models import Invoice as InvoiceDBTable
+from utils.common import FinanceStatus, Invoice, LoanTerms, ShipmentStatus, InvoiceFrontendInfo
+from invoice.tusker_client import code_to_order_status
+
+def raw_order_to_price(raw_order: Dict):
+    # TODO handle error
+    return raw_order.get('prc', {}).get('prc_act',0)
+
+
+def raw_order_to_invoice(raw_order: Dict):
+    """ takes a raw order and returns an object that can be displayed by the frontend """
+    return InvoiceFrontendInfo(
+        **{
+            # "data": order_as_string,
+            # "tusker_id": 1,
+            "id": raw_order.get('id'),
+            "value": raw_order_to_price(raw_order),
+            "shipping_status": code_to_order_status[raw_order],
+            "status": FinanceStatus.NONE,
+            "order_ref":raw_order.get('ref_no'),
+            "finance_status":"NONE",
+        }
+    )

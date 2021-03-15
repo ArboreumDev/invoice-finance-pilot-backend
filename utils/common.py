@@ -30,14 +30,25 @@ class CamelModel(BaseModel):
 
 
 class BaseInvoice(CamelModel):
-    id: str
+    invoice_id: str = ""
 
 
 class Invoice(BaseInvoice):
-    amount: int
-    destination: str
+    order_id: str
+    value: int = 1
+    destination: str = ""
     shipping_status: ShipmentStatus = ShipmentStatus.AWAITING_SHIPMENT
     status: FinanceStatus = FinanceStatus.NONE
+    raw: str = ""
+
+
+class InvoiceFrontendInfo(BaseInvoice):
+    order_id: str
+    value: int = 1
+    destination: str = ""
+    shipping_status: ShipmentStatus = ShipmentStatus.AWAITING_SHIPMENT
+    status: FinanceStatus = FinanceStatus.NONE
+
 
 
 class JWTUser(BaseModel):
