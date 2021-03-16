@@ -10,4 +10,4 @@ lint-format:
 	isort server
 
 test: 
-	python -m pytestecho TODO
+	pytest --workers auto
