@@ -88,8 +88,8 @@ def fulfill(
         return x0
 
     # set constraints
-    total_is_loan_amt = lambda x: np.sum(x) - (loan_amount - np.sum(contributions))
-    constraints = {"type": "eq", "fun": total_is_loan_amt}
+    # total_is_loan_amt = lambda x: np.sum(x) - (loan_amount - np.sum(contributions))  # noqa: E731
+    # constraints = {"type": "eq", "fun": total_is_loan_amt}
     lc = optimize.LinearConstraint(np.full([1, N], 1), loan_amount, loan_amount)
 
     # optimizer

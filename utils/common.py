@@ -50,7 +50,6 @@ class InvoiceFrontendInfo(BaseInvoice):
     status: FinanceStatus = FinanceStatus.NONE
 
 
-
 class JWTUser(BaseModel):
     username: str
     password: str

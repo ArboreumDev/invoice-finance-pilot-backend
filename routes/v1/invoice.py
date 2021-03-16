@@ -1,20 +1,13 @@
-import datetime as dt
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException
-from invoice.invoice import invoice_to_terms
-from starlette.status import (HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED,
-                              HTTP_404_NOT_FOUND,
+from fastapi import APIRouter, HTTPException
+from starlette.status import (HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND,
                               HTTP_500_INTERNAL_SERVER_ERROR)
-from utils.common import (BaseInvoice, FinanceStatus, FundAllocation, Invoice,
-                          Listing, CamelModel,InvoiceFrontendInfo)
-from utils.constant import DISBURSAL_EMAIL
-from utils.email import EmailClient, terms_to_email_body
-from utils.security import check_jwt_token
-from utils.invoice import raw_order_to_invoice
-from database.service import invoice_service
 
-from invoice.tusker_client import tusker_client, STATUS_ELIGIBLE_FOR_FINANCING
+from database.service import invoice_service
+from invoice.tusker_client import tusker_client
+from utils.common import CamelModel, Invoice, InvoiceFrontendInfo
+from utils.invoice import raw_order_to_invoice
 
 # ===================== routes ==========================
 invoice_app = APIRouter()
@@ -22,6 +15,7 @@ invoice_app = APIRouter()
 # PLAN
 # /invoice  - Get - fetches all, Update - updates all, Delete - deletes all
 # /invoice/<id>  - Get getches with that index, and so on
+
 
 class OrderRequest(CamelModel):
     order_ids: List[str]
@@ -50,7 +44,7 @@ def _get_invoices_from_db():
     return all invoices that we are currently tracking as they are in our db
     """
     invoices = invoice_service.get_all_invoices()
-    return [ InvoiceFrontendInfo(**inv.dict()) for inv in invoices ]
+    return [InvoiceFrontendInfo(**inv.dict()) for inv in invoices]
 
 
 @invoice_app.post("/invoice/update", response_model=List[Invoice], tags=["invoice"])
@@ -59,10 +53,9 @@ def _update_invoice_db():
     updating the invoices in our DB with the latest data from tusker
     then return them all
     """
-    updates = invoice_service.update_invoice_db()
+    invoice_service.update_invoice_db()
     error = ""
-    for order_id, new_status in updates:
-   if error:
+    if error:
         raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail=error)
     return {"OK"}
 
@@ -73,7 +66,6 @@ def add_new_invoice(order_reference_number: str):
     raw_order = tusker_client.track_orders([order_reference_number])
     if not raw_order:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Unknown order id")
-
 
     result, msg = invoice_service.final_checks(raw_order)
     if not result:
@@ -100,18 +92,18 @@ def add_new_invoice(order_reference_number: str):
 # deprecated
 # @invoice_app.post("/fund", tags=["invoice"])
 # def fund_invoice(input: BaseInvoice, str=Depends(check_jwt_token)):
-    # ========== BASIC CHECKS ==================
-    # # get invoiceInfo
-    # if input.id not in invoices:
-    #     raise HTTPException(HTTP_404_NOT_FOUND, "unknown invoice id")
-    # invoice = invoices[input.id]
-    # if invoice.status != FinanceStatus.NONE:
-    #     raise HTTPException(HTTP_400_BAD_REQUEST, "Invoice not ready to be financed")
-    # # TODO verify that invoice has been uploaded
+# ========== BASIC CHECKS ==================
+# # get invoiceInfo
+# if input.id not in invoices:
+#     raise HTTPException(HTTP_404_NOT_FOUND, "unknown invoice id")
+# invoice = invoices[input.id]
+# if invoice.status != FinanceStatus.NONE:
+#     raise HTTPException(HTTP_400_BAD_REQUEST, "Invoice not ready to be financed")
+# # TODO verify that invoice has been uploaded
 
-    # # ========== change status of invoice in DB ==================
-    # invoice.status = FinanceStatus.FINANCED
-    # return {"status": "Request has been sent"}
+# # ========== change status of invoice in DB ==================
+# invoice.status = FinanceStatus.FINANCED
+# return {"status": "Request has been sent"}
 
 
 # OPEN ?
