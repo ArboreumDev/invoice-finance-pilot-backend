@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, FastAPI, HTTPException
 from pydantic import BaseModel
 from starlette.status import HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED
+
 from utils.common import Mapping, MappingInput
 from utils.fullfill_loan import fulfill
 from utils.rupeecircle_client import rc_client

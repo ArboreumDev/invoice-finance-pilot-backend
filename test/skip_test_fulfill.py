@@ -4,6 +4,7 @@ from typing import Any, Dict
 
 import numpy as np
 import scipy as sp
+
 from utils.fullfill_loan import fulfill
 
 
@@ -83,6 +84,7 @@ def test_edge_case():
 
 
 test_edge_case()
+
 
 # %% Test if failure is as desired
 def test_failure_case():

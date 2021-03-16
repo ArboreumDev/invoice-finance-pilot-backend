@@ -2,6 +2,7 @@
 from typing import List
 
 import requests
+
 from utils.constant import GURUGRUPA_CUSTOMER_ID
 
 # TODO save thie in .env
@@ -86,18 +87,13 @@ class TuskerClient:
     #             raise NotImplementedError(str(response.json()))
     #     return raw_orders
 
-    def track_orders(self, reference_numbers: List[str], customer_id = ""):
+    def track_orders(self, reference_numbers: List[str], customer_id=""):
         raw_orders = []
         while reference_numbers:
             # TODO properly understand pagination
             to_be_fetched = reference_numbers[:10]
             del reference_numbers[:10]
-            input = {
-                "pl": {
-                    "o_ref_nos": to_be_fetched,
-                    "size": 10
-                }
-            }
+            input = {"pl": {"o_ref_nos": to_be_fetched, "size": 10}}
             response = requests.post(self.base_url + TUSKER_ORDER_URL, json=input, headers=self.headers)
             if response.status_code == 200:
                 orders = response.json().get("pl", {}).get("orders", [])
