@@ -1,6 +1,7 @@
 import datetime as dt
 from enum import Enum
-from typing import Dict, List
+from typing import Dict, List, Tuple
+from common.loan import (Repayment as Payment, RepaymentDate as PaymentDate)
 
 from humps import camelize
 from pydantic import BaseModel
@@ -82,3 +83,51 @@ class MappingInput(CamelModel):
 
 class Mapping(CamelModel):
     allocations: Dict[str, float]
+
+
+class BasicTerms(CamelModel):
+    loan_amount: float
+    start_date: dt.datetime
+    loan_type: str
+
+
+class ScheduleInput(CamelModel):
+    terms: BasicTerms
+    disbursals: List[Payment]
+    made_repayments: List[Payment]
+    collection_dates: List[PaymentDate]
+
+class RepaymentBreakdown(CamelModel):
+    total: float
+    principal: float
+    interest: float
+    penalty: float
+
+class ScheduleOutput(CamelModel):
+    scheduled_repayments: List[Tuple[RepaymentBreakdown, PaymentDate]]
+
+class BasicScheduleOutput(CamelModel):
+    repayments: List[float]
+    
+
+class CouponType(str, Enum):
+    STANDARD = "STANDARD"
+    BALLOON = "BALLOON"
+ 
+
+class BasicCouponInput(CamelModel):
+    principal: float
+    apr: float
+    loan_tenor: int
+    collection_frequency: int
+    previous_payments: List[float]
+    collection_dates: List[float] = []
+    apr_penalty: float = 0
+    annual_compound_periods: int = 12
+    collection_frequency: int = 1
+    balloon_params: List[Tuple[float, str]] = []
+    coupon_type: CouponType = CouponType.STANDARD
+
+class BasicCouponOutput(CamelModel):
+    coupon: Dict
+

@@ -1,9 +1,10 @@
 import copy
 import logging
-from typing import List
+from typing import List, Dict, Any, Tuple
 
 import numpy as np
 import pandas as pd
+import datetime as dt
 
 from common.constant import (DEFAULT_DISCOUNT_APR,
                                      DEFAULT_PRECISION_MATH_OPERATIONS,
@@ -14,7 +15,7 @@ from common.loan import LoanScheduleSummary
 from common.system import PaymentSplit, RepaymentBreakdown
 from common.util import APR
 from loan.baseloan import BaseLoan
-from loan.coupon import Coupon
+from loan.couponTypes import generate_coupon
 from loan.LoanMath import LoanMath
 
 logging.basicConfig(filename="loan_schedule.log", level=logging.DEBUG)
@@ -35,12 +36,19 @@ class Loan(BaseLoan):
         penalty_APR: float,
         sprt_lag: int = DEFAULT_SUPPORTER_LAG,
         discount_APR: float = DEFAULT_DISCOUNT_APR,
+        subsprt_info: Dict={},
+        balloon_params: Any = (0.5,'pct_balloon'), 
         max_slope: float = np.inf,
-        annual_cmpnd_prds: float = 12,
-        id="",
+        annual_cmpnd_prds: int = 12,
         collection_freq: int = 1,
+        collection_dates: List[dt.datetime] = [],
+        id="",
     ):
         """
+        The Loan represents the atomistic unit of all debt in our system--all debt is mapped to a loan
+        and all loans are dispersed to many lenders. In Loan we take the coupon and layer on the "idiosyncratic"
+        parameters of borrower collateral, encumbrances of the supporter, etc to product the final loan schedule
+
         Parameters
         ----------
         corp_APR     (float): annual percentage rate for corpus as decimal, in [0,1]
@@ -55,17 +63,25 @@ class Loan(BaseLoan):
         penalty_APR  (float): addition to APR for late payments (not implemented yet), in [0,1]
         sprt_lag       (int): lag in payments to supporters
         discount_APR (float): discount rate, [0,1]
-        max_slope    (float): max allowable slope that payment adjusts between tranches
-                             (can set to 0 if want vanilla schedule)
-        annual_cmpnd_prds (int): number of compounding periods per year
+        subsprt_info (Dict): Loans can be stacked into multiple tranches through this parameter (see coupon.pu)
+        balloon_params (Any): Loan can have a balloon payment, this is parameterized by a tuple with the appropriate parameters
+                              or a float value <1  and a string indicating if it represents the %principal of the balloon payment
+                              or the % of the principal that the minimum payment per month should be til the end
+        max_slope (float): max allowable slope that payment adjusts between tranches
+                           (can set to 0 if want vanilla schedule)
+        annual_cmpnd_prds (int):  number of compounding periods per year of 360 days (i.e 360=daily compounding)
+        collection_freq (int): number compounding periods per collection (e.g. 30 if daily compounding and monthly collection),
+        collection_dates (List[dt.datetime]): collection dates for repayments, first date in list should be disbursal data
+        id (Any): unique ID of Loan,
 
         Methods
         -------
-
-        calc_coupon : static method to update coupon (never needs to be called ideally)
-        calc_schedule : computes the loan schedule (automatically executed when repayments is non-empty)
-        to_dict : bundles relevant attributes into a named dict
+        calc_schedule : at the heart of the clss, computes the schedule(automatically executed when repayments is non-empty)
+        update (repayments) : use this method to update the object when new repayments occur
+        summarize_schedule (actor): produces a dataframe with summary info for the various actors of the loan (borrower, supporter lenders, corpus lenders)
+        fetch_repayment_amount (period or date): given a period or date (if loan was parameterized with repayment dates) gives the amount due, and full repay
         """
+
         BaseLoan.__init__(self, loan_amount=loan_amt, tenor=loan_tnr, repayments=repayments, id=id)
 
         # self._logger = logging.getLogger(self.__class__.__name__)
@@ -79,43 +95,28 @@ class Loan(BaseLoan):
         self.sprt_lag = max(1, sprt_lag)  # this minimum needs to be 1 for now (0 handled a bit differently)
         self.corp_APR = corp_APR
         self.sprt_APR = sprt_APR
-        self.penalty_APR = penalty_APR
         self.discount_APR = discount_APR
         self.loan_amt = loan_amt
         self.sprt_shr = sprt_shr
         self.sprt_cash_encumbr = sprt_cash_encumbr
         self.sprt_ptfl_encumbr = sprt_ptfl_encumbr
         self.brw_collateral = brw_collateral
+
+        # info needed only for coupon
+        self.penalty_APR = penalty_APR
         self.annual_cmpnd_prds = annual_cmpnd_prds
         self.max_slope = max_slope
         self.collection_freq = collection_freq
+        self.subsprt_info = subsprt_info
+        self.balloon_params = balloon_params
+        self.collection_dates = collection_dates
 
         # initial coupon terms (this is what should happen if all borrower pays according to pmnt_init every period)
         self.corp_prcp_outstand_init = loan_amt * (1 - sprt_shr)
         self.sprt_prcp_outstand_init = loan_amt * (sprt_shr)
 
-        # calculated quantities
-        self.corp_PPR = corp_APR / annual_cmpnd_prds  # corpus period percentage rate
-        self.sprt_PPR = sprt_APR / annual_cmpnd_prds  # support period percentage rate
-        self.disc_PPR = discount_APR / annual_cmpnd_prds  # period discount rate
-        self.pnlt_PPR = penalty_APR / annual_cmpnd_prds
-
         # initialize coupon (core math logic here)
-        self.coupon = Coupon(
-            prcp_corp=self.loan_amt * (1 - self.sprt_shr),
-            prcp_sprt=self.loan_amt * (self.sprt_shr),
-            APR_corp=self.corp_APR,
-            APR_sprt=self.sprt_APR,
-            loan_tnr=loan_tnr,
-            prv_pmnts_corp=[],
-            prv_pmnts_sprt=[],
-            APR_pnlt=self.penalty_APR,
-            max_slope=self.max_slope,
-            sig_figs_2rnd=self.sig_figs_2rnd,
-            annual_cmpnd_prds=self.annual_cmpnd_prds,
-            collection_freq=self.collection_freq,
-            baloonyness=1
-        )
+        self._init_coupon()
 
         # initalize schedule
         self.repayments = []  # [repayments]
@@ -123,9 +124,9 @@ class Loan(BaseLoan):
         self.amt_repaid = 0  # np.sum(repayments)  # total amount repaid
         self.prds_concld = 0  # len(repayments)  # periods concluded
         self.prds_remain = self.loan_tnr - self.prds_concld  # periods remaining
-        self.schedule_DF = self._init_pmnt_schedule()
-        self.allocate_DF = self._init_allocation_tbl()
-
+        self._init_pmnt_schedule()
+        self._init_allocation_tbl()
+        
         # initial payment
         self.pmnt_init = self.coupon.corp_collect_current + self.coupon.sprt_collect_current
 
@@ -148,7 +149,52 @@ class Loan(BaseLoan):
         # self._logger.info("Instantiated")
         # self._logger.info(vars(self))
 
+    def _init_coupon(self,prv_pmnts_corp=[],prv_pmnts_sprt=[]):
+        """
+        initializes the coupon object that is the brains of the Loan
+        
+        Parameters
+        ----------
+        prv_pmnts_corp (List[float]): all previous payments to the corpus tranche
+        prv_pmnts_sprt (List[float]): all previous payments to the supporter tranche
+
+        Returns 
+        -------
+        sets coupon object, returns nothing
+        """
+        
+        if self.balloon_params is not None:
+            self.coupon_type = 'balloon'
+        else:
+            self.coupon_type = 'standard'
+
+        # initialize coupon (core math logic here)  
+        self.coupon = generate_coupon(
+                prcp_corp=self.loan_amt * (1 - self.sprt_shr),
+                prcp_sprt=self.loan_amt * (self.sprt_shr),
+                APR_corp=self.corp_APR,
+                APR_sprt=self.sprt_APR,
+                loan_tnr=self.orig_loan_tnr,
+                prv_pmnts_corp=prv_pmnts_corp,
+                prv_pmnts_sprt=prv_pmnts_sprt,
+                balloon_params = self.balloon_params,
+                APR_pnlt=self.penalty_APR,
+                max_slope=self.max_slope,
+                subsprt_info=self.subsprt_info,
+                sig_figs_2rnd=self.sig_figs_2rnd,
+                annual_cmpnd_prds=self.annual_cmpnd_prds,
+                collection_freq=self.collection_freq,
+                collection_dates=self.collection_dates,
+                coupon_type = self.coupon_type)
+    
     def _init_pmnt_schedule(self):
+        """
+        initializes the dataframe with the loan schedule
+
+        Returns 
+        -------
+        sets schedule_DF, returns nothing
+        """
 
         # dataframe to store payment schedule
         pmntTypes = [
@@ -233,11 +279,19 @@ class Loan(BaseLoan):
         schedule_DF.at["brw_colt_remain", :] = self.brw_collateral
         schedule_DF.at["brw_colt_used", :] = 0
 
-        schedule_DF = self._update_schedule_from_coupon(0, schedule_DF)
-        return schedule_DF.fillna(0)
+        self.schedule_DF = schedule_DF
+        self._update_schedule_from_coupon(0)
 
     def _init_allocation_tbl(self):
-
+        """
+        initializes the allocation table where incoming funds are allocated in descending order according
+        to the indx variable in this function (i.e. funds cascade downwards filling each bucket)
+        see fill_helper function to understand more
+        
+        Returns
+        -------
+        allocate_DF
+        """
         # Create dataframe to store allocation results (simply called df for now)
         indx = [
             "corp_prcp_backlog",
@@ -272,9 +326,17 @@ class Loan(BaseLoan):
         df.at["sprt_ptfl_owed_curr", (1, "owed")] = self.sprt_ptfl_encumbr  # portfolio encumbrance
         df.at["sprt_cash_owed_curr", (1, "owed")] = self.sprt_cash_encumbr  # cash encumbrance
 
-        return df
+        self.allocate_DF = df
 
-    def _update_schedule_from_coupon(self, indx, schedule_DF, finalize=False):
+    def _update_schedule_from_coupon(self, indx, finalize=False):
+        """
+        updates the schedule for the period set by indx (period 1 = indx 1)
+        usually coupon object is newly updated before this is called
+
+        Parameters
+        ----------
+        indx (int): period of loan
+        """
 
         # function to help calculate IRR
         def IRR_helper(all_exp_payments, APR, principal):
@@ -292,79 +354,88 @@ class Loan(BaseLoan):
             indx += -1
 
         # update IRR
-        schedule_DF.at["corp_IRR", indx] = IRR_helper(
-            self.coupon.corp_pmnt_perCollect, self.corp_APR, self.loan_amt * (1 - self.sprt_shr)
-        )
-        schedule_DF.at["sprt_IRR", indx] = IRR_helper(
-            self.coupon.sprt_pmnt_perCollect, self.sprt_APR, self.loan_amt * (self.sprt_shr)
-        )
-        schedule_DF.at["totl_IRR", indx] = IRR_helper(
-            self.coupon.corp_pmnt_perCollect + self.coupon.sprt_pmnt_perCollect, 0, self.loan_amt
-        )
+        self.schedule_DF.at["corp_IRR", indx] = \
+            IRR_helper(self.coupon.corp_pmnt_perCollect, self.corp_APR, self.loan_amt * (1 - self.sprt_shr))
+        self.schedule_DF.at["sprt_IRR", indx] = \
+            IRR_helper(self.coupon.sprt_pmnt_perCollect, self.sprt_APR, self.loan_amt * (self.sprt_shr))
+        self.schedule_DF.at["totl_IRR", indx] = \
+            IRR_helper(self.coupon.corp_pmnt_perCollect + self.coupon.sprt_pmnt_perCollect, 0, self.loan_amt)
 
         # set outstanding principal
-        schedule_DF.at["corp_prcp_outstand_4brw", indx] = self.coupon.corp_prcp_owed
-        schedule_DF.at["sprt_prcp_outstand_4brw", indx] = self.coupon.sprt_prcp_owed
+        self.schedule_DF.at["corp_prcp_outstand_4brw", indx] = self.coupon.corp_prcp_owed
+        self.schedule_DF.at["sprt_prcp_outstand_4brw", indx] = self.coupon.sprt_prcp_owed
         if indx == 0:
-            schedule_DF.at["corp_prcp_outstand_4corp", indx] = self.coupon.corp_prcp_owed
-            schedule_DF.at["sprt_prcp_outstand_4sprt", indx] = self.coupon.sprt_prcp_owed
+            self.schedule_DF.at["corp_prcp_outstand_4corp", indx] = self.coupon.corp_prcp_owed
+            self.schedule_DF.at["sprt_prcp_outstand_4sprt", indx] = self.coupon.sprt_prcp_owed
         else:
-            schedule_DF.at["corp_prcp_outstand_4corp", indx] = (
-                schedule_DF.loc["corp_prcp_outstand_4corp", (indx - 1)] - schedule_DF.loc["corp_prcp_paid_actual", indx]
-            )
-            schedule_DF.at["sprt_prcp_outstand_4sprt", indx] = (
-                schedule_DF.loc["sprt_prcp_outstand_4sprt", (indx - 1)] - schedule_DF.loc["sprt_prcp_paid_actual", indx]
-            )
+            self.schedule_DF.at["corp_prcp_outstand_4corp", indx] = \
+                self.schedule_DF.at["corp_prcp_outstand_4corp", (indx - 1)] \
+                - self.schedule_DF.at["corp_prcp_paid_actual", indx]
+            
+            self.schedule_DF.at["sprt_prcp_outstand_4sprt", indx] = \
+                self.schedule_DF.at["sprt_prcp_outstand_4sprt", (indx - 1)] \
+                - self.schedule_DF.at["sprt_prcp_paid_actual", indx]
 
         # update outstanding interest and principal to observe limits
-        if schedule_DF.at["corp_prcp_outstand_4corp", indx] < 0:
-            schedule_DF.at["corp_intr_outstand_4corp", indx] += -schedule_DF.loc["corp_prcp_outstand_4corp", indx]
-            schedule_DF.at["corp_prcp_outstand_4corp", indx] = 0
-        if schedule_DF.at["sprt_prcp_outstand_4sprt", indx] < 0:
-            schedule_DF.at["sprt_intr_outstand_4sprt", indx] += -schedule_DF.loc["sprt_prcp_outstand_4sprt", indx]
-            schedule_DF.at["sprt_prcp_outstand_4sprt", indx] = 0
-        if schedule_DF.at["corp_intr_outstand_4corp", indx] < 0:
-            schedule_DF.at["corp_prcp_outstand_4corp", indx] += schedule_DF.loc["corp_intr_outstand_4corp", indx]
-            schedule_DF.at["corp_intr_outstand_4corp", indx] = 0
-        if schedule_DF.at["sprt_intr_outstand_4sprt", indx] < 0:
-            schedule_DF.at["sprt_prcp_outstand_4sprt", indx] += schedule_DF.loc["sprt_intr_outstand_4sprt", indx]
-            schedule_DF.at["sprt_intr_outstand_4sprt", indx] = 0
+        if self.schedule_DF.at["corp_prcp_outstand_4corp", indx] < 0:
+            self.schedule_DF.at["corp_intr_outstand_4corp", indx] += -self.schedule_DF.at["corp_prcp_outstand_4corp", indx]
+            self.schedule_DF.at["corp_prcp_outstand_4corp", indx] = 0
+        if self.schedule_DF.at["sprt_prcp_outstand_4sprt", indx] < 0:
+            self.schedule_DF.at["sprt_intr_outstand_4sprt", indx] += -self.schedule_DF.at["sprt_prcp_outstand_4sprt", indx]
+            self.schedule_DF.at["sprt_prcp_outstand_4sprt", indx] = 0
+        if self.schedule_DF.at["corp_intr_outstand_4corp", indx] < 0:
+            self.schedule_DF.at["corp_prcp_outstand_4corp", indx] += self.schedule_DF.at["corp_intr_outstand_4corp", indx]
+            self.schedule_DF.at["corp_intr_outstand_4corp", indx] = 0
+        if self.schedule_DF.at["sprt_intr_outstand_4sprt", indx] < 0:
+            self.schedule_DF.at["sprt_prcp_outstand_4sprt", indx] += self.schedule_DF.at["sprt_intr_outstand_4sprt", indx]
+            self.schedule_DF.at["sprt_intr_outstand_4sprt", indx] = 0
 
         # set outstanding interest
-        schedule_DF.at["corp_intr_outstand_4brw", indx] = self.coupon.corp_intr_owed
-        schedule_DF.at["sprt_intr_outstand_4brw", indx] = self.coupon.sprt_intr_owed
-        schedule_DF.at["corp_intr_outstand_4corp", indx] = schedule_DF.loc["corp_intr_outstand_4brw", indx] + (
-            schedule_DF.loc["corp_prcp_outstand_4brw", indx] - schedule_DF.loc["corp_prcp_outstand_4corp", indx]
-        )
-
-        schedule_DF.at["sprt_intr_outstand_4sprt", indx] = schedule_DF.loc["sprt_intr_outstand_4brw", indx] + (
-            schedule_DF.loc["sprt_prcp_outstand_4brw", indx] - schedule_DF.loc["sprt_prcp_outstand_4sprt", indx]
-        )
+        self.schedule_DF.at["corp_intr_outstand_4brw", indx] = self.coupon.corp_intr_owed
+        self.schedule_DF.at["sprt_intr_outstand_4brw", indx] = self.coupon.sprt_intr_owed
+        self.schedule_DF.at["corp_intr_outstand_4corp", indx] = self.schedule_DF.at["corp_intr_outstand_4brw", indx] \
+                                                                + self.schedule_DF.at["corp_prcp_outstand_4brw", indx] \
+                                                                - self.schedule_DF.at["corp_prcp_outstand_4corp", indx]
+        self.schedule_DF.at["sprt_intr_outstand_4sprt", indx] = self.schedule_DF.at["sprt_intr_outstand_4brw", indx] \
+                                                                + self.schedule_DF.at["sprt_prcp_outstand_4brw", indx] \
+                                                                - self.schedule_DF.at["sprt_prcp_outstand_4sprt", indx]
+        
         if indx < self.loan_tnr:
             # expected payments for next period
-            schedule_DF.at["corp_prcp_2pay_ideal", indx + 1] = self.coupon.corp_prcp_perCollect[indx]
-            schedule_DF.at["corp_intr_2pay_ideal", indx + 1] = self.coupon.corp_intr_perCollect[indx]
-            schedule_DF.at["sprt_prcp_2pay_ideal", indx + 1] = self.coupon.sprt_prcp_perCollect[indx]
-            schedule_DF.at["sprt_intr_2pay_ideal", indx + 1] = self.coupon.sprt_intr_perCollect[indx]
-            schedule_DF.at["corp_pnlt_2pay_ideal", indx] = self.coupon.corp_pnlt_perCollect[indx - 1]
-            schedule_DF.at["sprt_pnlt_2pay_ideal", indx] = self.coupon.sprt_pnlt_perCollect[indx - 1]
-            schedule_DF.at["brw_2pay_ideal", indx + 1] = (
-                self.coupon.corp_collect_current + self.coupon.sprt_collect_current
-            )
-            schedule_DF.at["brw_2pay_finish", indx + 1] = (
-                self.coupon.corp_collect_full_repay + self.coupon.sprt_collect_full_repay
-            )
-        return schedule_DF
+            self.schedule_DF.at["corp_prcp_2pay_ideal", indx + 1] = self.coupon.corp_prcp_perCollect[indx]
+            self.schedule_DF.at["corp_intr_2pay_ideal", indx + 1] = self.coupon.corp_intr_perCollect[indx]
+            self.schedule_DF.at["sprt_prcp_2pay_ideal", indx + 1] = self.coupon.sprt_prcp_perCollect[indx]
+            self.schedule_DF.at["sprt_intr_2pay_ideal", indx + 1] = self.coupon.sprt_intr_perCollect[indx]
+            self.schedule_DF.at["corp_pnlt_2pay_ideal", indx] = self.coupon.corp_pnlt_perCollect[indx - 1]
+            self.schedule_DF.at["sprt_pnlt_2pay_ideal", indx] = self.coupon.sprt_pnlt_perCollect[indx - 1]
+            self.schedule_DF.at["brw_2pay_ideal", indx + 1] = self.coupon.corp_collect_current \
+                                                              + self.coupon.sprt_collect_current
+            self.schedule_DF.at["brw_2pay_finish", indx + 1] = self.coupon.corp_collect_full_repay \
+                                                               + self.coupon.sprt_collect_full_repay
+            
+    def _next_allocations_from_coupon(self, indx, df, update_next_prd=True):
+        """
+        the newly updated coupon also gives us information on what are the amounts due in the next period
+        the allocation dataframe is updated with these new amount for the next loan period
 
-    def _next_allocations_from_coupon(self, indx, df, schedule_DF, update_next_prd=True):
+        Parameters
+        ----------
+        indx (int): period of loan
+        df (dataframe): allocation dataframe
+
+        Returns
+        -------
+        updated allocate_DF
+        """
+
         # we need to adjust--moving some amounts into interest vs principal
         # because for borrowers interest is paid first vs principal
         # vise versa for lenders -- that is why a difference in principal oustanding for borrowers vs lenders
-        corp_prcp_adjust_coef = min(
-            1, schedule_DF.loc["corp_prcp_outstand_4corp", indx] / schedule_DF.loc["corp_prcp_outstand_4brw", indx]
+        corp_prcp_adjust_coef = min(1, 
+            self.schedule_DF.at["corp_prcp_outstand_4corp", indx] / self.schedule_DF.at["corp_prcp_outstand_4brw", indx]
         )
-        sprt_prcp_adjust_coef = min(
-            1, schedule_DF.loc["sprt_prcp_outstand_4sprt", indx] / schedule_DF.loc["sprt_prcp_outstand_4brw", indx]
+        sprt_prcp_adjust_coef = min(1, 
+            self.schedule_DF.at["sprt_prcp_outstand_4sprt", indx] / self.schedule_DF.at["sprt_prcp_outstand_4brw", indx]
         )
 
         df_indx = indx + update_next_prd
@@ -393,7 +464,18 @@ class Loan(BaseLoan):
 
         return df
 
-    def _breakdown_sprt_pmnt_sent2corp_i(self, indx, schedule_DF, sprt_pmnt_sent2corp_i):
+    def _breakdown_sprt_pmnt_sent2corp_i(self, indx, sprt_pmnt_sent2corp_i):
+        """
+        supporter payments are withheld for a period defined by sprt_lag
+        they are used as collateral for the corpus when there is a payment shortfall
+        in the advent that happens we need to break down what amount of the payment in escrow that is
+        used to cover the shortfall was interest vs principal paid by the borrower to the supporter
+        
+        Parameters
+        ----------
+        indx (int): period of loan
+        sprt_pmnt_sent2corp_i (float): amount sent to corpus to cover shortfall
+        """
 
         # helper function that defines amount filled and amount remaining
         def fill_helper(amt_2_fill, amt_on_hand):
@@ -406,15 +488,25 @@ class Loan(BaseLoan):
         if sprt_pmnt_sent2corp_i > 0:
 
             # total principal and interest being witheld
-            tot_sprt_prcp_withheld = schedule_DF.loc["sprt_prcp_paid_actual", (indx - self.sprt_lag) : (indx - 1)].sum()
-            tot_sprt_intr_withheld = schedule_DF.loc["sprt_intr_paid_actual", (indx - self.sprt_lag) : (indx - 1)].sum()
+            tot_sprt_prcp_withheld = self.schedule_DF.loc["sprt_prcp_paid_actual", (indx - self.sprt_lag) : (indx - 1)].sum()
+            tot_sprt_intr_withheld = self.schedule_DF.loc["sprt_intr_paid_actual", (indx - self.sprt_lag) : (indx - 1)].sum()
 
             sprt_intr, remainder = fill_helper(tot_sprt_intr_withheld, sprt_pmnt_sent2corp_i)
             sprt_prcp, remainder = fill_helper(tot_sprt_prcp_withheld, remainder)
 
         return sprt_prcp, sprt_intr
 
-    def _update_schedule_from_allocations(self, indx, df, schedule_DF, sprt_pmnt_sent2corp, finalize=False):
+    def _update_schedule_from_allocations(self, indx, df, sprt_pmnt_sent2corp, finalize=False):
+        """
+        once the allocate_DF has been updated by the coupon we need to use that info to update the schedule
+
+        Parameters
+        ----------
+        indx (int): period of loan
+        df (dataframe): allocation datarame
+        sprt_pmnt_sent2corp (float): any supporter repayments held in escrow and sent to corpus to cover downfall for the period
+        """
+
 
         # encumbered cash that's been used
         cash_encumb_brw_from_sprt = (
@@ -429,7 +521,7 @@ class Loan(BaseLoan):
         )
 
         # amount to pay to supporter
-        sprt_2pay_now = df.loc["sprt_pmnt_backlog", (indx, "filled")]
+        sprt_2pay_now = df.at["sprt_pmnt_backlog", (indx, "filled")]
 
         # amount to withhold from supporter
         sprt_pay_withheld = df.loc[["sprt_prcp_current", "sprt_intr_current"], (indx, "filled")].sum()
@@ -438,19 +530,18 @@ class Loan(BaseLoan):
         corp_paid_actual = df.loc[["corp_prcp_current", "corp_intr_current"], (indx, "filled")].sum()
 
         # corpus principal
-        corp_prcp_paid_actual = df.loc["corp_prcp_current", (indx, "filled")]
+        corp_prcp_paid_actual = df.at["corp_prcp_current", (indx, "filled")]
 
         # corpus interest
-        corp_intr_paid_actual = df.loc["corp_intr_current", (indx, "filled")]
+        corp_intr_paid_actual = df.at["corp_intr_current", (indx, "filled")]
 
         # breakdown sprt_pmnt_sent2corp
-        sprt_prcp_sent2corp_i, sprt_intr_sent2corp_i = self._breakdown_sprt_pmnt_sent2corp_i(
-            indx, schedule_DF, sprt_pmnt_sent2corp[indx - 1]
-        )
+        sprt_prcp_sent2corp_i, sprt_intr_sent2corp_i = \
+            self._breakdown_sprt_pmnt_sent2corp_i(indx, sprt_pmnt_sent2corp[indx - 1])
 
         # supporter principal
         sprt_prcp_paid_actual = (
-            df.loc["sprt_prcp_current", (indx, "filled")]
+            df.at["sprt_prcp_current", (indx, "filled")]
             - cash_encumb_brw_from_sprt[indx - 1]
             - ptfl_encumb_brw_from_sprt[indx - 1]
             - sprt_prcp_sent2corp_i
@@ -458,28 +549,35 @@ class Loan(BaseLoan):
         # [indx-1] is because of numpy vs pandas indexing
 
         # supporter interest
-        sprt_intr_paid_actual = df.loc["sprt_intr_current", (indx, "filled")] - sprt_intr_sent2corp_i
+        sprt_intr_paid_actual = df.at["sprt_intr_current", (indx, "filled")] - sprt_intr_sent2corp_i
 
         if finalize:
-            schedule_DF.at["sprt_2pay_now", indx - 1] += sprt_2pay_now + sprt_pay_withheld
-            schedule_DF.at["sprt_paid_withheld", indx - 1] = 0
-            schedule_DF.at["corp_paid_actual", indx - 1] += corp_paid_actual
-            schedule_DF.at["corp_prcp_paid_actual", indx - 1] += corp_prcp_paid_actual
-            schedule_DF.at["corp_intr_paid_actual", indx - 1] += corp_intr_paid_actual
-            schedule_DF.at["sprt_prcp_paid_actual", indx - 1] += sprt_prcp_paid_actual
-            schedule_DF.at["sprt_intr_paid_actual", indx - 1] += sprt_intr_paid_actual
+            self.schedule_DF.at["sprt_2pay_now", indx - 1] += sprt_2pay_now + sprt_pay_withheld
+            self.schedule_DF.at["sprt_paid_withheld", indx - 1] = 0
+            self.schedule_DF.at["corp_paid_actual", indx - 1] += corp_paid_actual
+            self.schedule_DF.at["corp_prcp_paid_actual", indx - 1] += corp_prcp_paid_actual
+            self.schedule_DF.at["corp_intr_paid_actual", indx - 1] += corp_intr_paid_actual
+            self.schedule_DF.at["sprt_prcp_paid_actual", indx - 1] += sprt_prcp_paid_actual
+            self.schedule_DF.at["sprt_intr_paid_actual", indx - 1] += sprt_intr_paid_actual
         else:
-            schedule_DF.at["sprt_2pay_now", indx] = sprt_2pay_now
-            schedule_DF.at["sprt_paid_withheld", indx] = sprt_pay_withheld
-            schedule_DF.at["corp_paid_actual", indx] = corp_paid_actual
-            schedule_DF.at["corp_prcp_paid_actual", indx] = corp_prcp_paid_actual
-            schedule_DF.at["corp_intr_paid_actual", indx] = corp_intr_paid_actual
-            schedule_DF.at["sprt_prcp_paid_actual", indx] = sprt_prcp_paid_actual
-            schedule_DF.at["sprt_intr_paid_actual", indx] = sprt_intr_paid_actual
+            self.schedule_DF.at["sprt_2pay_now", indx] = sprt_2pay_now
+            self.schedule_DF.at["sprt_paid_withheld", indx] = sprt_pay_withheld
+            self.schedule_DF.at["corp_paid_actual", indx] = corp_paid_actual
+            self.schedule_DF.at["corp_prcp_paid_actual", indx] = corp_prcp_paid_actual
+            self.schedule_DF.at["corp_intr_paid_actual", indx] = corp_intr_paid_actual
+            self.schedule_DF.at["sprt_prcp_paid_actual", indx] = sprt_prcp_paid_actual
+            self.schedule_DF.at["sprt_intr_paid_actual", indx] = sprt_intr_paid_actual
 
-        return schedule_DF
+    def _calc_encumbrances_update_schedule(self, indx, df, finalize=False):
+        """
+        once the allocation dataframe is updated the encumbrances of the supporter and borrower collateral
+        (all various collaterals for the corpus) must be updated in the schedule
 
-    def _calc_encumbrances_update_schedule(self, indx, df, schedule_DF, finalize=False):
+        Parameters
+        ----------
+        indx (int): period of loan
+        df (dataframe): allocation datarame
+        """
 
         # helper function that defines amount filled and amount remaining
         def fill_helper(amt_2_fill, amt_on_hand):
@@ -527,33 +625,33 @@ class Loan(BaseLoan):
         if finalize:
             indx += -1
 
-            schedule_DF.at["sprt_cash_unencumbr", indx] += sprt_cash_unencumbr
-            schedule_DF.at["sprt_ptfl_unencumbr", indx] += sprt_ptfl_unencumbr
+            self.schedule_DF.at["sprt_cash_unencumbr", indx] += sprt_cash_unencumbr
+            self.schedule_DF.at["sprt_ptfl_unencumbr", indx] += sprt_ptfl_unencumbr
 
             # at last period release all encumbrances
-            schedule_DF.at["sprt_cash_unencumbr", indx] += sprt_cash_on_hand
-            schedule_DF.at["sprt_cash_remain", indx] = 0
-            schedule_DF.at["sprt_ptfl_unencumbr", indx] += sprt_ptfl_on_hand
-            schedule_DF.at["sprt_ptfl_remain", indx] = 0
+            self.schedule_DF.at["sprt_cash_unencumbr", indx] += sprt_cash_on_hand
+            self.schedule_DF.at["sprt_cash_remain", indx] = 0
+            self.schedule_DF.at["sprt_ptfl_unencumbr", indx] += sprt_ptfl_on_hand
+            self.schedule_DF.at["sprt_ptfl_remain", indx] = 0
 
             # update borrower collateral
-            schedule_DF.at["brw_colt_send2corp", indx] = (
+            self.schedule_DF.at["brw_colt_send2corp", indx] = (
                 self.corp_amt_paid_perPrd[indx + 1]
                 - delta["sprt_cash_owed_curr"]
                 - delta["sprt_ptfl_owed_curr"]
-                - schedule_DF.at["sprt_pmnt_send2corp", indx]
+                - self.schedule_DF.at["sprt_pmnt_send2corp", indx]
             )
-            schedule_DF.at["brw_colt_send2sprt", indx] = self.sprt_amt_paid_perPrd[indx + 1]
-            schedule_DF.at["brw_colt_remain", indx] = df.loc["brw_collateral_owed_curr", (indx + 1, "filled")]
-            schedule_DF.at["brw_colt_used", indx] = (
-                df.loc["brw_collateral_owed_curr", (indx + 1, "owed")]
-                - df.loc["brw_collateral_owed_curr", (indx + 1, "filled")]
+            self.schedule_DF.at["brw_colt_send2sprt", indx] = self.sprt_amt_paid_perPrd[indx + 1]
+            self.schedule_DF.at["brw_colt_remain", indx] = df.at["brw_collateral_owed_curr", (indx + 1, "filled")]
+            self.schedule_DF.at["brw_colt_used", indx] = (
+                df.at["brw_collateral_owed_curr", (indx + 1, "owed")]
+                - df.at["brw_collateral_owed_curr", (indx + 1, "filled")]
             )
         else:
-            schedule_DF.at["sprt_cash_unencumbr", indx] = sprt_cash_unencumbr
-            schedule_DF.at["sprt_cash_remain", indx] = sprt_cash_on_hand
-            schedule_DF.at["sprt_ptfl_unencumbr", indx] = sprt_ptfl_unencumbr
-            schedule_DF.at["sprt_ptfl_remain", indx] = sprt_ptfl_on_hand
+            self.schedule_DF.at["sprt_cash_unencumbr", indx] = sprt_cash_unencumbr
+            self.schedule_DF.at["sprt_cash_remain", indx] = sprt_cash_on_hand
+            self.schedule_DF.at["sprt_ptfl_unencumbr", indx] = sprt_ptfl_unencumbr
+            self.schedule_DF.at["sprt_ptfl_remain", indx] = sprt_ptfl_on_hand
 
             df.at["sprt_ptfl_owed_bklg", (indx + 1, "owed")] = (
                 delta["sprt_ptfl_owed_bklg"] + delta["sprt_ptfl_owed_curr"]
@@ -570,15 +668,15 @@ class Loan(BaseLoan):
             df.at["sprt_pmnt_backlog", (indx + 1, "owed")] += delta["sprt_pmnt_backlog"]
 
         # Update encumbrances in schedule_DF
-        schedule_DF.at["sprt_cash_send2corp", indx] = delta["sprt_cash_owed_curr"]
-        schedule_DF.at["sprt_cash_used", indx] = delta["sprt_cash_owed_bklg"] + delta["sprt_cash_owed_curr"]
-        schedule_DF.at["sprt_cash_rtrn", indx] = delta["sprt_cash_owed_bklg"]
+        self.schedule_DF.at["sprt_cash_send2corp", indx] = delta["sprt_cash_owed_curr"]
+        self.schedule_DF.at["sprt_cash_used", indx] = delta["sprt_cash_owed_bklg"] + delta["sprt_cash_owed_curr"]
+        self.schedule_DF.at["sprt_cash_rtrn", indx] = delta["sprt_cash_owed_bklg"]
 
-        schedule_DF.at["sprt_ptfl_send2corp", indx] = delta["sprt_ptfl_owed_curr"]
-        schedule_DF.at["sprt_ptfl_used", indx] = delta["sprt_ptfl_owed_bklg"] + delta["sprt_ptfl_owed_curr"]
-        schedule_DF.at["sprt_ptfl_rtrn", indx] = delta["sprt_ptfl_owed_bklg"]
+        self.schedule_DF.at["sprt_ptfl_send2corp", indx] = delta["sprt_ptfl_owed_curr"]
+        self.schedule_DF.at["sprt_ptfl_used", indx] = delta["sprt_ptfl_owed_bklg"] + delta["sprt_ptfl_owed_curr"]
+        self.schedule_DF.at["sprt_ptfl_rtrn", indx] = delta["sprt_ptfl_owed_bklg"]
 
-        return df, schedule_DF, sprt_cash_on_hand, sprt_ptfl_on_hand
+        return df, sprt_cash_on_hand, sprt_ptfl_on_hand
 
     def calc_schedule(self, repayments=None, start_period: int = 1):
         """
@@ -618,11 +716,10 @@ class Loan(BaseLoan):
             elif not bool(repayments) and self.prds_concld == 0:
                 return self
 
-        schedule_DF = self.schedule_DF
         df = self.allocate_DF
         indx = list(df.index)
         # set schedule for next period
-        schedule_DF.loc["brw_paid_actual", 1 : self.prds_concld] = self.repayments
+        self.schedule_DF.loc["brw_paid_actual", 1 : self.prds_concld] = self.repayments
 
         # retrieving state
         sprt_ptfl_on_hand = self.sprt_ptfl_on_hand[start_period - 1]  # encumbered portfolio available
@@ -638,12 +735,12 @@ class Loan(BaseLoan):
         while i <= (self.prds_concld + (self.prds_concld == self.loan_tnr)):
             # initially borrower pays payment
             if i < self.loan_tnr + 1:
-                brw_pmnt = schedule_DF.loc["brw_paid_actual", i]
+                brw_pmnt = self.schedule_DF.at["brw_paid_actual", i]
                 # if borrower repays in full
-                if brw_pmnt >= schedule_DF.loc["brw_2pay_finish", i] and self.loan_tnr >= i:
+                if brw_pmnt >= self.schedule_DF.at["brw_2pay_finish", i] and self.loan_tnr >= i:
                     self.loan_tnr = i
                     self.brw_overpay = brw_pmnt
-                    brw_pmnt = max(schedule_DF.loc["brw_2pay_finish", i], schedule_DF.loc["brw_2pay_ideal", i])
+                    brw_pmnt = max(self.schedule_DF.at["brw_2pay_finish", i], self.schedule_DF.at["brw_2pay_ideal", i])
                     self.brw_overpay += -brw_pmnt
                 j = i
             else:  # at end of loan borrower collateral comes into picture
@@ -657,26 +754,26 @@ class Loan(BaseLoan):
 
             # tabulate amounts filled given the total cash on hand (fill happens in index order)
             for k in indx[0:-4]:
-                df.loc[k, (i, "filled")], tot_assets_on_hand = fill_helper(df.loc[k, (i, "owed")], tot_assets_on_hand)
+                df.at[k, (i, "filled")], tot_assets_on_hand = fill_helper(df.at[k, (i, "owed")], tot_assets_on_hand)
 
             # tabulate what happened to the retained supporter payment
             sprt_pmnt_used = (
-                df.loc["sprt_pmnt_backlog", pd.IndexSlice[i, "owed"]]
-                - df.loc["sprt_pmnt_backlog", pd.IndexSlice[i, "filled"]]
+                df.at["sprt_pmnt_backlog", pd.IndexSlice[i, "owed"]]
+                - df.at["sprt_pmnt_backlog", pd.IndexSlice[i, "filled"]]
             )
-            sprt_pmnt_rtrn = max(0, df.loc["sprt_pmnt_backlog", pd.IndexSlice[i, "filled"]] - sprt_pmnt_on_hand)
+            sprt_pmnt_rtrn = max(0, df.at["sprt_pmnt_backlog", pd.IndexSlice[i, "filled"]] - sprt_pmnt_on_hand)
             sprt_pmnt_send2corp_i = max(
                 0,
                 sprt_pmnt_used
                 - (
-                    schedule_DF.loc["sprt_pmnt_send2corp", 0 : (i - 1)].sum()
-                    - schedule_DF.loc["sprt_pmnt_rtrn", 0 : (i - 1)].sum()
+                    self.schedule_DF.loc["sprt_pmnt_send2corp", 0 : (i - 1)].sum()
+                    - self.schedule_DF.loc["sprt_pmnt_rtrn", 0 : (i - 1)].sum()
                     - sprt_pmnt_rtrn
                 ),
             )
             # diff the vectors for send vs return
             sprt_pmnt_sent2corp = np.append(
-                schedule_DF.loc["sprt_pmnt_send2corp", 1 : (i - 1)] - schedule_DF.loc["sprt_pmnt_rtrn", 1 : (i - 1)],
+                self.schedule_DF.loc["sprt_pmnt_send2corp", 1 : (i - 1)] - self.schedule_DF.loc["sprt_pmnt_rtrn", 1 : (i - 1)],
                 sprt_pmnt_send2corp_i - sprt_pmnt_rtrn,
             )
 
@@ -706,9 +803,9 @@ class Loan(BaseLoan):
             )
 
             # include principal remaining
-            prcp_remain_corp = self.coupon.corp_prcp_owed - df.loc["corp_prcp_current", (i, "filled")]
+            prcp_remain_corp = self.coupon.corp_prcp_owed - df.at["corp_prcp_current", (i, "filled")]
 
-            prcp_remain_sprt = self.coupon.sprt_prcp_owed - df.loc["sprt_prcp_current", (i, "filled")]
+            prcp_remain_sprt = self.coupon.sprt_prcp_owed - df.at["sprt_prcp_current", (i, "filled")]
 
             # distribute remaining assets to principal (indexing is weird cause prcp_remain is a pd series)
             if prcp_remain_corp > 0:
@@ -732,55 +829,50 @@ class Loan(BaseLoan):
             if tot_assets_on_hand > 10 ** (-DEFAULT_PRECISION_MONEY):
 
                 # update allocations using new coupon
-                df = self._next_allocations_from_coupon(i - 1, df, schedule_DF)
+                df = self._next_allocations_from_coupon(i - 1, df)
 
                 # total assets on hand
                 tot_assets_on_hand = sprt_ptfl_on_hand + sprt_cash_on_hand + sprt_pmnt_on_hand + brw_pmnt
 
                 # tabulate amounts filled given the total cash on hand (fill happens in index order)
                 for k in indx[0:-4]:
-                    df.loc[k, (i, "filled")], tot_assets_on_hand = fill_helper(
-                        df.loc[k, (i, "owed")], tot_assets_on_hand
-                    )
+                    df.at[k, (i, "filled")], tot_assets_on_hand = fill_helper(df.at[k, (i, "owed")], tot_assets_on_hand)
 
             # update schedule given new allocations
-            schedule_DF = self._update_schedule_from_allocations(i, df, schedule_DF, sprt_pmnt_sent2corp, finalize)
+            self._update_schedule_from_allocations(i, df, sprt_pmnt_sent2corp, finalize)
 
             # update encumbrances
-            df, schedule_DF, sprt_cash_on_hand, sprt_ptfl_on_hand = self._calc_encumbrances_update_schedule(
-                i, df, schedule_DF, finalize
-            )
+            df, sprt_cash_on_hand, sprt_ptfl_on_hand = self._calc_encumbrances_update_schedule(i, df, finalize)
 
             # update schedule from coupon
-            schedule_DF = self._update_schedule_from_coupon(i, schedule_DF, finalize)
+            self._update_schedule_from_coupon(i, finalize)
 
             # supporter payments on hand
-            schedule_DF.at["sprt_pmnt_used", j] = sprt_pmnt_used
-            schedule_DF.at["sprt_pmnt_rtrn", j] = sprt_pmnt_rtrn
-            schedule_DF.at["sprt_pmnt_send2corp", j] = sprt_pmnt_send2corp_i
-            schedule_DF.at["sprt_pmnt_remain", j] = max(
+            self.schedule_DF.at["sprt_pmnt_used", j] = sprt_pmnt_used
+            self.schedule_DF.at["sprt_pmnt_rtrn", j] = sprt_pmnt_rtrn
+            self.schedule_DF.at["sprt_pmnt_send2corp", j] = sprt_pmnt_send2corp_i
+            self.schedule_DF.at["sprt_pmnt_remain", j] = max(
                 0,
                 sprt_pmnt_on_hand
-                - schedule_DF.loc["sprt_2pay_now", j]
-                + schedule_DF.loc["sprt_paid_withheld", j]
-                - schedule_DF.loc["sprt_pmnt_send2corp", j]
-                + schedule_DF.at["sprt_pmnt_rtrn", j],
+                - self.schedule_DF.at["sprt_2pay_now", j]
+                + self.schedule_DF.at["sprt_paid_withheld", j]
+                - self.schedule_DF.at["sprt_pmnt_send2corp", j]
+                + self.schedule_DF.at["sprt_pmnt_rtrn", j],
             )
-            sprt_pmnt_on_hand = schedule_DF.at["sprt_pmnt_remain", j]  # schedule_DF.at["sprt_paid_withheld", i]
+            sprt_pmnt_on_hand = self.schedule_DF.at["sprt_pmnt_remain", j]  # schedule_DF.at["sprt_paid_withheld", i]
             # sprt_pmnt_2_recover = max(0,schedule_DF.at["sprt_pmnt_used",j] - sprt_pmnt_on_hand)
 
             if finalize:
                 break
 
             # update allocation table
-            df.at["sprt_pmnt_backlog", (min(self.loan_tnr + 1, (i + self.sprt_lag)), "owed")] += schedule_DF.at[
-                "sprt_paid_withheld", i
-            ]
+            df.at["sprt_pmnt_backlog", (min(self.loan_tnr + 1, (i + self.sprt_lag)), "owed")] += \
+                self.schedule_DF.at["sprt_paid_withheld", i]
             df.at["sprt_cash_owed_curr", (i + 1, "owed")] = sprt_cash_on_hand
             df.at["sprt_ptfl_owed_curr", (i + 1, "owed")] = sprt_ptfl_on_hand
 
             # update allocations using new coupon
-            df = self._next_allocations_from_coupon(i, df, schedule_DF)
+            df = self._next_allocations_from_coupon(i, df)
 
             # if i < self.loan_tnr:
             #    # Need to include back in supporter payments used to cover corpus
@@ -795,11 +887,10 @@ class Loan(BaseLoan):
             i += 1
 
         # store state variables
-        self.schedule_DF = schedule_DF
         self.allocate_DF = df
 
         if self.prds_concld == self.loan_tnr:
-            if schedule_DF.loc[["corp_prcp_outstand_4brw", "sprt_prcp_outstand_4brw"], self.prds_concld].sum() <= 0:
+            if self.schedule_DF.loc[["corp_prcp_outstand_4brw", "sprt_prcp_outstand_4brw"], self.prds_concld].sum() <= 0:
                 self.pmnt_curr = 0
                 self.full_single_repay = 0
             else:
@@ -810,8 +901,8 @@ class Loan(BaseLoan):
                     self.coupon.corp_collect_full_repay + self.coupon.sprt_collect_full_repay
                 )  # + sprt_pmnt_2_recover
         else:
-            self.pmnt_curr = schedule_DF.loc["brw_2pay_ideal", :].iloc[-1]
-            self.full_single_repay = schedule_DF.loc["brw_2pay_finish", :].iloc[-1]
+            self.pmnt_curr = self.schedule_DF.loc["brw_2pay_ideal", :].iloc[-1]
+            self.full_single_repay = self.schedule_DF.loc["brw_2pay_finish", :].iloc[-1]
 
         # self._logger.info("Finished calling call_schedule")
         # self._logger.info(vars(self))
@@ -825,7 +916,7 @@ class Loan(BaseLoan):
 
         Parameters
         ----------
-        repaymenys (List[float]): all previous repayments
+        repayments (List[float]): all previous repayments
         """
 
         # helper function
@@ -854,34 +945,17 @@ class Loan(BaseLoan):
                 self.allocate_DF.loc[:, pd.IndexSlice[(indx_new + 1) :, :]] = 0
 
                 # reinitialize allocation table
-                self.allocate_DF.at["corp_prcp_current", ((indx_new + 1), "owed")] = self.schedule_DF.loc[
-                    "corp_prcp_2pay_ideal", (indx_new + 1)
-                ]
-                self.allocate_DF.at["sprt_prcp_current", ((indx_new + 1), "owed")] = self.schedule_DF.loc[
-                    "sprt_prcp_2pay_ideal", (indx_new + 1)
-                ]
-                self.allocate_DF.at["corp_intr_current", ((indx_new + 1), "owed")] = self.schedule_DF.loc[
-                    "corp_intr_2pay_ideal", (indx_new + 1)
-                ]
-                self.allocate_DF.at["sprt_intr_current", ((indx_new + 1), "owed")] = self.schedule_DF.loc[
-                    "sprt_intr_2pay_ideal", (indx_new + 1)
-                ]
+                self.allocate_DF.at["corp_prcp_current", ((indx_new + 1), "owed")] = \
+                    self.schedule_DF.at["corp_prcp_2pay_ideal", (indx_new + 1)]
+                self.allocate_DF.at["sprt_prcp_current", ((indx_new + 1), "owed")] = \
+                    self.schedule_DF.at["sprt_prcp_2pay_ideal", (indx_new + 1)]
+                self.allocate_DF.at["corp_intr_current", ((indx_new + 1), "owed")] = \
+                    self.schedule_DF.at["corp_intr_2pay_ideal", (indx_new + 1)]
+                self.allocate_DF.at["sprt_intr_current", ((indx_new + 1), "owed")] = \
+                    self.schedule_DF.attrs["sprt_intr_2pay_ideal", (indx_new + 1)]
 
                 # reinitialize coupon
-                self.coupon = Coupon(
-                    prcp_corp=self.loan_amt * (1 - self.sprt_shr),
-                    prcp_sprt=self.loan_amt * (self.sprt_shr),
-                    APR_corp=self.corp_APR,
-                    APR_sprt=self.sprt_APR,
-                    loan_tnr=self.orig_loan_tnr,
-                    prv_pmnts_corp=self.corp_amt_paid_perPrd[0:indx_new],
-                    prv_pmnts_sprt=self.sprt_amt_paid_perPrd[0:indx_new],
-                    APR_pnlt=self.penalty_APR,
-                    max_slope=self.max_slope,
-                    sig_figs_2rnd=self.sig_figs_2rnd,
-                    annual_cmpnd_prds=self.annual_cmpnd_prds,
-                    collection_freq=self.collection_freq,
-                )
+                self._init_coupon(self.corp_amt_paid_perPrd[0:indx_new],self.sprt_amt_paid_perPrd[0:indx_new])
 
             # update
             self.repayments = np.append(self.repayments[0:indx_new], repayments[indx_new:]).tolist()
@@ -900,6 +974,14 @@ class Loan(BaseLoan):
             self.calc_schedule(repayments=[], start_period=indx_new + 1)
 
     def _summarize_borrower_perspective(self):
+        """
+        summarizes schedule into amounts paid and remaining for the borrower with respect to 
+        principal vs interest and supporter vs corpus
+
+        Returns
+        -------
+        a dataframe
+        """
 
         cols = ["paid", "remain"]
 
@@ -924,20 +1006,29 @@ class Loan(BaseLoan):
         df.at["corpus_principal", "remain"] = self.coupon.corp_prcp_owed
         df.at["supporter_principal", "paid"] = self.coupon.sprt_prcp_paid
         df.at["supporter_principal", "remain"] = self.coupon.sprt_prcp_owed
-        df.at["corpus_interest", "paid"] = (
-            self.coupon.corp_intr_paid + self.coupon.corp_pnlt_perCollect[0 : self.prds_concld].sum()
-        )
+        df.at["corpus_interest", "paid"] = self.coupon.corp_intr_paid \
+                                           + np.where(self.coupon.corp_pnlt_perCollect[0:self.prds_concld]<0,0,
+                                                      self.coupon.corp_pnlt_perCollect[0:self.prds_concld]).sum()
         df.at["corpus_interest", "remain"] = self.coupon.corp_intr_owed
-        df.at["supporter_interest", "paid"] = (
-            self.coupon.sprt_intr_paid + self.coupon.sprt_pnlt_perCollect[0 : self.prds_concld].sum()
-        )
+        df.at["supporter_interest", "paid"] = self.coupon.sprt_intr_paid \
+                                               + np.where(self.coupon.sprt_pnlt_perCollect[0:self.prds_concld]<0,0,
+                                                          self.coupon.sprt_pnlt_perCollect[0:self.prds_concld]).sum()
         df.at["supporter_interest", "remain"] = self.coupon.sprt_intr_owed
-        df.at["borrower_collateral", "paid"] = self.schedule_DF.loc["brw_colt_used", self.prds_concld]
-        df.at["borrower_collateral", "remain"] = self.schedule_DF.loc["brw_colt_remain", self.prds_concld]
+        df.at["borrower_collateral", "paid"] = self.schedule_DF.at["brw_colt_used", self.prds_concld]
+        df.at["borrower_collateral", "remain"] = self.schedule_DF.at["brw_colt_remain", self.prds_concld]
 
         return df
 
     def _summarize_supporter_perspective(self):
+        """
+        summarizes schedule into amounts paid and remaining for the supporter
+        organized by principal vs interest, payments being held vs released, encumbrances being held vs released
+        and collaterals (enucmbrances, past payments) that are confiscated and sent to the corpus
+
+        Returns
+        -------
+        a dataframe
+        """
 
         cols = ["paid", "remain"]
 
@@ -966,42 +1057,42 @@ class Loan(BaseLoan):
         )
 
         df.at["supporter_principal", "paid"] = (
-            self.sprt_prcp_outstand_init - self.schedule_DF.loc["sprt_prcp_outstand_4sprt", self.prds_concld]
+            self.sprt_prcp_outstand_init - self.schedule_DF.at["sprt_prcp_outstand_4sprt", self.prds_concld]
         )
-        df.at["supporter_principal", "remain"] = self.schedule_DF.loc["sprt_prcp_outstand_4sprt", self.prds_concld]
+        df.at["supporter_principal", "remain"] = self.schedule_DF.at["sprt_prcp_outstand_4sprt", self.prds_concld]
 
         df.at["supporter_interest", "paid"] = self.schedule_DF.loc["sprt_intr_paid_actual", 1 : self.prds_concld].sum()
-        df.at["supporter_interest", "remain"] = self.schedule_DF.loc["sprt_intr_outstand_4sprt", self.prds_concld]
+        df.at["supporter_interest", "remain"] = self.schedule_DF.at["sprt_intr_outstand_4sprt", self.prds_concld]
 
         df.at["receipts_in_escrow", "paid"] = self.schedule_DF.loc["sprt_2pay_now", 1 : self.prds_concld].sum()
-        df.at["receipts_in_escrow", "remain"] = self.schedule_DF.loc["sprt_pmnt_remain", self.prds_concld]
+        df.at["receipts_in_escrow", "remain"] = self.schedule_DF.at["sprt_pmnt_remain", self.prds_concld]
 
         df.at["receipts_rtrn_from_brw", "paid"] = (
             self.schedule_DF.loc["sprt_pmnt_send2corp", 1 : self.prds_concld].sum()
-            - self.schedule_DF.loc["sprt_pmnt_used", self.prds_concld]
+            - self.schedule_DF.at["sprt_pmnt_used", self.prds_concld]
         )
         df.at["receipts_rtrn_from_brw", "remain"] = self.schedule_DF.loc["sprt_pmnt_used", self.prds_concld]
         df.at["cash_rtrn_from_brw", "paid"] = (
             self.schedule_DF.loc["sprt_cash_send2corp", 1 : self.prds_concld].sum()
-            - self.schedule_DF.loc["sprt_cash_used", self.prds_concld]
+            - self.schedule_DF.at["sprt_cash_used", self.prds_concld]
         )
         df.at["cash_rtrn_from_brw", "remain"] = self.schedule_DF.loc["sprt_cash_used", self.prds_concld]
         df.at["ptfl_rtrn_from_brw", "paid"] = (
             self.schedule_DF.loc["sprt_ptfl_send2corp", 1 : self.prds_concld].sum()
-            - self.schedule_DF.loc["sprt_ptfl_used", self.prds_concld]
+            - self.schedule_DF.at["sprt_ptfl_used", self.prds_concld]
         )
         df.at["ptfl_rtrn_from_brw", "remain"] = self.schedule_DF.loc["sprt_ptfl_used", self.prds_concld]
 
         df.at["cash_unencumbered", "paid"] = self.schedule_DF.loc["sprt_cash_unencumbr", 1 : self.prds_concld].sum()
-        df.at["cash_unencumbered", "remain"] = self.schedule_DF.loc["sprt_cash_remain", self.prds_concld]
+        df.at["cash_unencumbered", "remain"] = self.schedule_DF.at["sprt_cash_remain", self.prds_concld]
         df.at["ptfl_unencumbered", "paid"] = self.schedule_DF.loc["sprt_ptfl_unencumbr", 1 : self.prds_concld].sum()
-        df.at["ptfl_unencumbered", "remain"] = self.schedule_DF.loc["sprt_ptfl_remain", self.prds_concld]
+        df.at["ptfl_unencumbered", "remain"] = self.schedule_DF.at["sprt_ptfl_remain", self.prds_concld]
 
         df.at["total_released", "paid"] = df.at["receipts_in_escrow", "paid"]
         df.at["total_released", "remain"] = df.at["receipts_in_escrow", "remain"] + df.at["total_receipts", "remain"]
 
         sprt_prcp_unreleased, sprt_intr_unreleased = self._breakdown_sprt_pmnt_sent2corp_i(
-            self.prds_concld + 1, self.schedule_DF, df.at["receipts_in_escrow", "remain"]
+            self.prds_concld + 1, df.at["receipts_in_escrow", "remain"]
         )
 
         df.at["principal_released", "paid"] = df.at["supporter_principal", "paid"] - sprt_prcp_unreleased
@@ -1012,6 +1103,14 @@ class Loan(BaseLoan):
         return df
 
     def _summarize_corpus_perspective(self):
+        """
+        summarizes corpus into amounts paid and remaining for the corpus
+        organized by principal vs interest
+
+        Returns
+        -------
+        a dataframe
+        """
 
         cols = ["paid", "remain"]
 
@@ -1028,11 +1127,11 @@ class Loan(BaseLoan):
             self.schedule_DF.loc[["corp_intr_paid_actual", "corp_prcp_paid_actual"], 1 : self.prds_concld].sum().sum()
         )
         df.at["principal", "paid"] = (
-            self.corp_prcp_outstand_init - self.schedule_DF.loc["corp_prcp_outstand_4corp", self.prds_concld]
+            self.corp_prcp_outstand_init - self.schedule_DF.at["corp_prcp_outstand_4corp", self.prds_concld]
         )
-        df.at["principal", "remain"] = self.schedule_DF.loc["corp_prcp_outstand_4corp", self.prds_concld]
+        df.at["principal", "remain"] = self.schedule_DF.at["corp_prcp_outstand_4corp", self.prds_concld]
         df.at["interest", "paid"] = self.schedule_DF.loc["corp_intr_paid_actual", 1 : self.prds_concld].sum()
-        df.at["interest", "remain"] = self.schedule_DF.loc["corp_intr_outstand_4corp", self.prds_concld]
+        df.at["interest", "remain"] = self.schedule_DF.at["corp_intr_outstand_4corp", self.prds_concld]
 
         return df
 
@@ -1050,7 +1149,6 @@ class Loan(BaseLoan):
         if borrower: summary_dataframe , next_period_payment
         if corpus: summary_dataframe , next_period_receipt, IRR
         if supporter: summary_dataframe , next_period_receipt, IRR
-
         """
 
         if perspective == "borrower":
@@ -1104,6 +1202,22 @@ class Loan(BaseLoan):
             corpus_irr = -np.inf
 
         return APR(corpus=corpus_apr, supporter=supporter_apr)
+     
+    def fetch_repayment_amount(self,repayment_date, full_repay = False):
+        """
+        returns the repayment amount for a period and total amount to repay to settle loan
+
+        Parameters
+        ----------
+        repayment_date (dt.datetime or int): can be either an integer for the period or the date if loan parameterized with repayment dates
+        full_repay (bool): return full_repayment amount or solely amount due this period
+
+        Returns
+        -------
+        tuple by corpus, supporter 
+        """
+        # get the repayment amount given date of period
+        return self.coupon.fetch_repayment_amount(repayment_date, full_repay)
 
     @property
     def fully_repaid(self):
@@ -1119,16 +1233,15 @@ class Loan(BaseLoan):
     @property
     def status(self):
         if self.fully_repaid:
-            return "settled"
+            return 'settled'
         elif not self.fully_repaid and self.prds_concld == self.loan_tnr:
-            return "defaulted"
-        # elif (
-        #     self.schedule_DF.loc["brw_2pay_ideal", self.prds_concld]
-        #     > self.schedule_DF.loc["brw_paid_actual", self.prds_concld]
-        # ):
-        #     return "underpaid"
+            return 'defaulted'
+        elif self.prds_concld > 0 and \
+             (self.schedule_DF.at["brw_2pay_ideal", self.prds_concld] \
+              - self.schedule_DF.at["brw_paid_actual", self.prds_concld]) > DEFAULT_PRECISION_MONEY:
+            return 'underpaid'
         else:
-            return "live"
+            return 'live'
 
     def get_payment_breakdown(self, period=None):
         if not period:

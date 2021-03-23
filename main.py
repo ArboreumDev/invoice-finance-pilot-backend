@@ -1,6 +1,7 @@
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from routes.v1.mapping import mapping_app
+from routes.v1.schedule import schedule_app
 # from routes.v1.invoice import invoice_app
 from starlette.status import HTTP_401_UNAUTHORIZED
 from utils.common import JWTUser
@@ -15,6 +16,7 @@ app = FastAPI()
 
 # app.include_router(app_v1, prefix="/v1", dependencies=[Depends(check_jwt_token)])
 app.include_router(mapping_app, prefix="/v1", dependencies=[])
+app.include_router(schedule_app, prefix="/v1", dependencies=[])
 
 
 # app.add_middleware(

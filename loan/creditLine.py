@@ -1,329 +1,474 @@
-from typing import Any, List
-
+from operator import truediv
+from typing import Any, List, Tuple, Dict
 import numpy as np
+from numpy.lib.polynomial import _raise_power
+import pandas as pd
+import datetime as dt
 
-from common.constant import DEFAULT_PRECISION_MONEY
-from loan.coupon import Coupon
+from iteround import saferound
+from collections import defaultdict, namedtuple, Counter, OrderedDict
+from scipy import optimize, special
 
-
-class Disbursal:
-    def __init__(
-        self,
-        prcp_corp: List[float],
-        prcp_sprt: List[float],
-        APR_corp: float,
-        APR_sprt: float,
-        loan_tnr: float,
-        pct_balloon: float = np.nan,
-        pct_min_pmnt: float = np.nan,
-        prv_pmnts_corp: List[float] = [],
-        prv_pmnts_sprt: List[float] = [],
-        subsprt_info: Any = {},
-        APR_pnlt: float = 0,
-        max_slope: float = np.inf,
-        annual_cmpnd_prds: int = 360,
-        collection_freq: int = 15,
-        sig_figs_2rnd: int = DEFAULT_PRECISION_MONEY,
-        tol: float = 10 ** (-DEFAULT_PRECISION_MONEY - 1),
-        num_CPUs=1,
-    ):
-
-        """
-        stub for how credit-line coupon calc will work
-        need variables for
-        (1) max amount of credit line (can be same as loan amount)
-        (2) dibursals per period
-        (3) minimum payment per month -- ideally we want a variable equivocating this to time
-        (4) for a given dibursal -- when must that be repaid (same as loan_tnr)
-        (5) perhaps the supporter share or we can do separate vectors for supporter and corpus disbursals
-
-        each dibursal is thus effectively treated as its own loan with some minimum payment in the interim periods
-        and an additional lump-sum at the final period. repayments are applied in order of oldest to newest loan.
-        the whole thing can then simply be added up
-        """
-
-        # basic assertion
-        assert len(prv_pmnts_corp) == len(prv_pmnts_sprt), "payments of different length for corpus vs supporters"
-
-        self.prv_pmnts_corp = []
-        self.prv_pmnts_sprt = []
-        self.num_prv_pmnts = 0
-
-        # attribute to store
-        self.prcp_corp_init = prcp_corp
-        self.prcp_sprt_init = prcp_sprt
-
-        self.loan_tnr = loan_tnr
-        self.pct_min_pmnt = pct_min_pmnt
-        self.pct_balloon = pct_balloon
-
-        # attributes we only need for initialization and can forget about
-        init_attr = {
-            "APR_corp": APR_corp,
-            "APR_sprt": APR_sprt,
-            "APR_pnlt": APR_pnlt,
-            "sig_figs_2rnd": sig_figs_2rnd,
-            "tol": tol,
-            "max_slope": max_slope * (loan_tnr > 1),
-            "num_CPUs": num_CPUs,
-            "annual_cmpnd_prds": annual_cmpnd_prds,
-            "collection_freq": collection_freq,
-            "subsprt_info": subsprt_info,
-        }
-
-        # min payment converted to time
-        if not np.isnan(self.pct_min_pmnt):
-            self.pct_prcp_annuity = self._convert_pct_min_pmnt_2_annuity_prcp(init_attr)
-        elif not np.isnan(self.pct_balloon):
-            self.pct_prcp_annuity = self._convert_pct_balloon_2_annuity_prcp(init_attr)
-
-        self.prcp_corp_annuity = self.prcp_corp_init * self.pct_prcp_annuity
-        self.prcp_sprt_annuity = self.prcp_sprt_init * self.pct_prcp_annuity
-        self.prcp_corp_balloon = self.prcp_corp_init * (1 - self.pct_prcp_annuity)
-        self.prcp_sprt_balloon = self.prcp_sprt_init * (1 - self.pct_prcp_annuity)
-
-        # initial coupons
-        self._calc_init_coupons(init_attr)
-
-        # update if repayments
-        if len(prv_pmnts_corp) > 0:
-            self.update(prv_pmnts_corp, prv_pmnts_sprt)
-
-    def _convert_pct_balloon_2_annuity_prcp(self, init_attr):
-
-        # pct of principal to be covered by first loan_tnr-1 periods
-        prcp_covered_annuity = (1 - self.pct_balloon) * (self.prcp_corp_init + self.prcp_sprt_init)
-
-        # being lazy and brute-force solving it
-        def function_2_solve(pct_prcp_annuity):
-            coupon = Coupon(
-                prcp_corp=self.prcp_corp_init * pct_prcp_annuity[0],
-                prcp_sprt=self.prcp_sprt_init * pct_prcp_annuity[0],
-                APR_corp=init_attr["APR_corp"],
-                APR_sprt=init_attr["APR_sprt"],
-                loan_tnr=self.loan_tnr,
-                prv_pmnts_corp=[],
-                prv_pmnts_sprt=[],
-                subsprt_info=init_attr["subsprt_info"],
-                APR_pnlt=init_attr["APR_pnlt"],
-                max_slope=0,  # init_attr['max_slope'],
-                annual_cmpnd_prds=init_attr["annual_cmpnd_prds"],
-                collection_freq=init_attr["collection_freq"],
-                sig_figs_2rnd=init_attr["sig_figs_2rnd"],
-                tol=init_attr["tol"],
-                num_CPUs=init_attr["num_CPUs"],
-            )
-
-            prcp_covered_hat = coupon.corp_prcp_perCollect[0:-1].sum() + coupon.sprt_prcp_perCollect[0:-1].sum()
-            return prcp_covered_hat - prcp_covered_annuity
-
-        # Find Roots
-        pct_prcp_annuity = optimize.fsolve(function_2_solve, (1 - self.pct_balloon))
-
-        return pct_prcp_annuity[0]
-
-    def _convert_pct_min_pmnt_2_annuity_prcp(self, init_attr):
-
-        # convert to actual amount paid
-        min_pmnt = self.pct_min_pmnt * (self.prcp_corp_init + self.prcp_sprt_init)
-
-        # being lazy and brute-force solving it
-        def function_2_solve(pct_prcp_annuity):
-            coupon = Coupon(
-                prcp_corp=self.prcp_corp_init * pct_prcp_annuity[0],
-                prcp_sprt=self.prcp_sprt_init * pct_prcp_annuity[0],
-                APR_corp=init_attr["APR_corp"],
-                APR_sprt=init_attr["APR_sprt"],
-                loan_tnr=self.loan_tnr,
-                prv_pmnts_corp=[],
-                prv_pmnts_sprt=[],
-                subsprt_info=init_attr["subsprt_info"],
-                APR_pnlt=init_attr["APR_pnlt"],
-                max_slope=0,  # init_attr['max_slope'],
-                annual_cmpnd_prds=init_attr["annual_cmpnd_prds"],
-                collection_freq=init_attr["collection_freq"],
-                sig_figs_2rnd=init_attr["sig_figs_2rnd"],
-                tol=init_attr["tol"],
-                num_CPUs=init_attr["num_CPUs"],
-            )
-
-            pmnt_hat = coupon.corp_prcp_perCollect[1] + coupon.sprt_prcp_perCollect[1]
-            return pmnt_hat - min_pmnt
-
-        # Find Roots
-        init_guess = (self.prcp_corp_init + self.prcp_sprt_init) / min_pmnt
-        pct_prcp_annuity = optimize.fsolve(function_2_solve, init_guess)
-
-        return pct_prcp_annuity[0]
-
-    def _calc_init_coupons(self, init_attr):
-
-        # calc annuity coupon for single disbursal
-        coupon_annuity = Coupon(
-            prcp_corp=self.prcp_corp_annuity,
-            prcp_sprt=self.prcp_sprt_annuity,
-            APR_corp=init_attr["APR_corp"],
-            APR_sprt=init_attr["APR_sprt"],
-            loan_tnr=self.loan_tnr,
-            prv_pmnts_corp=[],
-            prv_pmnts_sprt=[],
-            subsprt_info=init_attr["subsprt_info"],
-            APR_pnlt=init_attr["APR_pnlt"],
-            max_slope=init_attr["max_slope"],
-            annual_cmpnd_prds=init_attr["annual_cmpnd_prds"],
-            collection_freq=init_attr["collection_freq"],
-            sig_figs_2rnd=init_attr["sig_figs_2rnd"],
-            tol=init_attr["tol"],
-            num_CPUs=init_attr["num_CPUs"],
-        )
-
-        # calc balloon payment coupon for single disbursal
-        corp_pmnts_annuity = coupon_annuity.corp_pmnt_perCollect[0:-1]
-        sprt_pmnts_annuity = coupon_annuity.sprt_pmnt_perCollect[0:-1]
-
-        coupon_balloon = Coupon(
-            prcp_corp=self.prcp_corp_init,
-            prcp_sprt=self.prcp_sprt_init,
-            APR_corp=init_attr["APR_corp"],
-            APR_sprt=init_attr["APR_sprt"],
-            loan_tnr=self.loan_tnr,
-            prv_pmnts_corp=corp_pmnts_annuity,
-            prv_pmnts_sprt=sprt_pmnts_annuity,
-            subsprt_info=init_attr["subsprt_info"],
-            APR_pnlt=0,
-            max_slope=0,
-            annual_cmpnd_prds=init_attr["annual_cmpnd_prds"],
-            collection_freq=init_attr["collection_freq"],
-            sig_figs_2rnd=init_attr["sig_figs_2rnd"],
-            tol=init_attr["tol"],
-            num_CPUs=init_attr["num_CPUs"],
-        )
-
-        # store
-        self.coupon_annuity = coupon_annuity
-        self.coupon_balloon = coupon_balloon
-        self._coalesce()
-
-        # store ideal payments
-        self.ideal_corp_pmnts_init = coupon_balloon.corp_pmnt_perCollect.copy()
-        self.ideal_sprt_pmnts_init = coupon_balloon.sprt_pmnt_perCollect.copy()
-
-    def _coalesce(self):
-
-        # combine outputs of coupons together
-        self.corp_pmnt_perCollect = self.coupon_balloon.corp_pmnt_perCollect
-        self.corp_prcp_perCollect = self.coupon_balloon.corp_prcp_perCollect
-        self.corp_intr_perCollect = self.coupon_balloon.corp_intr_perCollect
-        self.corp_pnlt_perCollect = np.append(
-            self.coupon_annuity.corp_pnlt_perCollect[0:-1],
-            self.coupon_balloon.corp_pnlt_perCollect[(self.loan_tnr - 1) :],
-        )
-
-        self.corp_collect_current = self.corp_pmnts[self.num_prv_pmnts]
-        self.corp_intr_owed = self.corp_intr_perCollect[self.num_prv_pmnts :].sum()
-        self.corp_prcp_paid = self.corp_prcp_perCollect[0 : self.num_prv_pmnts].sum()
-        self.corp_intr_paid = self.corp_intr_perCollect[0 : self.num_prv_pmnts].sum()
-        self.corp_prcp_owed = self.prcp_corp_init - self.corp_prcp_paid
-        self.corp_collect_full_repay = self.corp_intr_perCollect[self.num_prv_pmnts] + self.corp_prcp_owed
-
-        self.sprt_pmnt_perCollect = self.coupon_balloon.sprt_pmnt_perCollect
-        self.sprt_prcp_perCollect = self.coupon_balloon.sprt_prcp_perCollect
-        self.sprt_intr_perCollect = self.coupon_balloon.sprt_intr_perCollect
-        self.sprt_pnlt_perCollect = np.append(
-            self.coupon_annuity.sprt_pnlt_perCollect[0:-1],
-            self.coupon_balloon.sprt_pnlt_perCollect[(self.loan_tnr - 1) :],
-        )
-
-        self.sprt_collect_current = self.sprt_pmnts[self.num_prv_pmnts]
-        self.sprt_intr_owed = self.sprt_intr_perCollect[self.num_prv_pmnts :].sum()
-        self.sprt_prcp_paid = self.sprt_prcp_perCollect[0 : self.num_prv_pmnts].sum()
-        self.sprt_intr_paid = self.sprt_intr_perCollect[0 : self.num_prv_pmnts].sum()
-        self.sprt_prcp_owed = self.prcp_sprt_init - self.sprt_prcp_paid
-        self.sprt_collect_full_repay = self.sprt_intr_perCollect[self.num_prv_pmnts] + self.corp_prcp_owed
-
-    def update(self, prv_pmnts_corp: List[float] = [], prv_pmnts_sprt: List[float] = []):
-
-        # helper function
-        def find_first_diff_in_vals(A, B):
-
-            k = max(len(A), len(B))
-            A = np.append(A, np.full(k - len(A), np.nan))
-            B = np.append(B, np.full(k - len(B), np.nan))
-
-            indx = np.where(np.equal(A, B) == False)[0]
-            if indx.size > 0:
-                indx = indx[0]
-            else:
-                indx = np.inf
-            return indx
-
-        # assert prv_pmnts len is same
-        assert len(prv_pmnts_corp) == len(prv_pmnts_corp), "previous payment vectors of different lengths"
-
-        # check at what index is there a difference
-        indx_diff_corp = find_first_diff_in_vals(self.prv_pmnts_corp, prv_pmnts_corp)
-        indx_diff_sprt = find_first_diff_in_vals(self.prv_pmnts_sprt, prv_pmnts_sprt)
-        indx_new = min(indx_diff_corp, indx_diff_sprt)
-
-        if indx_new < np.inf:
-            # update vectors
-            self.prv_pmnts_corp = np.append(self.prv_pmnts_corp[0:indx_new], prv_pmnts_corp[indx_new:])
-            self.prv_pmnts_sprt = np.append(self.prv_pmnts_sprt[0:indx_new], prv_pmnts_sprt[indx_new:])
-            self.num_prv_pmnts = len(self.prv_pmnts_corp)
-
-            # update annuity coupon
-            self.coupon_annuity.update(prv_collect_corp=self.prv_pmnts_corp, prv_collect_sprt=self.prv_pmnts_sprt)
-
-            # extract payments - penalties
-            corp_pmnts_annuity = self.coupon_annuity.corp_pmnt_perCollect[0:-1] - np.where(
-                self.coupon_annuity.corp_pnlt_perCollect[0:-1] < 0, 0, self.coupon_annuity.corp_pnlt_perCollect[0:-1]
-            )
-            sprt_pmnts_annuity = self.coupon_annuity.sprt_pmnt_perCollect[0:-1] - np.where(
-                self.coupon_annuity.sprt_pnlt_perCollect[0:-1] < 0, 0, self.coupon_annuity.sprt_pnlt_perCollect[0:-1]
-            )
-
-            # update balloon coupon
-            self.coupon_balloon.update(prv_collect_corp=corp_pmnts_annuity, prv_collect_sprt=sprt_pmnts_annuity)
-            # update internal values
-            self._coalesce()
-
-    def to_dict(self, by_collections=True):
-        # outputs essential coupon attributes as a dict
-        return {
-            "corp_pmnts": self.corp_pmnts,
-            "corp_pmnt_current": self.corp_pmnt_current,
-            "corp_prcp_perPrd": self.corp_prcp_perPrd,
-            "corp_intr_perPrd": self.corp_intr_perPrd,
-            "corp_pnlt_perPrd": self.corp_pnlt_perPrd,
-            "sprt_pmnts": self.sprt_pmnts,
-            "sprt_pmnt_current": self.sprt_pmnt_current,
-            "sprt_prcp_perPrd": self.sprt_prcp_perPrd,
-            "sprt_intr_perPrd": self.sprt_intr_perPrd,
-            "sprt_pnlt_perPrd": self.sprt_pnlt_perPrd,
-        }
-
+from loan.LoanMath import LoanMath
+from loan.loan import Loan
+from loan.couponTypes import BalloonCoupon
+from common.loan import Repayment
+from common.constant import (DEFAULT_DISCOUNT_APR,
+                                     DEFAULT_PRECISION_MATH_OPERATIONS,
+                                     DEFAULT_PRECISION_MONEY,
+                                     DEFAULT_SUPPORTER_LAG)
 
 class CreditLine:
-    def __init__(
-        self,
+    __slots__ = ['APR_corp',
+                 'APR_sprt',
+                 'APR_pnlt',
+                 'loan_tnr',
+                 'pct_prcp_annuity'
+                 'subsprt_info',
+                 'max_slope',
+                 'sig_figs_2rnd',
+                 'tol',
+                 'num_CPUs',
+                 'collection_freq',
+                 'annual_cmpnd_prds',
+                 'days_per_period',
+                 'days_per_collection',
+                 'max_credit_line',
+                 'start_date',
+                 'disbursals',
+                 'disbursals_dict',
+                 'collections_dict',
+                 'disbursal_repayments',
+                 'new_disbursals',
+                 'disbursals_last_repaid',
+                 'next_collection_date',
+                 'corp_pmnt_perCollect',
+                 'corp_prcp_perCollect',
+                 'corp_intr_perCollect',
+                 'corp_pnlt_perCollect',
+                 'sprt_pmnt_perCollect',
+                 'sprt_prcp_perCollect',
+                 'sprt_intr_perCollect',
+                 'sprt_pnlt_perCollect']
+
+    def __init__(self,
         APR_corp: float,
         APR_sprt: float,
         loan_tnr: float,
         max_credit_line: float,
-        pct_min_pmnt: float = np.nan,
-        pct_balloon: float = np.nan,
-        disbursals_corp: List[float] = [],
-        disbursals_sprt: List[float] = [],
-        repayments_corp: List[float] = [],
-        repayments_sprt: List[float] = [],
-        subsprt_info: Any = {},
+        start_date: dt.datetime,
+        sprt_shr: float,
+        sprt_cash_encumbr: float,
+        sprt_ptfl_encumbr: float,
+        brw_collateral: float,
+        collection_freq: int=15,
+        annual_cmpnd_prds: int=360,
+        sprt_lag: int = DEFAULT_SUPPORTER_LAG,
+        disbursals: List[Repayment]=[],
+        repayments: List[Repayment]=[],
+        subsprt_info: Any={},
+        balloon_params: Any = (0.5,'pct_balloon'), 
+        APR_disc: float = DEFAULT_DISCOUNT_APR,
         APR_pnlt: float = 0,
-        max_slope: float = np.inf,
-        annual_cmpnd_prds: int = 360,
-        collection_freq: int = 15,
+        max_slope: float=np.inf,
         sig_figs_2rnd: int = DEFAULT_PRECISION_MONEY,
-        tol: float = 10 ** (-DEFAULT_PRECISION_MONEY - 1),
-        num_CPUs=1,
-    ):
+        tol: float = 10**(-DEFAULT_PRECISION_MONEY-1),
+        num_CPUs = 1):
+        """
+        a credit line consists of multiple loans
+        """
 
-        return True
+        # save attributes needed to instantiate a disbursal
+        self.APR_corp = APR_corp
+        self.APR_sprt = APR_sprt
+        self.APR_pnlt = APR_pnlt
+        self.APR_disc = APR_disc
+        self.loan_tnr = loan_tnr
+        self.sprt_lag = sprt_lag
+        self.sprt_shr = sprt_shr
+        self.subsprt_info = subsprt_info
+        self.max_slope = max_slope
+        self.sig_figs_2rnd = sig_figs_2rnd
+        self.tol = tol
+        self.num_CPUs = num_CPUs
+
+        # collaterals and encumbrances
+        self.sprt_cash_encumbr_init = sprt_cash_encumbr
+        self.sprt_ptfl_encumbr_init = sprt_ptfl_encumbr
+        self.brw_collateral_init = brw_collateral
+        self.sprt_cash_encumbr = sprt_cash_encumbr
+        self.sprt_ptfl_encumbr = sprt_ptfl_encumbr
+        self.brw_collateral = brw_collateral
+
+        # save temporal attributes
+        self.collection_freq = collection_freq
+        self.annual_cmpnd_prds = annual_cmpnd_prds
+        self.days_per_period = np.round(360/annual_cmpnd_prds)
+        self.days_per_collection = collection_freq*self.days_per_period
+
+        # specific to this object
+        self.max_credit_line = max_credit_line
+        self.start_date = start_date
+
+        # initalize dicts that form core logic
+        self.disbursals = {}
+        self.disbursals_dict = {}
+        self.collections_dict = {}
+        self.disbursal_repayments = defaultdict(List)
+
+        # IDs of newly updated
+        self.new_disbursals = []
+        self.disbursals_last_repaid = []
+
+        # Parse ballon parameters
+        if hasattr(balloon_params,'_fields') and \
+           balloon_params._fields==('tenor_annuity', 'pct_prcp_annuity','balloon_params'):
+            self.balloon_params = balloon_params
+        else:
+            self.balloon_params = BalloonCoupon.calc_balloon_coupon_parameters(
+                                        param_value =  balloon_params[0],
+                                        prcp_corp = self.max_credit_line*(1-sprt_shr),
+                                        prcp_sprt = self.max_credit_line*sprt_shr,
+                                        APR_corp = APR_corp,
+                                        APR_sprt = APR_sprt,
+                                        loan_tnr = loan_tnr,
+                                        collection_freq = collection_freq,
+                                        annual_cmpnd_prds = annual_cmpnd_prds,
+                                        subsprt_info = subsprt_info,
+                                        APR_pnlt = APR_pnlt,
+                                        sig_figs_2rnd = sig_figs_2rnd,
+                                        tol = tol,
+                                        num_CPUs = num_CPUs,
+                                        param_type = balloon_params[1])
+
+        # update
+        if bool(disbursals):
+            self.update(disbursals,repayments)
+    
+    def _calc_collections_dates(self,disbursal_date):
+        # next collection date proceeding disbursal date
+        fst_collection_date = LoanMath.calc_collection_dates(self.start_date,
+                                                             disbursal_date,
+                                                             self.days_per_collection,
+                                                             shift=True)[-1]
+        # collections starting from that point
+        dates = LoanMath.calc_collection_dates(fst_collection_date,
+                                               fst_collection_date,
+                                               self.days_per_collection,
+                                               self.loan_tnr)
+        # tenor is different for the disbursal as a result
+        disbursal_tnr = (dates[-1]-disbursal_date).days/self.days_per_collection
+
+        return dates, disbursal_tnr
+
+    def _create_disbursal(self,disbursal_date,principal):
+
+        #convert disbursal date to normal date
+        # disbursal_date = self.start_date+dt.timedelta(days=disbursal_period*self.days_per_period)
+        # calc collection dates    
+        collect_dates, disbursal_tnr = self._calc_collections_dates(self,disbursal_date)
+        # append start date
+        collect_dates = [disbursal_date]+collect_dates
+        # produce object 
+        disbursal = Loan(corp_APR = self.APR_corp,
+                         sprt_APR = self.APR_sprt,
+                         loan_amt = principal,
+                         loan_tnr = disbursal_tnr,
+                         sprt_shr = self.sprt_shr,
+                         sprt_cash_encumbr = self.sprt_cash_encumbr*principal/self.max_credit_line,
+                         sprt_ptfl_encumbr = self.sprt_ptfl_encumbr*principal/self.max_credit_line,
+                         brw_collateral = self.brw_collateral*principal/self.max_credit_line,
+                         repayments = [],
+                         penalty_APR = self.APR_pnlt,
+                         sprt_lag = self.sprt_lag,
+                         discount_APR = self.APR_disc,
+                         subsprt_info = self.subsprt_info,
+                         balloon_params = self.balloon_params,
+                         max_slope = self.max_slope,
+                         annual_cmpnd_prds = self.annual_cmpnd_prds,
+                         collection_dates = collect_dates,
+                         collection_freq = self.collection_freq,
+                         id = "" )
+        
+        # add to disbursals_dict
+        self.disbursals_dict[disbursal_date] = principal
+        # update disbursal_repayments
+        for date in collect_dates:
+            self.disbursal_repayments[date].extend(disbursal_date)
+
+        return disbursal
+    
+    def _fetch_active_disbursal_IDs(self,repayment_date):
+        
+        # get disbursals
+        if repayment_date in self.disbursal_repayments.keys():
+            disbursal_IDs = self.disbursal_repayments[repayment_date]
+        else: # choose the closest proceeding collection date
+            nxt_collect_indx = np.where(self.disbursal_repayments.keys()>repayment_date)[0][0]
+            nxt_collect_date = self.disbursal_repayments.keys()[nxt_collect_indx]
+            disbursal_IDs = self.disbursal_repayments[nxt_collect_date]
+        
+        # filter disbursals that didnt start on that date (IDs are dates)
+        disbursal_IDs = sorted([ID for ID in disbursal_IDs if repayment_date>ID])
+
+        return disbursal_IDs
+    
+    def _fetch_repayments_by_disbursal(self,repayment_date):
+        
+        disbursal_IDs = self._fetch_active_disbursal_IDs(repayment_date)
+
+        # fetch desired repayments
+        for ID in disbursal_IDs:
+            self.disbursals[ID]._update_repayment_dict(repayment_date)
+
+        corp_owed = [self.disbursals[ID].repayment_dict[repayment_date].corp.owed for ID in disbursal_IDs]
+        sprt_owed = [self.disbursals[ID].repayment_dict[repayment_date].sprt.owed for ID in disbursal_IDs]
+        corp_prcp_outstand = [self.disbursals[ID].repayment_dict[repayment_date].corp.prcp_outstand  for ID in disbursal_IDs]
+        sprt_prcp_outstand  = [self.disbursals[ID].repayment_dict[repayment_date].sprt.prcp_outstand  for ID in disbursal_IDs]
+
+        return disbursal_IDs, corp_owed, sprt_owed, corp_prcp_outstand, sprt_prcp_outstand
+
+    def _allocate_repayment_to_disbursals(self,repayment_date,corp_repay_amt,sprt_repay_amt):
+
+        # helper function that defines amount filled and amount remaining
+        def fill_helper(amt_2_fill, amt_on_hand):
+            amt_filled = min(amt_2_fill, amt_on_hand)
+            new_amt_on_hand = amt_on_hand - amt_filled
+            return amt_filled, new_amt_on_hand
+
+        def fill_allocator(pmnt_amt,owed_amt_vec):
+            if isinstance(owed_amt_vec,dict):
+                owed_amt_vec = [owed_amt_vec[key] for key in sorted(owed_amt_vec.keys())]
+            allocation_vec = np.zeros(len(owed_amt_vec))
+            for i in range(0,len(owed_amt_vec)):
+                allocation_vec[i], pmnt_amt = fill_helper(owed_amt_vec[i], pmnt_amt)
+            return allocation_vec, pmnt_amt
+
+        # fetch amounts owed
+        disbursal_IDs, corp_owed, sprt_owed, corp_prcp_outstand, sprt_prcp_outstand = \
+            self._fetch_repayments_by_disbursal(repayment_date)
+
+        # calc allocations
+        corp_owed_allocate, corp_repay_remain = fill_allocator(corp_repay_amt,corp_owed)
+        corp_prcp_outstand_allocate, corp_repay_remain = fill_allocator(corp_repay_remain,corp_prcp_outstand)
+        sprt_owed_allocate, sprt_repay_remain = fill_allocator(sprt_repay_amt,sprt_owed)
+        sprt_prcp_outstand_allocate, sprt_repay_remain = fill_allocator(sprt_repay_remain,sprt_prcp_outstand)
+
+        # combine
+        corp_allocate = corp_owed_allocate+corp_prcp_outstand_allocate
+        sprt_allocate = sprt_owed_allocate+sprt_prcp_outstand_allocate
+
+        return disbursal_IDs, corp_allocate, sprt_allocate
+    
+    def _repay_once(self,repayment_date,corp_repay_amt,sprt_repay_amt):
+
+        # retrieve allocations
+        disbursal_IDs, corp_allocate, sprt_allocate = \
+            self._allocate_repayment_to_disbursals(repayment_date,corp_repay_amt,sprt_repay_amt)
+
+        # update disbursal objects
+        for i in range(0,len(disbursal_IDs)):
+            ID = disbursal_IDs[i]
+            self.disbursals[ID].update(collections_corp=[tuple(repayment_date,corp_allocate[i])],
+                                       collections_sprt=[tuple(repayment_date,sprt_allocate[i])])
+        
+        # update collections dict
+        self.collections_dict[repayment_date] = tuple(corp_repay_amt,sprt_repay_amt)
+
+        return disbursal_IDs
+    
+    def update(self,
+        collections_corp: list=[],
+        collections_sprt: list=[],
+        disbursals_corp : list=[],
+        disbursals_sprt : list=[]):
+
+        # remove disbursals that have been finalized
+        for ID in self.disbursals_last_repaid:
+            if self.disbursals[ID].corp_prcp_owed==0 and self.disbursals[ID].sprt_prcp_owed==0:
+                self.disbursals.pop(ID,None)
+
+        # retrieve new collections
+        if bool(collections_corp) and bool(collections_sprt):
+            collect_combined = LoanMath.convert_regular_payments_2_combined_dict(
+                                    collections_corp,collections_sprt,self.start_date,
+                                    keep_dates=True,prv_repayments_dict=self.collections_dict)
+            
+            # check coalesced dict against the original in memory
+            new_collections = dict(set(collect_combined.items()).difference(set(self.collections_dict.items())))
+            new_collect_dates = new_collections.keys()
+            self.disbursals_last_repaid = []
+        else:
+            new_collect_dates = []
+        
+        # retrieve new disbursals
+        if bool(disbursals_corp) and bool(disbursals_sprt):
+            disburse_combined = LoanMath.convert_regular_payments_2_combined_dict(
+                                    disbursals_corp,disbursals_sprt,self.start_date,
+                                    keep_dates=True,prv_repayments_dict=self.disbursals_dict)
+            
+            # check coalesced dict against the original in memory
+            new_disbursals = dict(set(disburse_combined.items()).difference(set(self.disbursals_dict.items())))
+            new_disburse_dates =  new_disbursals.keys()
+            self.new_disbursals = []
+        else:
+            new_disburse_dates = []
+
+        # execute in order
+        for date in np.unique(new_collect_dates+new_disburse_dates):
+            if date in new_disburse_dates:
+                if new_disbursals[date][0]>0 or new_disbursals[date][1]>0:
+                    if np.sum(new_disbursals[date]) > self.max_amount_borrowable:
+                        raise ValueError("new disbursals cannot exceed credit line")
+                    self.disbursals[date] = self._create_disbursal(date,
+                                                                   new_disbursals[date][0],
+                                                                   new_disbursals[date][1])
+                    self.new_disbursals.extend(date)
+            if date in new_collect_dates:
+                if new_collections[date][0]>0 or new_collections[date][1]>0:
+                    updated_IDs = self._repay_once(date,
+                                                   new_collections[date][0],
+                                                   new_collections[date][1])
+                    self.disbursals_last_repaid.extend(updated_IDs)
+        
+        # set next collection date
+        future_collect_dates = self.disbursal_repayments.keys()[self.disbursal_repayments.keys()>max(self.collections_dict.keys())]
+        self.next_collection_date = min(future_collect_dates)
+
+        # update attributes
+        self.corp_pmnt_perCollect = self._sum_over_disbursals(self.disbursals.keys(),'corp_pmnt_perCollect')
+        self.corp_prcp_perCollect = self._sum_over_disbursals(self.disbursals.keys(),'corp_prcp_perCollect')
+        self.corp_intr_perCollect = self._sum_over_disbursals(self.disbursals.keys(),'corp_intr_perCollect')
+        self.corp_pnlt_perCollect = self._sum_over_disbursals(self.disbursals.keys(),'corp_pnlt_perCollect')
+        self.sprt_pmnt_perCollect = self._sum_over_disbursals(self.disbursals.keys(),'sprt_pmnt_perCollect')
+        self.sprt_prcp_perCollect = self._sum_over_disbursals(self.disbursals.keys(),'sprt_prcp_perCollect')
+        self.sprt_intr_perCollect = self._sum_over_disbursals(self.disbursals.keys(),'sprt_intr_perCollect')
+        self.sprt_pnlt_perCollect = self._sum_over_disbursals(self.disbursals.keys(),'sprt_pnlt_perCollect')
+                    
+    def fetch_repayment_amount(self,repayment_date,full_repay=False):
+
+        _, corp_owed, sprt_owed, corp_prcp_outstand, sprt_prcp_outstand = \
+            self._fetch_repayments_by_disbursal(repayment_date)
+        
+        corp_owed = np.sum(corp_owed)
+        sprt_owed = np.sum(sprt_owed)
+
+        if full_repay:
+            corp_owed += np.sum(corp_prcp_outstand)
+            sprt_owed += np.sum(sprt_prcp_outstand)
+        
+        return corp_owed, sprt_owed
+
+    def _sum_over_disbursals(self,disbursal_IDs,attribute):
+        
+        def attr_as_dict_from_disbursal(ID):
+            dates = self.disbursals[ID].collection_dates[1:]
+            vec = getattr(self.disubrsals[ID],attribute)
+            if hasattr(vec, "__len__"):
+                return Counter(dict(zip(dates,vec)))
+            else:
+                return vec
+        
+        combined = attr_as_dict_from_disbursal(disbursal_IDs[0])
+        for ID in disbursal_IDs[1:]:
+            combined = combined + attr_as_dict_from_disbursal(ID)
+        
+        if hasattr(combined, "__len__"):
+            return OrderedDict(sorted(combined.items()))
+        else:
+            return combined
+    
+    @property
+    def max_amount_borrowable(self):
+        return self.max_credit_line - self.corp_prcp_owed - self.sprt_prcp_owed
+
+    @property
+    def num_prv_collect(self):
+        return len(self.collections_dict)
+    
+    @property
+    def collection_dates(self):
+        return self.disbursal_repayments.keys()
+
+    @property
+    def corp_collect_current(self): 
+        return self._sum_over_disbursals(self.disbursal_repayments[self.next_collection_date],
+                                         'corp_collect_current')
+
+    @property
+    def corp_intr_owed(self):
+        return self._sum_over_disbursals(self.disbursals.keys(),'corp_intr_owed')
+
+    @property
+    def corp_intr_paid(self):
+        return self._sum_over_disbursals(self.disbursals.keys(),'corp_intr_paid')
+    
+    @property
+    def corp_prcp_owed(self):
+        return self._sum_over_disbursals(self.disbursals.keys(),'corp_prcp_owed')
+
+    @property
+    def corp_prcp_paid(self):
+        return self._sum_over_disbursals(self.disbursals.keys(),'corp_prcp_paid')
+    
+    @property
+    def corp_collect_full_repay(self):
+        return self._sum_over_disbursals(self.disbursals.keys(),'corp_collect_full_repay')
+
+    @property
+    def sprt_collect_current(self):
+        return self._sum_over_disbursals(self.disbursal_repayments[self.next_collection_date],
+                                         'sprt_collect_current')
+
+    @property
+    def sprt_intr_owed(self):
+        return self._sum_over_disbursals(self.disbursals.keys(),'sprt_intr_owed')
+
+    @property
+    def sprt_intr_paid(self):
+        return self._sum_over_disbursals(self.disbursals.keys(),'sprt_intr_paid')
+    
+    @property
+    def sprt_prcp_owed(self):
+        return self._sum_over_disbursals(self.disbursals.keys(),'sprt_prcp_owed')
+
+    @property
+    def sprt_prcp_paid(self):
+        return self._sum_over_disbursals(self.disbursals.keys(),'sprt_prcp_paid')
+    
+    @property
+    def sprt_collect_full_repay(self):
+        return self._sum_over_disbursals(self.disbursals.keys(),'sprt_collect_full_repay')
+    
+    @property
+    def prcp_corp(self):
+        return self._sum_over_disbursals(self.disbursals.keys(),'prcp_corp')
+    
+    @property
+    def sprt_corp(self):
+        return self._sum_over_disbursals(self.disbursals.keys(),'sprt_corp')
+
+    def to_dict(self):
+        return {
+        'corp_collections': self.corp_pmnt_perCollect,
+        'corp_collect_full_repay': self.corp_collect_full_repay,
+        'corp_collect_current': self.corp_collect_current,
+        'corp_prcp_perCollect': self.corp_prcp_perCollect,
+        'corp_intr_perCollect': self.corp_intr_perCollect,
+        'corp_pnlt_perCollect': self.corp_pnlt_perCollect,
+        'sprt_collections': self.sprt_pmnt_perCollect,
+        'sprt_collect_full_repay': self.sprt_collect_full_repay,
+        'sprt_collect_current': self.sprt_collect_current,
+        'sprt_prcp_perCollect': self.sprt_prcp_perCollect,
+        'sprt_intr_perCollect': self.sprt_intr_perCollect,
+        'sprt_pnlt_perCollect': self.sprt_pnlt_perCollect,
+        'corp_intr_owed': self.corp_intr_owed,
+        'corp_intr_paid': self.corp_intr_paid,
+        'corp_prcp_owed': self.corp_prcp_owed,
+        'corp_prcp_paid': self.corp_prcp_paid,
+        'sprt_intr_owed': self.sprt_intr_owed,
+        'sprt_intr_paid': self.sprt_intr_paid,
+        'sprt_prcp_owed': self.sprt_prcp_owed,
+        'sprt_prcp_paid': self.sprt_prcp_paid,
+        'collections_by_prd': self.collection_dict
+        }
