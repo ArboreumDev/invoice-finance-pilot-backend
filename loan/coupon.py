@@ -844,8 +844,11 @@ class Coupon:
         ideal_pmnts_sprt = self.ideal_pmnts_sprt
         slope = self.slope
         slack = self.slack
+
+        # check if coupon will have to be finalized now
+        finalize = (self.loan_tnr==self.num_prv_pmnts)*1
         
-        for i in range(start_period, min(self.num_prv_pmnts+1,self.loan_tnr)):
+        for i in range(start_period, min(self.num_prv_pmnts+1,self.loan_tnr+finalize)):
             pmnt_sprt, pmnt_corp, slope, intercept_sprt, intercept_corp, slack = \
                  self._calc_tranche_pmnts(self.prv_pmnts_corp[0:i],
                                           self.prv_pmnts_sprt[0:i],
@@ -866,6 +869,13 @@ class Coupon:
                 if i==0:
                     self.ideal_pmnts_sprt_init = pmnt_sprt.copy()
                     self.ideal_pmnts_corp_init = pmnt_corp.copy()
+            
+            # need to extend loan tenor to finalize coupon (checks nothing remains)
+            if finalize and i==(self.loan_tnr-1):
+                self.extend_loan_tnr(1)
+                ideal_pmnts_corp = np.pad(ideal_pmnts_corp,(0,1),mode='constant',constant_values=np.nan)
+                ideal_pmnts_sprt = np.pad(ideal_pmnts_sprt,(0,1),mode='constant',constant_values=np.nan)
+                finalize = False
         
         # small payments in the last period should be moved to the prior period
         pmnt_corp = self._remove_dangling_cents(pmnt_corp)
