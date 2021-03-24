@@ -39,7 +39,7 @@ schedule_app = APIRouter()
 )
 def _get_schedule(coupon: BasicCouponInput, role: str = Depends(check_jwt_token_role)):
     print('got ', coupon)
-    if role != "rc":
+    if "rc" not in role:
         raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail=f"Wrong permissions, role {role} not authorized")
     try:
         coupon = generate_coupon(
