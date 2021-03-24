@@ -11,3 +11,6 @@ lint-format:
 
 test: 
 	pytest --workers auto
+
+test_db:
+	docker run --name=arboreum_backend -e POSTGRES_USER=MwJ59dpuQT4ypdnXt -e POSTGRES_PASSWORD=Fj01gToHm4uv4f1LpBdvZn1RSR8wOWuRTClxBkdw4VQGKm0 -e POSTGRES_DB=arboreum_backend -p  5432:5432 -d postgres:12

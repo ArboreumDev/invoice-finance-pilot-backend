@@ -3,6 +3,13 @@ from typing import List
 from fastapi import APIRouter, HTTPException
 from starlette.status import (HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND,
                               HTTP_500_INTERNAL_SERVER_ERROR)
+from utils.common import (BaseInvoice, FinanceStatus, FundAllocation, Invoice,
+                          Listing, CamelModel,InvoiceFrontendInfo)
+from utils.constant import DISBURSAL_EMAIL, MAX_CREDIT
+from utils.email import EmailClient, terms_to_email_body
+from utils.security import check_jwt_token
+from utils.invoice import raw_order_to_invoice
+from database.service import invoice_service
 
 from database.service import invoice_service
 from invoice.tusker_client import tusker_client
@@ -55,6 +62,7 @@ def _update_invoice_db():
     """
     invoice_service.update_invoice_db()
     error = ""
+    # for order_id, new_status in updates:
     if error:
         raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail=error)
     return {"OK"}
@@ -85,7 +93,7 @@ def add_new_invoice(order_reference_number: str):
     # TODO
 
     # change status to awaiting_delivery
-    invoice_service.update_invoice_status(order_id, "AWAITING_DELIVERY")
+    invoice_service.update_invoice_shipment_status(order_id, "AWAITING_DELIVERY")
     return {"Ok": "AWAITING_DELIVERY"}
 
 

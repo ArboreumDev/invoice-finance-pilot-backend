@@ -6,7 +6,7 @@ from invoice.tusker_client import code_to_order_status, tusker_client
 from utils.email import EmailClient, terms_to_email_body
 import json
 from utils.common import LoanTerms 
-from utils.constant import DISBURSAL_EMAIL
+from utils.constant import DISBURSAL_EMAIL, MAX_CREDIT
 
 
 def invoice_to_terms(id: str, amount: float, start_date: dt.datetime):
@@ -37,9 +37,14 @@ class InvoiceService():
         self.session.commit()
         return new_invoice.id
 
-    def update_invoice_status(self, invoice_id: str, new_status: str):
+    def update_invoice_shipment_status(self, invoice_id: str, new_status: str):
         invoice = self.session.query(Invoice).filter(Invoice.id == invoice_id).first()
         invoice.shipment_status = new_status
+        self.session.commit()
+
+    def update_invoice_payment_status(self, invoice_id: str, new_status: str):
+        invoice = self.session.query(Invoice).filter(Invoice.id == invoice_id).first()
+        invoice.finance_status = new_status
         self.session.commit()
 
     def delete_invoice(self, invoice_id: str):
@@ -87,7 +92,6 @@ class InvoiceService():
                 print("no update needed", invoice.shipment_status, new_shipment_status)
 
         return updated, errored
-    
 
     def handle_update(self, invoice: Invoice, new_status: str):
         error = ""
@@ -124,10 +128,10 @@ class InvoiceService():
     # TODO turn this into a view using
     # https://stackoverflow.com/questions/9766940/how-to-create-an-sql-view-with-sqlalchemy
     def free_credit(self):
-        financed_invoices = self.session.query(Invoice).filter(Invoice.finance_status.in_(["DISBURSED, DISBURSAL_REQUESTED"]))
-        print(financed_invoices)
-        # return sum([i.value for i in financed_invoices])
-        return 10000000
+        financed_invoices = self.session.query(Invoice).filter(Invoice.finance_status.in_(["DISBURSED", "DISBURSAL_REQUESTED"])).all()
+        print('financed', financed_invoices)
+        return MAX_CREDIT - sum([i.value for i in financed_invoices])
+        # return 10000000
 
     def final_checks(self, raw_order):
         # verify doesnt cross credit limit
