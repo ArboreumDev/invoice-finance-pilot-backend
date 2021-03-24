@@ -60,3 +60,8 @@ some_loans = regular_loans
 # some_loans = regular_loans[:1]
 
 # %%
+
+# @gsVam
+# definec different kinds of coupons here
+# coupons = [generateCoupon(...) for params in paramCombinations]
+coupons = []
