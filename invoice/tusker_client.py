@@ -1,18 +1,19 @@
 # %%
 from typing import List
+import copy
 
 import requests
 
-from utils.constant import GURUGRUPA_CUSTOMER_ID
+from utils.constant import GURUGRUPA_CUSTOMER_ID, TUSKER_DEFAULT_NEW_ORDER
 
 # TODO save thie in .env
 TUSKER_TOKEN = "EKtk84IF9xzutyEMD-I_w35SlqcaXlOrKGcHIoxm3Ow"
 TUSKER_STAGING_BASE_URL = "https://tusker-staging.logistimo.com/tusker-service"
 TUSKER_USER_URL = "/search/users/suggestions"
 TUSKER_ORDER_URL = "/orders/search"
+TUSKER_ORDER_SEARCH_URL = "/orders/search"
 
-
-code_to_order_status = {
+code_to_status = {
     2: "PENDING",
     3: "PLACED_AND_VALID",
     4: "PENDING",
@@ -35,6 +36,12 @@ status_to_code = {
     "PLACED_AND_VALID": [3],
     "PENDING": [2, 4],
 }
+
+def code_to_order_status(code):
+    if code in code_to_status:
+        return code_to_status[code]
+    raise AssertionError(f"unknown status code:{code}")
+
 
 # TODO refactor
 STATUS_ELIGIBLE_FOR_FINANCING = [

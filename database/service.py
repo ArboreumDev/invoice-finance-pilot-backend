@@ -27,7 +27,7 @@ class InvoiceService():
         new_invoice = Invoice(
             id=raw_order.get("id"),
             order_ref=raw_order.get('ref_no'),
-            shipment_status=code_to_order_status[raw_order.get('status')],
+            shipment_status=code_to_order_status(raw_order.get('status')),
             finance_status="INITIAL",
             value=raw_order.get("prc", {}).get("pr_act", 0),
             # TODO maybe use pickle here? how are booleans preserved?
@@ -74,7 +74,7 @@ class InvoiceService():
 
         # compare with DB if status changed
         for order in latest_raw_orders[:1]:
-            new_shipment_status = code_to_order_status[order.get("status")]
+            new_shipment_status = code_to_order_status(order.get("status"))
             invoice = invoices[order.get("id")]
             if new_shipment_status != invoice.shipment_status:
                 # ...if new, enact consequence and if successful update DB

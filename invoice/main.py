@@ -41,13 +41,13 @@ def update_invoice(raw_order: Dict, invoice: Invoice):
     ret = ""
     # check if status_changed
     new_shipment_status = raw_order.get("status")
-    if code_to_order_status[new_shipment_status] != code_to_order_status[int(invoice.shipment_status)]:
+    if code_to_order_status(new_shipment_status) != code_to_order_status(int(invoice.shipment_status)):
         # print(new_shipment_status, type(new_shipment_status))
         print(invoice.shipment_status, type(invoice))
-        print("new shipment status: ", code_to_order_status[new_shipment_status])
+        print("new shipment status: ", code_to_order_status(new_shipment_status))
         # update relevant fields
         invoice.shipment_status = new_shipment_status
-        ret = invoice.id, code_to_order_status[new_shipment_status]
+        ret = invoice.id, code_to_order_status(new_shipment_status)
 
     invoice.updated_on = datetime.now()
     session.commit()

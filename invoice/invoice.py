@@ -17,7 +17,7 @@ def raw_order_to_invoice(raw_order: Dict):
             # "tusker_id": 1,
             "id": raw_order.get("id"),
             "value": raw_order_to_price(raw_order),
-            "shipping_status": code_to_order_status[raw_order],
+            "shipping_status": code_to_order_status(raw_order),
             "status": FinanceStatus.NONE,
             "order_ref": raw_order.get("ref_no"),
             "finance_status": "NONE",
