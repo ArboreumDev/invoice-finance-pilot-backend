@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict
 
 from fastapi import APIRouter, HTTPException
 from starlette.status import (HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND,
@@ -68,7 +68,7 @@ def _update_invoice_db():
     return {"OK"}
 
 
-@invoice_app.post("/invoice/{order_reference_number}", response_model=Invoice, tags=["invoice"])
+@invoice_app.post("/invoice/{order_reference_number}", response_model=Dict, tags=["invoice"])
 def add_new_invoice(order_reference_number: str):
     # get raw order
     raw_order = tusker_client.track_orders([order_reference_number])
@@ -93,7 +93,7 @@ def add_new_invoice(order_reference_number: str):
     # TODO
 
     # change status to awaiting_delivery
-    invoice_service.update_invoice_shipment_status(order_id, "AWAITING_DELIVERY")
+    # invoice_service.update_invoice_shipment_status(order_id, "AWAITING_DELIVERY")
     return {"Ok": "AWAITING_DELIVERY"}
 
 
