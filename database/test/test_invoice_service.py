@@ -96,4 +96,14 @@ def test_free_credit(invoices):
 
     assert invoice_service.free_credit() == MAX_CREDIT - in1.value
 
+def test_update_invoices(invoice1):
+    assert invoice1.finance_status == "INITIAL"
+    assert invoice1.shipment_status == "DELIVERED"
 
+    invoice_service.update_invoice_payment_status(invoice1.id, "PAID")
+    invoice_service.update_invoice_shipment_status(invoice1.id, "IN_TRANSIT")
+
+    assert invoice1.finance_status == "PAID"
+    assert invoice1.shipment_status == "IN_TRANSIT"
+
+    # invoice_service.update_invoice_payment_status

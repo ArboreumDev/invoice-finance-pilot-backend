@@ -103,7 +103,7 @@ class InvoiceService():
         elif new_status == "DEFAULTED":
             print('handle default')
         else:
-            error += f"unprocessed invoice status {new_status} for order {order_id}\n"
+            error += f"unprocessed invoice status {new_status} for order {invoice.order_ref}\n"
 
     def mark_as_paid(self, order_id: str):
         # mark as paid and reduce
