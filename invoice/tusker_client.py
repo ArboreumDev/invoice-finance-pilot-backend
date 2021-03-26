@@ -99,10 +99,10 @@ class TuskerClient:
         _input['pl']['cust']['id'] = customer_id if customer_id else self.customer_id
         response = requests.post(self.base_url + TUSKER_ORDER_URL, json=_input, headers=self.headers)
         if response.status_code == 200:
-            new_order = response.json().get("pl", {}).get("orders", [])
+            new_order = response.json().get("pl", {})
             print(new_order)
             # return new_order
-            return new_order['pl']['id'], new_order['pl']['ref_no'], new_order['pl']['status']
+            return new_order['id'], new_order['ref_no'], new_order['status']
         else:
             # TODO implement custom exception class
             raise NotImplementedError(str(response.json()))
@@ -116,7 +116,7 @@ class TuskerClient:
                 # { "op": "2", "path": "\\remarks", "val": "Arboreum Testing" } 
             ] 
         }
-        response = requests.post( f"{self.base_url}{TUSKER_ORDER_URL}/{invoice_id}", json=_input, headers=self.headers)
+        response = requests.patch( f"{self.base_url}{TUSKER_ORDER_URL}/{invoice_id}", json=_input, headers=self.headers)
         if response.status_code == 200:
             return True
         else:
@@ -128,7 +128,7 @@ class TuskerClient:
 
 
 # %%
-tusker_client = TuskerClient(TUSKER_STAGING_BASE_URL, TUSKER_STAGING_BASE_URL)
+tusker_client = TuskerClient(base_url=TUSKER_STAGING_BASE_URL, token=TUSKER_STAGING_TOKEN)
 # res = tc.get_latest_orders()
 #
 # print(orders.json())
