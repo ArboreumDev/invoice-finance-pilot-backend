@@ -2,8 +2,7 @@ import smtplib
 from email.mime.text import MIMEText
 
 from utils.common import LoanTerms
-from utils.constant import (EMAIL_HOST, EMAIL_PASSWORD, EMAIL_PORT,
-                            EMAIL_USERNAME, MONTHLY_INTEREST)
+from utils.constant import EMAIL_HOST, EMAIL_PASSWORD, EMAIL_PORT, EMAIL_USERNAME, MONTHLY_INTEREST
 
 
 class EmailClient:

@@ -41,11 +41,11 @@ status_to_code = {
     "PENDING": [2, 4],
 }
 
+
 def order_status_to_code(status: str):
     if status in status_to_code:
         return status_to_code[status][0]
     raise AssertionError(f"unknown order status: {status}")
-
 
 
 def code_to_order_status(code: int):
@@ -96,35 +96,32 @@ class TuskerClient:
             customer_id = self.customer_id
         raw_orders = []
         _input = copy.deepcopy(TUSKER_DEFAULT_NEW_ORDER)
-        _input['pl']['cust']['id'] = customer_id if customer_id else self.customer_id
+        _input["pl"]["cust"]["id"] = customer_id if customer_id else self.customer_id
         response = requests.post(self.base_url + TUSKER_ORDER_URL, json=_input, headers=self.headers)
         if response.status_code == 200:
             new_order = response.json().get("pl", {})
             print(new_order)
             # return new_order
-            return new_order['id'], new_order['ref_no'], new_order['status']
+            return new_order["id"], new_order["ref_no"], new_order["status"]
         else:
             # TODO implement custom exception class
             raise NotImplementedError(str(response.json()))
 
     def mark_test_order_as(self, invoice_id, new_status: str = "DELIVERED"):
         """ change the status of a new order to """
-        _input = { 
-            "pl": [ 
-                { "op": "3", "path": "\\status", "val": str(order_status_to_code(new_status)) },
+        _input = {
+            "pl": [
+                {"op": "3", "path": "\\status", "val": str(order_status_to_code(new_status))},
                 # NOTE: if we ever want to update other stuff it would go like this:
-                # { "op": "2", "path": "\\remarks", "val": "Arboreum Testing" } 
-            ] 
+                # { "op": "2", "path": "\\remarks", "val": "Arboreum Testing" }
+            ]
         }
-        response = requests.patch( f"{self.base_url}{TUSKER_ORDER_URL}/{invoice_id}", json=_input, headers=self.headers)
+        response = requests.patch(f"{self.base_url}{TUSKER_ORDER_URL}/{invoice_id}", json=_input, headers=self.headers)
         if response.status_code == 200:
             return True
         else:
             # TODO implement custom exception class
             raise NotImplementedError(str(response.json()))
-
-        
-
 
 
 # %%
@@ -162,4 +159,3 @@ tusker_client = TuskerClient(base_url=TUSKER_STAGING_BASE_URL, token=TUSKER_STAG
 #             # TODO implement custom exception class
 #             raise NotImplementedError(str(response.json()))
 #     return raw_orders
-

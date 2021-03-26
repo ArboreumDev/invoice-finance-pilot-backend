@@ -8,8 +8,7 @@ from passlib.context import CryptContext
 from starlette.status import HTTP_401_UNAUTHORIZED
 
 from utils.common import JWTUser
-from utils.constant import (JWT_ALGORITHM, JWT_EXPIRATION_TIME_MINUTES,
-                            JWT_SECRET_KEY, USER_DB, USERS)
+from utils.constant import JWT_ALGORITHM, JWT_EXPIRATION_TIME_MINUTES, JWT_SECRET_KEY, USER_DB, USERS
 
 oauth_schema = OAuth2PasswordBearer(tokenUrl="/token")
 pwd_context = CryptContext(schemes=["bcrypt"])

@@ -14,7 +14,7 @@ def test_update_db():
     # insert it into DB
     inv_id = invoice_service.insert_new_invoice(raw_order)
     assert invoice_service.get_all_invoices()[0].id == inv_id  # < should be tested in invoice_service unit tests
-    
+
     # update order on tusker side
     tusker_client.mark_test_order_as(inv_id, "IN_TRANSIT")
 
@@ -24,8 +24,3 @@ def test_update_db():
     assert invoice_service.get_all_invoices()[0].shipment_status == "IN_TRANSIT"
 
     reset_db()
-
-
-
-
-
