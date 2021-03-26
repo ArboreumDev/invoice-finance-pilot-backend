@@ -28,6 +28,10 @@ setup virtualenv (e.g named 'tenv') and point it to your local executable of pyt
 
 > python3 -m database.create
 
+or 
+
+> make create_db
+
 ### test
 
 > make test

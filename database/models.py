@@ -3,7 +3,6 @@ from sqlalchemy import (Column, DateTime, Float, ForeignKey, Integer, String,
                         Table, Text)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import  create_engine
-from database.const import TEST_DB_URL
 
 
 Base = declarative_base()
