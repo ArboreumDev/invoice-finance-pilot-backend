@@ -1,5 +1,5 @@
 dev-api:
-	cd server; uvicorn main:app --reload --port 8000 --host 0.0.0.0
+	uvicorn main:app --reload --port 8000 --host 0.0.0.0
 
 lint:
 	flake8 invoice routes test utils --max-line-length=120
