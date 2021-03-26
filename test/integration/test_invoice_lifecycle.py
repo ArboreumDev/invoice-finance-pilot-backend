@@ -1,7 +1,7 @@
 import pytest
 
 from database.service import invoice_service
-from invoice.utils.tusker_client import tusker_client
+from invoice.tusker_client import tusker_client
 from database.test.conftest import reset_db
 
 
@@ -16,7 +16,7 @@ def test_update_db():
     assert invoice_service.get_all_invoices()[0].id == inv_id  # < should be tested in invoice_service unit tests
     
     # update order on tusker side
-    tusker_client.mark_test_order_as("IN_TRANSIT")
+    tusker_client.mark_test_order_as(inv_id, "IN_TRANSIT")
 
     # verify invoice gets updated with the status
     updated, _ = invoice_service.update_invoice_db()
