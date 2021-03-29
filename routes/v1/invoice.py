@@ -87,14 +87,18 @@ def add_new_invoice(order_reference_number: str):
             raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Unknown Failure, please inform us")
 
     #  create a new entry in DB for the order with status INITIAL
-    order_id = invoice_service.insert_new_invoice(raw_order)
+    try:
+        order_id = invoice_service.insert_new_invoice(raw_order)
+        return {"status": "success"}
+    except Exception as e:
+            raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
 
     #  notify disbursal manager about the request
     # TODO
 
     # change status to awaiting_delivery
     # invoice_service.update_invoice_shipment_status(order_id, "AWAITING_DELIVERY")
-    return {"status": "success"}
 
 
 # deprecated

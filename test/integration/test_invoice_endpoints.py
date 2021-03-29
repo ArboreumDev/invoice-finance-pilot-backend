@@ -41,6 +41,10 @@ def test_invalid_credential():
     client.get("v1/invoice")
 
 
+# TODO all negative endpoint results
+@pytest.mark.skip()
+def test_insert_existing_invoice_failure():
+    pass
 
 
 def test_get_order(invoices):

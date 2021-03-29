@@ -7,6 +7,7 @@ from utils.email import EmailClient, terms_to_email_body
 import json
 from utils.common import LoanTerms 
 from utils.constant import DISBURSAL_EMAIL, MAX_CREDIT
+from invoice.utils import raw_order_to_price
 
 
 def invoice_to_terms(id: str, amount: float, start_date: dt.datetime):
@@ -24,12 +25,17 @@ class InvoiceService():
         self.session = session
     
     def insert_new_invoice(self, raw_order: Dict):
+        exists = self.session.query(Invoice.id).filter_by(id=raw_order.get('id')).first() is not None
+        if exists:
+            # TODO graceful error handling
+            raise NotImplementedError("invoice already exists")
+
         new_invoice = Invoice(
             id=raw_order.get("id"),
             order_ref=raw_order.get('ref_no'),
             shipment_status=code_to_order_status(raw_order.get('status')),
             finance_status="INITIAL",
-            value=raw_order.get("prc", {}).get("pr_act", 0),
+            value=raw_order_to_price(raw_order),
             # TODO maybe use pickle here? how are booleans preserved?
             data=json.dumps(raw_order)
         )

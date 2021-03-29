@@ -7,7 +7,9 @@ from database.models import Invoice
 
 def raw_order_to_price(raw_order: Dict):
     # TODO handle error
-    return raw_order.get("prc", {}).get("prc_act", 0)
+    return raw_order.get("prc", {}).get("pr_act", 0)
+
+
 
 
 def raw_order_to_invoice(raw_order: Dict):

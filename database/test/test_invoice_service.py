@@ -45,7 +45,13 @@ def test_insert_invoice(invoice1):
 
     # check raw data is conserved
     assert json.loads(invoice_in_db.data) == NEW_RAW_ORDER
+
+
     # reset_db()
+
+@pytest.mark.skip()
+def test_insert_invoice_that_exists():
+    pass
 
 def test_update_invoice_status(invoice1):
     invoice_service.update_invoice_shipment_status(invoice1.id, "NEW_STATUS")
