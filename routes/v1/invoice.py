@@ -19,6 +19,9 @@ invoice_app = APIRouter()
 class OrderRequest(CamelModel):
     order_ids: List[str]
 
+@invoice_app.get("/")
+def _health():
+    return {"Ok"}
 
 @invoice_app.get("/order/{order_reference_number}", response_model=InvoiceFrontendInfo, tags=["orders"])
 def _get_order(order_reference_number: str):
