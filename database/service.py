@@ -64,7 +64,7 @@ class InvoiceService():
         updated = []
         errored = []
         # get latest data for all (TODO non-final) orders in DB
-        res = invoice_service.session.query(Invoice).all()
+        res = self.session.query(Invoice).all()
         invoices = {i.id: i for i in res}
         # get order_ref to track by
         all_reference_numbers = [i.order_ref for i in res]
@@ -138,7 +138,7 @@ class InvoiceService():
         # if not return custom error
         # verify customer / recipient is whitelisted
         # if not return custom error
-        return True
+        return True, "Ok"
 
 
 

@@ -11,15 +11,10 @@ from database.service import invoice_service
 from database.service import invoice_service
 from invoice.tusker_client import tusker_client
 from utils.common import CamelModel, Invoice, InvoiceFrontendInfo
-from invoice.utils import raw_order_to_invoice
+from invoice.utils import raw_order_to_invoice, db_invoice_to_frontend_info
 
 # ===================== routes ==========================
 invoice_app = APIRouter()
-
-# PLAN
-# /invoice  - Get - fetches all, Update - updates all, Delete - deletes all
-# /invoice/<id>  - Get getches with that index, and so on
-
 
 class OrderRequest(CamelModel):
     order_ids: List[str]
@@ -42,35 +37,40 @@ def _get_orders(input: OrderRequest):
     return [raw_order_to_invoice(order) for order in raw_orders]
 
 
-@invoice_app.get("/invoice", response_model=List[InvoiceFrontendInfo], tags=["invoice"])
+# @invoice_app.get("/invoice", response_model=List[InvoiceFrontendInfo], tags=["invoice"])
+@invoice_app.get("/invoice", tags=["invoice"])
 def _get_invoices_from_db():
     """
     return all invoices that we are currently tracking as they are in our db
     """
     invoices = invoice_service.get_all_invoices()
-    return [InvoiceFrontendInfo(**inv.dict()) for inv in invoices]
+    print("found", len(invoices))
+    # print(invoices[0] if invoices)
+    # return invoices
+    return [ db_invoice_to_frontend_info(inv) for inv in invoices ]
 
 
-@invoice_app.post("/invoice/update", response_model=List[Invoice], tags=["invoice"])
+@invoice_app.post("/invoice/update", response_model=Dict, tags=["invoice"])
 def _update_invoice_db():
     """
     updating the invoices in our DB with the latest data from tusker
     then return them all
     """
-    invoice_service.update_invoice_db()
+    updated, error = invoice_service.update_invoice_db()
     error = ""
     # for order_id, new_status in updates:
     if error:
         raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail=error)
-    return {"OK"}
+    return {"status": updated}
 
 
 @invoice_app.post("/invoice/{order_reference_number}", response_model=Dict, tags=["invoice"])
 def add_new_invoice(order_reference_number: str):
     # get raw order
-    raw_order = tusker_client.track_orders([order_reference_number])
-    if not raw_order:
+    orders = tusker_client.track_orders([order_reference_number])
+    if not orders:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Unknown order id")
+    raw_order = orders[0]
 
     result, msg = invoice_service.final_checks(raw_order)
     if not result:
@@ -91,7 +91,7 @@ def add_new_invoice(order_reference_number: str):
 
     # change status to awaiting_delivery
     # invoice_service.update_invoice_shipment_status(order_id, "AWAITING_DELIVERY")
-    return {"Ok": "AWAITING_DELIVERY"}
+    return {"status": "success"}
 
 
 # deprecated

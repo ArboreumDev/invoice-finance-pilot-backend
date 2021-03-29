@@ -45,6 +45,7 @@ class Invoice(BaseInvoice):
 
 
 class InvoiceFrontendInfo(BaseInvoice):
+    invoice_id: str
     order_id: str
     value: int = 1
     destination: str = ""

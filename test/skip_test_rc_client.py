@@ -1,14 +1,14 @@
 import pytest
 
-from utils.rupeecircle_client import RupeeCircleClient, config
+# from utils.rupeecircle_client import RupeeCircleClient, config
 
 # from .client import RupeeCircleClient
 
-rc_client = RupeeCircleClient(
-    base_url=config["RUPEE_CIRCLE_HOSTNAME"],
-    email=config["RUPEE_CIRCLE_EMAIL"],
-    password=config["RUPEE_CIRCLE_PASSWORD"],
-)
+# rc_client = RupeeCircleClient(
+#     base_url=config["RUPEE_CIRCLE_HOSTNAME"],
+#     email=config["RUPEE_CIRCLE_EMAIL"],
+#     password=config["RUPEE_CIRCLE_PASSWORD"],
+# )
 
 
 valid_investor_ids = [
@@ -25,10 +25,12 @@ valid_investor_ids = [
 ]
 
 
+@pytest.mark.skip()
 def test_authenticate_valid_credentials():
     assert rc_client.headers
 
 
+@pytest.mark.skip()
 def test_authenticate_invalid_credentials():
     with pytest.raises(AttributeError):
         RupeeCircleClient(
@@ -45,6 +47,7 @@ def test_authenticate_invalid_credentials():
         )
 
 
+@pytest.mark.skip()
 def test_get_balances():
     res = rc_client.get_investor_balances(investor_ids=valid_investor_ids)
     assert res.keys()
