@@ -1,5 +1,6 @@
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.middleware.cors import CORSMiddleware
 # from routes.v1.mapping import mapping_app
 from routes.v1.invoice import invoice_app
 from starlette.status import HTTP_401_UNAUTHORIZED
@@ -7,24 +8,25 @@ from utils.common import JWTUser
 from utils.constant import TOKEN_DESCRIPTION
 from utils.security import authenticate_user, create_jwt_token, check_jwt_token_role
 
-# origins = [
-#     "http://localhost",
-#     "http://localhost:3000",
-# ]
+origins = [
+    "http://localhost",
+    "http://localhost:3000",
+]
 app = FastAPI()
 
 # app.include_router(app_v1, prefix="/v1", dependencies=[Depends(check_jwt_token)])
 # app.include_router(mapping_app, prefix="/v1", dependencies=[])
 app.include_router(invoice_app, prefix="/v1", dependencies=[Depends(check_jwt_token_role)])
+# app.include_router(invoice_app, prefix="/v1", dependencies=[])
 
 
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=origins,
-#     allow_credentials=True,
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-# )
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/", tags=["health"])
