@@ -5,14 +5,13 @@ from starlette.status import HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND, HTTP_500_
 from utils.common import BaseInvoice, FinanceStatus, FundAllocation, Invoice, Listing, CamelModel, InvoiceFrontendInfo
 from utils.constant import DISBURSAL_EMAIL, MAX_CREDIT
 from utils.email import EmailClient, terms_to_email_body
-from utils.security import check_jwt_token
-from utils.invoice import raw_order_to_invoice
+from utils.security import check_jwt_token_role
 from database.service import invoice_service
 
 from database.service import invoice_service
 from invoice.tusker_client import tusker_client
 from utils.common import CamelModel, Invoice, InvoiceFrontendInfo
-from utils.invoice import raw_order_to_invoice
+from invoice.utils import raw_order_to_invoice
 
 # ===================== routes ==========================
 invoice_app = APIRouter()
@@ -26,7 +25,7 @@ class OrderRequest(CamelModel):
     order_ids: List[str]
 
 
-@invoice_app.get("/order/{order_reference_number}", response_model=Invoice, tags=["orders"])
+@invoice_app.get("/order/{order_reference_number}", response_model=InvoiceFrontendInfo, tags=["orders"])
 def _get_order(order_reference_number: str):
     """ read raw order data from tusker """
     raw_orders = tusker_client.track_orders([order_reference_number])

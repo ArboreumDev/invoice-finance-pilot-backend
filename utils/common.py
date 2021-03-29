@@ -37,17 +37,21 @@ class Invoice(BaseInvoice):
     order_id: str
     value: int = 1
     destination: str = ""
-    shipping_status: ShipmentStatus = ShipmentStatus.AWAITING_SHIPMENT
-    status: FinanceStatus = FinanceStatus.NONE
+    shipping_status: str = ""
+    status: str = "INITIAL"
     raw: str = ""
+    # shipping_status: ShipmentStatus = ShipmentStatus.AWAITING_SHIPMENT
+    # status: FinanceStatus = FinanceStatus.NONE
 
 
 class InvoiceFrontendInfo(BaseInvoice):
     order_id: str
     value: int = 1
     destination: str = ""
-    shipping_status: ShipmentStatus = ShipmentStatus.AWAITING_SHIPMENT
-    status: FinanceStatus = FinanceStatus.NONE
+    shipping_status: str = ""
+    status: str = "INITIAL"
+    # shipping_status: ShipmentStatus = ShipmentStatus.AWAITING_SHIPMENT
+    # status: FinanceStatus = FinanceStatus.NONE
 
 
 class JWTUser(BaseModel):
