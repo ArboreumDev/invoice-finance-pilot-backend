@@ -60,11 +60,10 @@ def _update_invoice_db():
     then return them all
     """
     updated, error = invoice_service.update_invoice_db()
-    error = ""
     # for order_id, new_status in updates:
     if error:
         raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail=error)
-    return {"status": updated}
+    return {"updated": updated, "error": error}
 
 
 @invoice_app.post("/invoice/{order_reference_number}", response_model=Dict, tags=["invoice"])

@@ -36,6 +36,7 @@ class Invoice(Base):
     # updated_on = Column(DateTime)
 
 
+
 #############################
 # Constants
 #############################

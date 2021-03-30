@@ -120,7 +120,9 @@ class InvoiceService():
         # calculate repayment info
         # TODO get actual invoice start date
         start_date = dt.datetime.utcnow()
-        msg = terms_to_email_body(invoice_to_terms(invoice.id, invoice.value, start_date))
+        terms = invoice_to_terms(invoice.id, invoice.value, start_date)
+
+        msg = terms_to_email_body(terms)
 
         # ================= send email to Tusker with FundRequest
         try:
