@@ -28,10 +28,17 @@ class EmailClient:
 
 def terms_to_email_body(terms: LoanTerms):
     msg = f"""
-    Hello Tusker,
-    Gurugrupa has request to finance invoice {terms.invoice_id}
-    agreed terms: {MONTHLY_INTEREST}
-    {terms} TODO format this properly
+    Hello Tusker,\n
+    Gurugrupa has request to finance invoice {terms.invoice_id}\n
+    to the following terms: \n
+    {MONTHLY_INTEREST} percent monthly interest
+    start: {terms.start_date.date()}
+    principal: {terms.principal}
+    interest: {terms.interest}
+    total: {terms.principal + terms.interest}
+    collection: {terms.collection_date.date()}
+
+    Please reply to this email with "SUCCESS" or "FAILURE" below to let us know that it has been financed.
 
     """
     return msg
