@@ -55,7 +55,6 @@ def test_get_order(invoices):
     assert order.shipping_status == "PLACED_AND_VALID"
 
 
-
 @pytest.mark.skip()
 def test_whitelist_failure():
     pass
@@ -129,4 +128,3 @@ def test_update_db(invoices):
     InvoiceFrontendInfo(**response.json()[0]).shipping_status == "IN_TRANSIT" != before
 
     # TODO should trigger finance_status updates (send email) when shipment gets delivered
-

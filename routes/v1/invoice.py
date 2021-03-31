@@ -1,6 +1,6 @@
 from typing import Dict, List, Tuple
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from starlette.status import (HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND,
                               HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -24,7 +24,7 @@ def _health():
 
 
 @invoice_app.get("/order/{order_reference_number}", response_model=InvoiceFrontendInfo, tags=["orders"])
-def _get_order(order_reference_number: str, user_info: Tuple[str, str]=Depends(check_jwt_token_role)):
+def _get_order(order_reference_number: str, user_info: Tuple[str, str] = Depends(check_jwt_token_role)):
     """ read raw order data from tusker """
     username, role = user_info
     print(f"{username} with role {role} wants to know about order {order_reference_number}")

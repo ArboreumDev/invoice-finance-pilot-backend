@@ -2,6 +2,7 @@
 import os
 
 from dotenv import load_dotenv
+
 from utils.common import WhiteListEntry
 
 load_dotenv()
@@ -42,17 +43,20 @@ RECEIVER_ID4 = "416c6829-6439-4fcb-b7dc-d35d337e9315"
 # TODO use actual DB
 USER_DB = {
     "test": {
-        "hashed_password": "$2b$12$p3W5at39PORCphT4T5Kbx.TDvGNchgQ2mee8AdEDOcvZ8ZfafG0ZK", "role": "user",
+        "hashed_password": "$2b$12$p3W5at39PORCphT4T5Kbx.TDvGNchgQ2mee8AdEDOcvZ8ZfafG0ZK",
+        "role": "user",
         "customer_id": GURUGRUPA_CUSTOMER_ID,
-        },
+    },
     "admin": {
-        "hashed_password": "$2b$12$EkTEXspTZJGjidCV4W3D5.YyUPU1UhC9JDAjxCHRl5a8POttPEcEq", "role": "admin",
+        "hashed_password": "$2b$12$EkTEXspTZJGjidCV4W3D5.YyUPU1UhC9JDAjxCHRl5a8POttPEcEq",
+        "role": "admin",
         "customer_id": OTHER_CUSTOMER_ID,
-        },
+    },
     "rc": {
-        "hashed_password": "$2b$12$orWKHb1jGlMPkHalVdeiSe9o980PymTZ3HF2FeuYSE6cU2kZsgRCy", "role": "rc_admin",
+        "hashed_password": "$2b$12$orWKHb1jGlMPkHalVdeiSe9o980PymTZ3HF2FeuYSE6cU2kZsgRCy",
+        "role": "rc_admin",
         "customer_id": ANOTHER_CUSTOMER_ID,
-        }
+    },
 }
 
 
@@ -60,12 +64,12 @@ USER_DB = {
 WHITELIST_DB = {
     GURUGRUPA_CUSTOMER_ID: {
         RECEIVER_ID1: WhiteListEntry(receiver_id=RECEIVER_ID1, credit_line_size=50000),
-        RECEIVER_ID2: WhiteListEntry(receiver_id=RECEIVER_ID2, credit_line_size=50000)
+        RECEIVER_ID2: WhiteListEntry(receiver_id=RECEIVER_ID2, credit_line_size=50000),
     },
     OTHER_CUSTOMER_ID: {
         RECEIVER_ID3: WhiteListEntry(receiver_id=RECEIVER_ID3, credit_line_size=50000),
-        RECEIVER_ID4: WhiteListEntry(receiver_id=RECEIVER_ID4, credit_line_size=50000)
-    }
+        RECEIVER_ID4: WhiteListEntry(receiver_id=RECEIVER_ID4, credit_line_size=50000),
+    },
 }
 
 USERS = list(USER_DB.keys())
