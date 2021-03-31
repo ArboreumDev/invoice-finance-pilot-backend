@@ -2,12 +2,12 @@
 import pytest
 from database.service import InvoiceService
 from database.models import Invoice
-from database.test.fixtures import NEW_RAW_ORDER
+from database.test.fixtures import NEW_RAW_ORDER, RAW_ORDER
 from database.db import metadata, engine, session
 from invoice.tusker_client import code_to_order_status, tusker_client
 import contextlib
 import json
-from utils.constant import MAX_CREDIT
+from utils.constant import MAX_CREDIT, USER_DB, WHITELIST_DB, RECEIVER_ID1
 from database.test.conftest import reset_db
 
 invoice_service = InvoiceService()
@@ -114,6 +114,23 @@ def test_update_invoices(invoice1):
 
     # invoice_service.update_invoice_payment_status
 
+def test_whitelist_okay():
+    test_customer = USER_DB.get("test").get('customer_id')
+    whitelisted_receivers = list(WHITELIST_DB.get(test_customer).keys())
+    order_receiver = NEW_RAW_ORDER.get('rcvr').get('id')
+
+    assert order_receiver in whitelisted_receivers
+    assert invoice_service.is_whitelisted(NEW_RAW_ORDER, username="test")
+
+def test_whitelist_failure():
+    test_customer = USER_DB.get("test").get('customer_id')
+    whitelisted_receivers = list(WHITELIST_DB.get(test_customer).keys())
+    order_receiver = RAW_ORDER.get('rcvr').get('id')
+
+    assert order_receiver not in whitelisted_receivers
+    assert not invoice_service.is_whitelisted(RAW_ORDER, username="test")
+
+
 
 @pytest.mark.skip()
 def test_multiple_invoice_updates():
@@ -126,3 +143,4 @@ def test_update_error_reporting():
     # see whether errors are reported correctly
     pass
  
+

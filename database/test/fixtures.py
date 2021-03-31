@@ -1,3 +1,6 @@
+from utils.constant import RECEIVER_ID1
+
+
 RAW_ORDER = {
     "id": "971b4ce5-e8cf-4ab1-b85e-cc9e640b700b",
     "ept": 1443699853000,
@@ -491,7 +494,7 @@ NEW_RAW_ORDER = {
         "def": False
     },
     "rcvr": {
-        "id": "d362324c-3196-4e90-9acd-25da38e16dda",
+        "id": RECEIVER_ID1,
         "status": 0,
         "type": 2,
         "addressLine1": "opp old bus stand subhas road ",

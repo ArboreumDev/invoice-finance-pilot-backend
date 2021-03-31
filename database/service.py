@@ -6,7 +6,7 @@ from invoice.tusker_client import code_to_order_status, tusker_client
 from utils.email import EmailClient, terms_to_email_body
 import json
 from utils.common import LoanTerms 
-from utils.constant import DISBURSAL_EMAIL, MAX_CREDIT
+from utils.constant import DISBURSAL_EMAIL, MAX_CREDIT, WHITELIST_DB, USER_DB
 from invoice.utils import raw_order_to_price
 
 
@@ -139,7 +139,11 @@ class InvoiceService():
         financed_invoices = self.session.query(Invoice).filter(Invoice.finance_status.in_(["DISBURSED", "DISBURSAL_REQUESTED"])).all()
         print('financed', financed_invoices)
         return MAX_CREDIT - sum([i.value for i in financed_invoices])
-        # return 10000000
+
+    def is_whitelisted(self, raw_order: Dict, username: str):
+        receiver_id = raw_order.get('rcvr', {}).get('id', "")
+        customer_id = USER_DB[username].get('customer_id')
+        return receiver_id in WHITELIST_DB.get(customer_id).keys()
 
     def final_checks(self, raw_order):
         # verify doesnt cross credit limit
