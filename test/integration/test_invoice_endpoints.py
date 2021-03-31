@@ -8,6 +8,7 @@ from database.test.conftest import reset_db
 from invoice.tusker_client import tusker_client
 from main import app
 from utils.common import InvoiceFrontendInfo
+from utils.constant import GURUGRUPA_CUSTOMER_ID
 
 client = TestClient(app)
 
@@ -15,8 +16,8 @@ client = TestClient(app)
 @pytest.fixture(scope="function")
 def invoices():
     reset_db()
-    inv_id1, order_ref1, _ = tusker_client.create_test_order()
-    inv_id2, order_ref2, _ = tusker_client.create_test_order()
+    inv_id1, order_ref1, _ = tusker_client.create_test_order(customer_id=GURUGRUPA_CUSTOMER_ID)
+    inv_id2, order_ref2, _ = tusker_client.create_test_order(customer_id=GURUGRUPA_CUSTOMER_ID)
     yield (inv_id1, order_ref1), (inv_id2, order_ref2)
     reset_db()
 
@@ -52,6 +53,12 @@ def test_get_order(invoices):
     response = client.get(f"v1/order/{invoices[0][1]}", headers=AUTH_HEADER)
     order = InvoiceFrontendInfo(**response.json())
     assert order.shipping_status == "PLACED_AND_VALID"
+
+
+
+@pytest.mark.skip()
+def test_whitelist_failure():
+    pass
 
 
 def test_get_order_invalid_order_id():
@@ -122,3 +129,4 @@ def test_update_db(invoices):
     InvoiceFrontendInfo(**response.json()[0]).shipping_status == "IN_TRANSIT" != before
 
     # TODO should trigger finance_status updates (send email) when shipment gets delivered
+
