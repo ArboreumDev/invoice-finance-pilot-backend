@@ -1,27 +1,26 @@
-from typing import List, Dict
+from typing import Dict, List
 
 from fastapi import APIRouter, HTTPException
-from starlette.status import HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR
-from utils.common import BaseInvoice, FinanceStatus, FundAllocation, Invoice, Listing, CamelModel, InvoiceFrontendInfo
-from utils.constant import DISBURSAL_EMAIL, MAX_CREDIT
-from utils.email import EmailClient, terms_to_email_body
-from utils.security import check_jwt_token_role
-from database.service import invoice_service
+from starlette.status import (HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND,
+                              HTTP_500_INTERNAL_SERVER_ERROR)
 
 from database.service import invoice_service
 from invoice.tusker_client import tusker_client
+from invoice.utils import db_invoice_to_frontend_info, raw_order_to_invoice
 from utils.common import CamelModel, Invoice, InvoiceFrontendInfo
-from invoice.utils import raw_order_to_invoice, db_invoice_to_frontend_info
 
 # ===================== routes ==========================
 invoice_app = APIRouter()
 
+
 class OrderRequest(CamelModel):
     order_ids: List[str]
+
 
 @invoice_app.get("/")
 def _health():
     return {"Ok"}
+
 
 @invoice_app.get("/order/{order_reference_number}", response_model=InvoiceFrontendInfo, tags=["orders"])
 def _get_order(order_reference_number: str):
@@ -50,7 +49,7 @@ def _get_invoices_from_db():
     print("found", len(invoices))
     # print(invoices[0] if invoices)
     # return invoices
-    return [ db_invoice_to_frontend_info(inv) for inv in invoices ]
+    return [db_invoice_to_frontend_info(inv) for inv in invoices]
 
 
 @invoice_app.post("/invoice/update", response_model=Dict, tags=["invoice"])
@@ -87,11 +86,10 @@ def add_new_invoice(order_reference_number: str):
 
     #  create a new entry in DB for the order with status INITIAL
     try:
-        order_id = invoice_service.insert_new_invoice(raw_order)
+        invoice_service.insert_new_invoice(raw_order)
         return {"status": "success"}
     except Exception as e:
-            raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
-
+        raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
     #  notify disbursal manager about the request
     # TODO

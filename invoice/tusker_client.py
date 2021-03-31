@@ -1,7 +1,6 @@
 # %%
-from typing import List
 import copy
-from enum import Enum
+from typing import List
 
 import requests
 
@@ -94,7 +93,6 @@ class TuskerClient:
     def create_test_order(self, customer_id: str = ""):
         if not customer_id:
             customer_id = self.customer_id
-        raw_orders = []
         _input = copy.deepcopy(TUSKER_DEFAULT_NEW_ORDER)
         _input["pl"]["cust"]["id"] = customer_id if customer_id else self.customer_id
         response = requests.post(self.base_url + TUSKER_ORDER_URL, json=_input, headers=self.headers)

@@ -1,8 +1,7 @@
-import pytest
 
-from invoice.tusker_client import tusker_client
 from database.service import invoice_service
 from database.test.conftest import reset_db
+from invoice.tusker_client import tusker_client
 
 
 def test_update_db():

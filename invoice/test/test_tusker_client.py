@@ -1,12 +1,8 @@
 import pytest
-from invoice.tusker_client import (
-    tusker_client,
-    code_to_order_status,
-    order_status_to_code,
-    TUSKER_STAGING_BASE_URL,
-    TUSKER_STAGING_TOKEN,
-    TuskerClient,
-)
+
+from invoice.tusker_client import (TUSKER_STAGING_BASE_URL,
+                                   TUSKER_STAGING_TOKEN, TuskerClient,
+                                   order_status_to_code, tusker_client)
 
 # NOTE: as this is not our api, we can not really test that well, so I just try to everything once
 
@@ -15,7 +11,7 @@ def test_init_client_invalid_credentials():
     # TODO how to raise an exception here of gracefully raise that a connection can not be established?
     tc = TuskerClient(base_url=TUSKER_STAGING_BASE_URL, token="invalidToken")
     with pytest.raises(NotImplementedError):
-        r = tc.create_test_order([])
+        tc.create_test_order([])
 
 
 def test_init_client_valid_credentials():
