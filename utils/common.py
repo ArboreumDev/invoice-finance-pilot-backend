@@ -86,3 +86,8 @@ class MappingInput(CamelModel):
 
 class Mapping(CamelModel):
     allocations: Dict[str, float]
+
+
+class WhiteListEntry(BaseModel):
+    receiver_id: str
+    credit_line_size: float
