@@ -1,4 +1,4 @@
-from typing import List
+from typing import Dict, List
 
 from fastapi import APIRouter, HTTPException
 from starlette.status import (HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND,
@@ -6,22 +6,23 @@ from starlette.status import (HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND,
 
 from database.service import invoice_service
 from invoice.tusker_client import tusker_client
+from invoice.utils import db_invoice_to_frontend_info, raw_order_to_invoice
 from utils.common import CamelModel, Invoice, InvoiceFrontendInfo
-from utils.invoice import raw_order_to_invoice
 
 # ===================== routes ==========================
 invoice_app = APIRouter()
-
-# PLAN
-# /invoice  - Get - fetches all, Update - updates all, Delete - deletes all
-# /invoice/<id>  - Get getches with that index, and so on
 
 
 class OrderRequest(CamelModel):
     order_ids: List[str]
 
 
-@invoice_app.get("/order/{order_reference_number}", response_model=Invoice, tags=["orders"])
+@invoice_app.get("/")
+def _health():
+    return {"Ok"}
+
+
+@invoice_app.get("/order/{order_reference_number}", response_model=InvoiceFrontendInfo, tags=["orders"])
 def _get_order(order_reference_number: str):
     """ read raw order data from tusker """
     raw_orders = tusker_client.track_orders([order_reference_number])
@@ -38,34 +39,39 @@ def _get_orders(input: OrderRequest):
     return [raw_order_to_invoice(order) for order in raw_orders]
 
 
-@invoice_app.get("/invoice", response_model=List[InvoiceFrontendInfo], tags=["invoice"])
+# @invoice_app.get("/invoice", response_model=List[InvoiceFrontendInfo], tags=["invoice"])
+@invoice_app.get("/invoice", tags=["invoice"])
 def _get_invoices_from_db():
     """
     return all invoices that we are currently tracking as they are in our db
     """
     invoices = invoice_service.get_all_invoices()
-    return [InvoiceFrontendInfo(**inv.dict()) for inv in invoices]
+    print("found", len(invoices))
+    # print(invoices[0] if invoices)
+    # return invoices
+    return [db_invoice_to_frontend_info(inv) for inv in invoices]
 
 
-@invoice_app.post("/invoice/update", response_model=List[Invoice], tags=["invoice"])
+@invoice_app.post("/invoice/update", response_model=Dict, tags=["invoice"])
 def _update_invoice_db():
     """
     updating the invoices in our DB with the latest data from tusker
     then return them all
     """
-    invoice_service.update_invoice_db()
-    error = ""
+    updated, error = invoice_service.update_invoice_db()
+    # for order_id, new_status in updates:
     if error:
         raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail=error)
-    return {"OK"}
+    return {"updated": updated, "error": error}
 
 
-@invoice_app.post("/invoice/{order_reference_number}", response_model=Invoice, tags=["invoice"])
+@invoice_app.post("/invoice/{order_reference_number}", response_model=Dict, tags=["invoice"])
 def add_new_invoice(order_reference_number: str):
     # get raw order
-    raw_order = tusker_client.track_orders([order_reference_number])
-    if not raw_order:
+    orders = tusker_client.track_orders([order_reference_number])
+    if not orders:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Unknown order id")
+    raw_order = orders[0]
 
     result, msg = invoice_service.final_checks(raw_order)
     if not result:
@@ -79,14 +85,17 @@ def add_new_invoice(order_reference_number: str):
             raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Unknown Failure, please inform us")
 
     #  create a new entry in DB for the order with status INITIAL
-    order_id = invoice_service.insert_new_invoice(raw_order)
+    try:
+        invoice_service.insert_new_invoice(raw_order)
+        return {"status": "success"}
+    except Exception as e:
+        raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
     #  notify disbursal manager about the request
     # TODO
 
     # change status to awaiting_delivery
-    invoice_service.update_invoice_status(order_id, "AWAITING_DELIVERY")
-    return {"Ok": "AWAITING_DELIVERY"}
+    # invoice_service.update_invoice_shipment_status(order_id, "AWAITING_DELIVERY")
 
 
 # deprecated

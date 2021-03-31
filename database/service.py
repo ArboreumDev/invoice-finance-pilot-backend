@@ -6,7 +6,8 @@ from invoice.tusker_client import code_to_order_status, tusker_client
 from utils.email import EmailClient, terms_to_email_body
 import json
 from utils.common import LoanTerms 
-from utils.constant import DISBURSAL_EMAIL
+from utils.constant import DISBURSAL_EMAIL, MAX_CREDIT
+from invoice.utils import raw_order_to_price
 
 
 def invoice_to_terms(id: str, amount: float, start_date: dt.datetime):
@@ -24,12 +25,17 @@ class InvoiceService():
         self.session = session
     
     def insert_new_invoice(self, raw_order: Dict):
+        exists = self.session.query(Invoice.id).filter_by(id=raw_order.get('id')).first() is not None
+        if exists:
+            # TODO graceful error handling
+            raise NotImplementedError("invoice already exists")
+
         new_invoice = Invoice(
             id=raw_order.get("id"),
             order_ref=raw_order.get('ref_no'),
-            shipment_status=code_to_order_status[raw_order.get('status')],
+            shipment_status=code_to_order_status(raw_order.get('status')),
             finance_status="INITIAL",
-            value=raw_order.get("prc", {}).get("pr_act", 0),
+            value=raw_order_to_price(raw_order),
             # TODO maybe use pickle here? how are booleans preserved?
             data=json.dumps(raw_order)
         )
@@ -37,9 +43,14 @@ class InvoiceService():
         self.session.commit()
         return new_invoice.id
 
-    def update_invoice_status(self, invoice_id: str, new_status: str):
+    def update_invoice_shipment_status(self, invoice_id: str, new_status: str):
         invoice = self.session.query(Invoice).filter(Invoice.id == invoice_id).first()
         invoice.shipment_status = new_status
+        self.session.commit()
+
+    def update_invoice_payment_status(self, invoice_id: str, new_status: str):
+        invoice = self.session.query(Invoice).filter(Invoice.id == invoice_id).first()
+        invoice.finance_status = new_status
         self.session.commit()
 
     def delete_invoice(self, invoice_id: str):
@@ -59,7 +70,7 @@ class InvoiceService():
         updated = []
         errored = []
         # get latest data for all (TODO non-final) orders in DB
-        res = invoice_service.session.query(Invoice).all()
+        res = self.session.query(Invoice).all()
         invoices = {i.id: i for i in res}
         # get order_ref to track by
         all_reference_numbers = [i.order_ref for i in res]
@@ -68,13 +79,13 @@ class InvoiceService():
         # assert len(latest_raw_orders) == len(all_reference_numbers), "update missing"
 
         # compare with DB if status changed
-        for order in latest_raw_orders[:1]:
-            new_shipment_status = code_to_order_status[order.get("status")]
+        for order in latest_raw_orders:
+            new_shipment_status = code_to_order_status(order.get("status"))
             invoice = invoices[order.get("id")]
+            print('updating ', order.get("ref_no"))
             if new_shipment_status != invoice.shipment_status:
                 # ...if new, enact consequence and if successful update DB
-                print("old shipment status: ", invoice.shipment_status)
-                print("new shipment status: ", new_shipment_status)
+                print(f"{invoice.shipment_status} -> {new_shipment_status}")
                 try:
                     self.handle_update(invoice, new_shipment_status)
                     invoice.shipment_status = new_shipment_status
@@ -84,10 +95,9 @@ class InvoiceService():
                     print(f"ERROR handling {invoice.id}: {str(e)}")
                     errored.append((invoice.id, new_shipment_status))
             else:
-                print("no update needed", invoice.shipment_status, new_shipment_status)
+                print("no update needed", invoice.shipment_status)
 
         return updated, errored
-    
 
     def handle_update(self, invoice: Invoice, new_status: str):
         error = ""
@@ -99,7 +109,7 @@ class InvoiceService():
         elif new_status == "DEFAULTED":
             print('handle default')
         else:
-            error += f"unprocessed invoice status {new_status} for order {order_id}\n"
+            error += f"unprocessed invoice status {new_status} for order {invoice.order_ref}\n"
 
     def mark_as_paid(self, order_id: str):
         # mark as paid and reduce
@@ -110,7 +120,9 @@ class InvoiceService():
         # calculate repayment info
         # TODO get actual invoice start date
         start_date = dt.datetime.utcnow()
-        msg = terms_to_email_body(invoice_to_terms(invoice.id, invoice.value, start_date))
+        terms = invoice_to_terms(invoice.id, invoice.value, start_date)
+
+        msg = terms_to_email_body(terms)
 
         # ================= send email to Tusker with FundRequest
         try:
@@ -124,17 +136,17 @@ class InvoiceService():
     # TODO turn this into a view using
     # https://stackoverflow.com/questions/9766940/how-to-create-an-sql-view-with-sqlalchemy
     def free_credit(self):
-        financed_invoices = self.session.query(Invoice).filter(Invoice.finance_status.in_(["DISBURSED, DISBURSAL_REQUESTED"]))
-        print(financed_invoices)
-        # return sum([i.value for i in financed_invoices])
-        return 10000000
+        financed_invoices = self.session.query(Invoice).filter(Invoice.finance_status.in_(["DISBURSED", "DISBURSAL_REQUESTED"])).all()
+        print('financed', financed_invoices)
+        return MAX_CREDIT - sum([i.value for i in financed_invoices])
+        # return 10000000
 
     def final_checks(self, raw_order):
         # verify doesnt cross credit limit
         # if not return custom error
         # verify customer / recipient is whitelisted
         # if not return custom error
-        return True
+        return True, "Ok"
 
 
 

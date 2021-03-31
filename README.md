@@ -24,6 +24,14 @@ setup virtualenv (e.g named 'tenv') and point it to your local executable of pyt
 > source tenv/bin/activate
 > pip install -r requirememts.txt
 
+# create the db
+
+> python3 -m database.create
+
+or 
+
+> make create_db
+
 ### test
 
 > make test

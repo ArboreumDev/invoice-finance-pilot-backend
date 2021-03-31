@@ -1,5 +1,5 @@
 dev-api:
-	cd server; uvicorn main:app --reload --port 8000 --host 0.0.0.0
+	uvicorn main:app --reload --port 8000 --host 0.0.0.0
 
 lint:
 	flake8 invoice routes test utils --max-line-length=120
@@ -11,3 +11,12 @@ lint-format:
 
 test: 
 	pytest --workers auto
+
+test_db:
+	docker up arboreum_backend
+
+create_db:
+	python3 -m database.create
+	# if postgres: use username, passwords and host from const.py
+	# docker run --name=arboreum_backend -e POSTGRES_USER=MwJ59dpuQT4ypdnXt -e POSTGRES_PASSWORD=Fj01gToHm4uv4f1LpBdvZn1RSR8wOWuRTClxBkdw4VQGKm0 -e POSTGRES_DB=arboreum_backend -p  5433:5432 -d postgres:12
+
