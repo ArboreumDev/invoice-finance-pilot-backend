@@ -79,13 +79,13 @@ class InvoiceService():
         # assert len(latest_raw_orders) == len(all_reference_numbers), "update missing"
 
         # compare with DB if status changed
-        for order in latest_raw_orders[:1]:
+        for order in latest_raw_orders:
             new_shipment_status = code_to_order_status(order.get("status"))
             invoice = invoices[order.get("id")]
+            print('updating ', order.get("ref_no"))
             if new_shipment_status != invoice.shipment_status:
                 # ...if new, enact consequence and if successful update DB
-                print("old shipment status: ", invoice.shipment_status)
-                print("new shipment status: ", new_shipment_status)
+                print(f"{invoice.shipment_status} -> {new_shipment_status}")
                 try:
                     self.handle_update(invoice, new_shipment_status)
                     invoice.shipment_status = new_shipment_status
@@ -95,7 +95,7 @@ class InvoiceService():
                     print(f"ERROR handling {invoice.id}: {str(e)}")
                     errored.append((invoice.id, new_shipment_status))
             else:
-                print("no update needed", invoice.shipment_status, new_shipment_status)
+                print("no update needed", invoice.shipment_status)
 
         return updated, errored
 
