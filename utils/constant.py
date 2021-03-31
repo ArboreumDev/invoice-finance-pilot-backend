@@ -31,12 +31,11 @@ TOKEN_DESCRIPTION = "It checks username and password if they are true, it return
 # "admin": get_hashed_password("admin_password")
 # TODO use actual DB
 USER_DB = {
-    "test_user": {"hashed_password": "$2b$12$bLi2J2RtLNMTFiH3lE/SfuLtwk9XkECRxReGZm9Wd1ei5hY.X9RUW", "role": "user"},
+    "test": {"hashed_password": "$2b$12$p3W5at39PORCphT4T5Kbx.TDvGNchgQ2mee8AdEDOcvZ8ZfafG0ZK", "role": "user"},
+    "admin": {"hashed_password": "$2b$12$EkTEXspTZJGjidCV4W3D5.YyUPU1UhC9JDAjxCHRl5a8POttPEcEq", "role": "admin"},
     "rc": {"hashed_password": "$2b$12$orWKHb1jGlMPkHalVdeiSe9o980PymTZ3HF2FeuYSE6cU2kZsgRCy", "role": "rc_admin"},
-    "admin": {"hashed_password": "$2b$12$pctc/ptXhlxEkHIknQTbw.zzYRzifEJkSuR0HwTkqtL4O.o7J30MO", "role": "admin"},
-    # pw = (get_hashed_password("rcArboreumTesting"))
-    "rc_backend": {"hashed_password": "$2b$12$IpU.KSMJCELs5UOlOYnTUO80YBdXKFqR.vbKbGSJ/RcP4niC4ON5C", "role": "rc"},
 }
+
 
 
 USERS = list(USER_DB.keys())

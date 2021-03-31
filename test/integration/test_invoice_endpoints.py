@@ -22,7 +22,7 @@ def invoices():
 
 
 def get_auth_header():
-    response = client.post("/token", dict(username="test_user", password="test_password"))
+    response = client.post("/token", dict(username="test", password="test"))
     jwt_token = response.json()["access_token"]
     auth_header = {"Authorization": f"Bearer {jwt_token}"}
     return auth_header

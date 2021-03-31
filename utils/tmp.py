@@ -19,7 +19,5 @@ def get_hashed_password(password: str):
     return pwd_context.hash(password)
 
 
-print(get_hashed_password("test_password"))
-print(get_hashed_password("test_rc"))
-print(get_hashed_password("admin_password"))
-print(get_hashed_password("rcArboreumTesting"))
+print(get_hashed_password("test"))
+print(get_hashed_password("admin"))
