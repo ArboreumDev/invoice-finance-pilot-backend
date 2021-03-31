@@ -113,3 +113,16 @@ def test_update_invoices(invoice1):
     assert invoice1.shipment_status == "IN_TRANSIT"
 
     # invoice_service.update_invoice_payment_status
+
+
+@pytest.mark.skip()
+def test_multiple_invoice_updates():
+    # see whether
+    pass
+
+
+@pytest.mark.skip()
+def test_update_error_reporting():
+    # see whether errors are reported correctly
+    pass
+ 

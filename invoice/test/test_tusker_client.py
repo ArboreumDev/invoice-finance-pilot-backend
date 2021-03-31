@@ -52,3 +52,9 @@ def test_mark_order_as():
     tusker_client.mark_test_order_as(inv_id)
     raw_order = tusker_client.track_orders(reference_numbers=[order_ref], customer_id=test_id)[0]
     assert raw_order.get("status") == order_status_to_code("DELIVERED")
+
+
+@pytest.mark.skip()
+def test_track_order_pagination():
+    # make sure that if more than 10 orders are being tracked, they are properly paginated
+    pass
