@@ -56,9 +56,13 @@ def test_get_order(invoices):
     assert order.shipping_status == "PLACED_AND_VALID"
 
 
-@pytest.mark.skip()
 def test_whitelist_failure():
-    pass
+    # create order for customer that is not whitelisted
+    _, order_ref, _ = tusker_client.create_test_order(customer_id=GURUGRUPA_CUSTOMER_ID, receiver_id=RECEIVER_ID4)
+
+    # try querying order
+    response = client.get(f"v1/order/{order_ref}", headers=AUTH_HEADER)
+    assert response.status_code == 400
 
 
 def test_get_order_invalid_order_id():
