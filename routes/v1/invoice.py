@@ -9,6 +9,7 @@ from invoice.tusker_client import tusker_client
 from invoice.utils import db_invoice_to_frontend_info, raw_order_to_invoice
 from utils.common import CamelModel, Invoice, InvoiceFrontendInfo
 from utils.security import check_jwt_token_role
+from utils.constant import USER_DB
 
 # ===================== routes ==========================
 invoice_app = APIRouter()
@@ -103,6 +104,14 @@ def add_new_invoice(order_reference_number: str):
 
     # change status to awaiting_delivery
     # invoice_service.update_invoice_shipment_status(order_id, "AWAITING_DELIVERY")
+
+@invoice_app.get("/credit")
+def get_credit_lines(user_info: Tuple[str, str] = Depends(check_jwt_token_role)):
+    username, role = user_info
+    print(f"{username} with role {role} wants to know their credit line info")
+    return invoice_service.get_credit_line_info(customer_id=USER_DB.get(username).get("customer_id"))
+ 
+
 
 
 # deprecated

@@ -32,8 +32,8 @@ class CamelModel(BaseModel):
 class BaseInvoice(CamelModel):
     invoice_id: str = ""
 
-class ReceiverInfo(CamelModel):
-    receiver_id: str
+class ReceiverInfo(BaseModel):
+    receiver_id: str 
     receiver_name: str = ""
 
 class Invoice(BaseInvoice):
@@ -43,7 +43,7 @@ class Invoice(BaseInvoice):
     shipping_status: str = ""
     status: str = "INITIAL"
     raw: str = ""
-    receiver_info: ReceiverInfo = ReceiverInfo()
+    receiver_info: ReceiverInfo
     # shipping_status: ShipmentStatus = ShipmentStatus.AWAITING_SHIPMENT
     # status: FinanceStatus = FinanceStatus.NONE
 

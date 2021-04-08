@@ -134,13 +134,6 @@ class InvoiceService():
             raise AssertionError(f"Could not send email: {str(e)}") # TODO add custom exception
 
 
-    # TODO turn this into a view using
-    # https://stackoverflow.com/questions/9766940/how-to-create-an-sql-view-with-sqlalchemy
-    def free_credit(self):
-        financed_invoices = self.session.query(Invoice).filter(Invoice.finance_status.in_(["DISBURSED", "DISBURSAL_REQUESTED"])).all()
-        print('financed', financed_invoices)
-        return MAX_CREDIT - sum([i.value for i in financed_invoices])
-
     def is_whitelisted(self, raw_order: Dict, username: str):
         receiver_id = raw_order.get('rcvr', {}).get('id', "")
         customer_id = USER_DB[username].get('customer_id')
@@ -153,6 +146,18 @@ class InvoiceService():
         # if not return custom error
         return True, "Ok"
 
+    # TODO turn this into a view using
+    # https://stackoverflow.com/questions/9766940/how-to-create-an-sql-view-with-sqlalchemy
+    def get_credit_line_info(self, customer_id):
+        credit_line_breakdown = {}
+        for receiver in WHITELIST_DB.get(customer_id, {}).keys():
+            receiver_info = WHITELIST_DB.get(customer_id, {}).get(receiver, 0)
+            credit_line_size  = receiver_info.credit_line_size if receiver_info != 0 else 0
+            to_be_repaid = self.session.query(Invoice.value).\
+                filter(Invoice.receiver_id == receiver).\
+                filter(Invoice.finance_status.in_(["DISBURSED", "DISBURSAL_REQUESTED"])).all()
+            credit_line_breakdown[receiver] = credit_line_size - sum(to_be_repaid) #invoince.value for invoice in to_be_repaid)
+        return credit_line_breakdown
 
 
 invoice_service = InvoiceService()

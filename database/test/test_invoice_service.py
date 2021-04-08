@@ -7,7 +7,7 @@ from database.db import metadata, engine, session
 from invoice.tusker_client import code_to_order_status, tusker_client
 import contextlib
 import json
-from utils.constant import MAX_CREDIT, USER_DB, WHITELIST_DB, RECEIVER_ID1
+from utils.constant import MAX_CREDIT, USER_DB, WHITELIST_DB, RECEIVER_ID1, GURUGRUPA_CUSTOMER_ID
 from database.test.conftest import reset_db
 
 invoice_service = InvoiceService()
@@ -145,3 +145,25 @@ def test_update_error_reporting():
     pass
  
 
+def test_credit_line_breakdown(invoices):
+    gurugrupa_receiver1 = list(WHITELIST_DB[GURUGRUPA_CUSTOMER_ID].keys())[0]
+    gurugrupa_receiver2 = list(WHITELIST_DB[GURUGRUPA_CUSTOMER_ID].keys())[1]
+    before = invoice_service.get_credit_line_info(GURUGRUPA_CUSTOMER_ID)
+
+    in1 = invoices[0]
+    invoice_service.update_invoice_payment_status(in1.id, "DISBURSED")
+
+    # verify invoices with disbursed status are deducted from available credit
+    after =  invoice_service.get_credit_line_info(GURUGRUPA_CUSTOMER_ID)
+    assert in1.receiver_id == gurugrupa_receiver1
+    assert after[gurugrupa_receiver1] == before[gurugrupa_receiver1] - in1.value
+    assert after[gurugrupa_receiver2] == before[gurugrupa_receiver2]
+
+    # do the same for the DISBURSAL_REQUESTED status
+    in2 = invoices[1]
+    invoice_service.update_invoice_payment_status(in2.id, "DISBURSAL_REQUESTED")
+    after = invoice_service.get_credit_line_info(GURUGRUPA_CUSTOMER_ID)
+    assert after[gurugrupa_receiver1] == before[gurugrupa_receiver1] - in1.value - in2.value
+
+def test_credit_line_breakdown_invalid_customer_id():
+    assert invoice_service.get_credit_line_info("deadbeef") == {}
