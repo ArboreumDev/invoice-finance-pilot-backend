@@ -5,7 +5,7 @@ from typing import Dict
 from invoice.tusker_client import code_to_order_status, tusker_client
 from utils.email import EmailClient, terms_to_email_body
 import json
-from utils.common import LoanTerms 
+from utils.common import LoanTerms, CreditLineInfo
 from utils.constant import DISBURSAL_EMAIL, MAX_CREDIT, WHITELIST_DB, USER_DB
 from invoice.utils import raw_order_to_price
 
@@ -156,7 +156,11 @@ class InvoiceService():
             to_be_repaid = self.session.query(Invoice.value).\
                 filter(Invoice.receiver_id == receiver).\
                 filter(Invoice.finance_status.in_(["DISBURSED", "DISBURSAL_REQUESTED"])).all()
-            credit_line_breakdown[receiver] = credit_line_size - sum(to_be_repaid) #invoince.value for invoice in to_be_repaid)
+            credit_line_breakdown[receiver] = CreditLineInfo(**{
+                "total": credit_line_size,
+                "available": credit_line_size - sum(to_be_repaid), #invoince.value for invoice in to_be_repaid)
+                "used":- sum(to_be_repaid)
+            })
         return credit_line_breakdown
 
 

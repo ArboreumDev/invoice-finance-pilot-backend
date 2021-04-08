@@ -97,3 +97,9 @@ class Mapping(CamelModel):
 class WhiteListEntry(BaseModel):
     receiver_id: str
     credit_line_size: float
+
+
+class CreditLineInfo(BaseModel):
+    available: float
+    used: float
+    total: float
