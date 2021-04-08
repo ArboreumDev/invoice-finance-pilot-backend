@@ -95,7 +95,7 @@ class TuskerClient:
 
         # plug in parameters if given
         if receiver_id:
-            _input['pl']['rcvr']['id'] = receiver_id
+            _input["pl"]["rcvr"]["id"] = receiver_id
         _input["pl"]["cust"]["id"] = customer_id if customer_id else self.customer_id
 
         response = requests.post(self.base_url + TUSKER_ORDER_URL, json=_input, headers=self.headers)

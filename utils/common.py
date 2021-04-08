@@ -32,9 +32,11 @@ class CamelModel(BaseModel):
 class BaseInvoice(CamelModel):
     invoice_id: str = ""
 
+
 class ReceiverInfo(BaseModel):
-    receiver_id: str 
+    receiver_id: str
     receiver_name: str = ""
+
 
 class Invoice(BaseInvoice):
     order_id: str

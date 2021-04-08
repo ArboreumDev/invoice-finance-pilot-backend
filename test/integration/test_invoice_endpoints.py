@@ -8,7 +8,7 @@ from database.test.conftest import reset_db
 from invoice.tusker_client import tusker_client
 from main import app
 from utils.common import InvoiceFrontendInfo
-from utils.constant import GURUGRUPA_CUSTOMER_ID, WHITELIST_DB, RECEIVER_ID4, WHITELIST_DB
+from utils.constant import GURUGRUPA_CUSTOMER_ID, RECEIVER_ID4, WHITELIST_DB
 
 client = TestClient(app)
 
@@ -17,8 +17,12 @@ client = TestClient(app)
 def invoices():
     reset_db()
     whitelisted_receiver_id = list(WHITELIST_DB.get(GURUGRUPA_CUSTOMER_ID).values())[0].receiver_id
-    inv_id1, order_ref1, _ = tusker_client.create_test_order(customer_id=GURUGRUPA_CUSTOMER_ID, receiver_id=whitelisted_receiver_id)
-    inv_id2, order_ref2, _ = tusker_client.create_test_order(customer_id=GURUGRUPA_CUSTOMER_ID, receiver_id=whitelisted_receiver_id)
+    inv_id1, order_ref1, _ = tusker_client.create_test_order(
+        customer_id=GURUGRUPA_CUSTOMER_ID, receiver_id=whitelisted_receiver_id
+    )
+    inv_id2, order_ref2, _ = tusker_client.create_test_order(
+        customer_id=GURUGRUPA_CUSTOMER_ID, receiver_id=whitelisted_receiver_id
+    )
     yield (inv_id1, order_ref1), (inv_id2, order_ref2)
     reset_db()
 
@@ -134,8 +138,9 @@ def test_update_db(invoices):
 
     # TODO should trigger finance_status updates (send email) when shipment gets delivered
 
+
 def test_credit():
-    response = client.get(f"v1/credit/{order_ref1}", headers=AUTH_HEADER)
+    response = client.get(f"v1/credit", headers=AUTH_HEADER)
 
     assert response.status_code == HTTP_200_OK
 
