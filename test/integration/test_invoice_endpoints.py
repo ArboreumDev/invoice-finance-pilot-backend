@@ -8,7 +8,7 @@ from database.test.conftest import reset_db
 from invoice.tusker_client import tusker_client
 from main import app
 from utils.common import InvoiceFrontendInfo
-from utils.constant import GURUGRUPA_CUSTOMER_ID
+from utils.constant import GURUGRUPA_CUSTOMER_ID, WHITELIST_DB, RECEIVER_ID4
 
 client = TestClient(app)
 
@@ -16,8 +16,9 @@ client = TestClient(app)
 @pytest.fixture(scope="function")
 def invoices():
     reset_db()
-    inv_id1, order_ref1, _ = tusker_client.create_test_order(customer_id=GURUGRUPA_CUSTOMER_ID)
-    inv_id2, order_ref2, _ = tusker_client.create_test_order(customer_id=GURUGRUPA_CUSTOMER_ID)
+    whitelisted_receiver_id = list(WHITELIST_DB.get(GURUGRUPA_CUSTOMER_ID).values())[0].receiver_id
+    inv_id1, order_ref1, _ = tusker_client.create_test_order(customer_id=GURUGRUPA_CUSTOMER_ID, receiver_id=whitelisted_receiver_id)
+    inv_id2, order_ref2, _ = tusker_client.create_test_order(customer_id=GURUGRUPA_CUSTOMER_ID, receiver_id=whitelisted_receiver_id)
     yield (inv_id1, order_ref1), (inv_id2, order_ref2)
     reset_db()
 
