@@ -25,6 +25,7 @@ class Invoice(Base):
     finance_status = Column(String(50), nullable=True)
     # shipment_status = Column(Integer, ForeignKey("shipment_status_map.id"), nullable=False)
     # finance_status = Column(Integer, ForeignKey("finance_status_map.id"), nullable=True)
+    receiver_id = Column(String(50), nullable=False)
 
     data = Column(Text, nullable=False)
     value = Column(Float, nullable=True)

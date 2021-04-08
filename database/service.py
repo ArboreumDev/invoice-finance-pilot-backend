@@ -35,6 +35,7 @@ class InvoiceService():
             order_ref=raw_order.get('ref_no'),
             shipment_status=code_to_order_status(raw_order.get('status')),
             finance_status="INITIAL",
+            receiver_id=raw_order.get('rcvr').get('id'),
             value=raw_order_to_price(raw_order),
             # TODO maybe use pickle here? how are booleans preserved?
             data=json.dumps(raw_order)

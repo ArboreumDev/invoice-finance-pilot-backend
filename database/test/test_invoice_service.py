@@ -42,6 +42,7 @@ def test_insert_invoice(invoice1):
     assert invoice_in_db.order_ref == NEW_RAW_ORDER.get('ref_no')
     assert invoice_in_db.shipment_status == "PLACED_AND_VALID"
     assert invoice_in_db.finance_status == "INITIAL"
+    assert invoice_in_db.receiver_id == NEW_RAW_ORDER.get('rcvr').get('id')
 
     # check raw data is conserved
     assert json.loads(invoice_in_db.data) == NEW_RAW_ORDER
