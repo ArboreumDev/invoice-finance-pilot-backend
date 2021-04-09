@@ -130,7 +130,10 @@ class InvoiceService():
             ec = EmailClient()
             ec.send_email(body=msg, subject="Arboreum Disbursal Request", targets=[DISBURSAL_EMAIL])
             invoice.finance_status = "DISBURSAL_REQUESTED"
+            self.session.commit()
         except Exception as e:
+            invoice.finance_status = "ERROR_SENDING_REQUEST"
+            self.session.commit()
             raise AssertionError(f"Could not send email: {str(e)}") # TODO add custom exception
 
 
@@ -151,15 +154,18 @@ class InvoiceService():
     def get_credit_line_info(self, customer_id):
         credit_line_breakdown = {}
         for receiver in WHITELIST_DB.get(customer_id, {}).keys():
-            receiver_info = WHITELIST_DB.get(customer_id, {}).get(receiver, 0)
-            credit_line_size  = receiver_info.credit_line_size if receiver_info != 0 else 0
-            to_be_repaid = self.session.query(Invoice.value).\
+            whitelist_entry = WHITELIST_DB.get(customer_id, {}).get(receiver, 0)
+            credit_line_size  = whitelist_entry.credit_line_size if whitelist_entry != 0 else 0
+            res = self.session.query(Invoice.value).\
                 filter(Invoice.receiver_id == receiver).\
                 filter(Invoice.finance_status.in_(["DISBURSED", "DISBURSAL_REQUESTED"])).all()
+            to_be_repaid = sum(x[0] for x in res)
+            print('repaid', to_be_repaid, res)
             credit_line_breakdown[receiver] = CreditLineInfo(**{
+                "name": whitelist_entry.receiver_info.receiver_name,
                 "total": credit_line_size,
-                "available": credit_line_size - sum(to_be_repaid), #invoince.value for invoice in to_be_repaid)
-                "used":- sum(to_be_repaid)
+                "available": credit_line_size - to_be_repaid , #invoince.value for invoice in to_be_repaid)
+                "used":to_be_repaid
             })
         return credit_line_breakdown
 

@@ -1,5 +1,6 @@
 # %%
 import pytest
+import copy
 from database.service import InvoiceService
 from database.models import Invoice
 from database.test.fixtures import NEW_RAW_ORDER, RAW_ORDER
@@ -93,15 +94,6 @@ def test_update_db(invoice1):
     assert updated[0][0] == invoice1.id
     assert updated[0][1] == tmp
 
-def test_free_credit(invoices):
-    assert invoice_service.free_credit() == MAX_CREDIT
-
-    in1 = invoices[0]
-    in1.finance_status = "DISBURSED"
-    invoice_service.update_invoice_payment_status(in1.id, "DISBURSED")
-    # verify invoices with disbursed status are deducted from available credit
-
-    assert invoice_service.free_credit() == MAX_CREDIT - in1.value
 
 def test_update_invoices(invoice1):
     assert invoice1.finance_status == "INITIAL"
@@ -126,10 +118,14 @@ def test_whitelist_okay():
 def test_whitelist_failure():
     test_customer = USER_DB.get("test").get('customer_id')
     whitelisted_receivers = list(WHITELIST_DB.get(test_customer).keys())
-    order_receiver = RAW_ORDER.get('rcvr').get('id')
+
+    #set order receiver to something not in whitelist
+    order = copy.deepcopy(RAW_ORDER)
+    order_receiver = "0xdeadbeef"
+    order['rcvr']['id'] = order_receiver
 
     assert order_receiver not in whitelisted_receivers
-    assert not invoice_service.is_whitelisted(RAW_ORDER, username="test")
+    assert not invoice_service.is_whitelisted(order, username="test")
 
 
 
@@ -160,8 +156,8 @@ def test_credit_line_breakdown(invoices):
     assert after[gurugrupa_receiver2].available == before[gurugrupa_receiver2].available
 
     # verify consistency
-    c = after[gurugrupa_receiver2].available 
-    c2 = before[gurugrupa_receiver2].available 
+    c = after[gurugrupa_receiver2]
+    c2 = before[gurugrupa_receiver2]
     assert c.available + c.used == c.total and c2.available + c2.used == c2.total
 
     # do the same for the DISBURSAL_REQUESTED status

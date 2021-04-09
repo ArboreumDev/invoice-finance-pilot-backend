@@ -30,11 +30,13 @@ GURUGRUPA_CUSTOMER_ID = "58f1e776-c372-4ec5-8fa4-f30ab74ca631"
 OTHER_CUSTOMER_ID = "6551e776-c372-4ec5-8fa4-f30ab74ca631"
 ANOTHER_CUSTOMER_ID = "7551e776-c372-4ec5-8fa4-f30ab74ca631"
 
-RECEIVER_ID1 = "1aee8ce8-9c4c-4b7c-a790-6d8b4684e287"
-RECEIVER_ID2 = "216c6829-6439-4fcb-b7dc-d35d337e9315"
-RECEIVER_ID3 = "316c6829-6439-4fcb-b7dc-d35d337e9315"
-RECEIVER_ID4 = "416c6829-6439-4fcb-b7dc-d35d337e9315"
+# these exist in tusker system
+RECEIVER_ID1 = "216c6829-6439-4fcb-b7dc-d35d337e9315"
+RECEIVER_ID4 = "85ca2349-073d-4137-a38b-fc246a381270"
 
+# these are made up
+RECEIVER_ID2 = "1aee8ce8-9c4c-4b7c-a790-6d8b4684e287"
+RECEIVER_ID3 = "316c6829-6439-4fcb-b7dc-d35d337e9315"
 # DUMMY DB
 # constructed by doing:
 # "test_user": get_hashed_password("test_password"),
