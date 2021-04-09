@@ -16,7 +16,7 @@ client = TestClient(app)
 @pytest.fixture(scope="function")
 def invoices():
     reset_db()
-    whitelisted_receiver_id = list(WHITELIST_DB.get(GURUGRUPA_CUSTOMER_ID).values())[0].receiver_id
+    whitelisted_receiver_id = list(WHITELIST_DB.get(GURUGRUPA_CUSTOMER_ID).values())[0].receiver_info.receiver_id
     inv_id1, order_ref1, _ = tusker_client.create_test_order(
         customer_id=GURUGRUPA_CUSTOMER_ID, receiver_id=whitelisted_receiver_id
     )

@@ -3,7 +3,7 @@ import os
 
 from dotenv import load_dotenv
 
-from utils.common import WhiteListEntry
+from utils.common import WhiteListEntry, ReceiverInfo
 
 load_dotenv()
 
@@ -63,12 +63,12 @@ USER_DB = {
 # dummy db to be replaced
 WHITELIST_DB = {
     GURUGRUPA_CUSTOMER_ID: {
-        RECEIVER_ID1: WhiteListEntry(receiver_id=RECEIVER_ID1, credit_line_size=50000),
-        RECEIVER_ID2: WhiteListEntry(receiver_id=RECEIVER_ID2, credit_line_size=50000),
+        RECEIVER_ID1: WhiteListEntry(receiver_info=ReceiverInfo(receiver_id=RECEIVER_ID1, receiver_name="gurugrupa test receiver 1"), credit_line_size=50000),
+        RECEIVER_ID2: WhiteListEntry(receiver_info=ReceiverInfo(receiver_id=RECEIVER_ID2, receiver_name="gurugrupa test receiver 2"), credit_line_size=50000),
     },
     OTHER_CUSTOMER_ID: {
-        RECEIVER_ID3: WhiteListEntry(receiver_id=RECEIVER_ID3, credit_line_size=50000),
-        RECEIVER_ID4: WhiteListEntry(receiver_id=RECEIVER_ID4, credit_line_size=50000),
+        RECEIVER_ID3: WhiteListEntry(receiver_info=ReceiverInfo(receiver_id=RECEIVER_ID3, receiver_name="other test receiver 1"), credit_line_size=50000),
+        RECEIVER_ID4: WhiteListEntry(receiver_info=ReceiverInfo(receiver_id=RECEIVER_ID4, receiver_name="other test receiver 2"), credit_line_size=50000),
     },
 }
 

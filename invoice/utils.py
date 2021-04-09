@@ -20,6 +20,10 @@ def raw_order_to_invoice(raw_order: Dict):
             "value": raw_order_to_price(raw_order),
             "status": "NONE",
             "shipping_status": code_to_order_status(raw_order.get("status")),
+            "receiver_info": {
+                "receiver_name": raw_order.get('rcvr', {}).get('cntct', {}).get("name", "not found"),
+                "receiver_id": raw_order.get('rcvr', {}).get('id')
+            }
         }
     )
 
@@ -32,5 +36,5 @@ def db_invoice_to_frontend_info(inv: Invoice):
         value=inv.value,
         status=inv.finance_status,
         shipping_status=inv.shipment_status,
-        receiver_info=ReceiverInfo(receiver_id=inv.receiver_id, receiver_name=data.get('rcvr', {}).get('cntct', {}).get("name", "not found"),
+        receiver_info=ReceiverInfo(receiver_id=inv.receiver_id, receiver_name=data.get('rcvr', {}).get('cntct', {}).get("name", "not found")),
     )

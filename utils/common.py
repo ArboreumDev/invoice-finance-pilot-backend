@@ -57,6 +57,7 @@ class InvoiceFrontendInfo(BaseInvoice):
     destination: str = ""
     shipping_status: str = ""
     status: str = "INITIAL"
+    receiver_info: ReceiverInfo
     # shipping_status: ShipmentStatus = ShipmentStatus.AWAITING_SHIPMENT
     # status: FinanceStatus = FinanceStatus.NONE
 
@@ -95,11 +96,12 @@ class Mapping(CamelModel):
 
 
 class WhiteListEntry(BaseModel):
-    receiver_id: str
+    receiver_info: ReceiverInfo
     credit_line_size: float
 
 
 class CreditLineInfo(BaseModel):
+    name: str
     available: float
     used: float
     total: float
