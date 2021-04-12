@@ -158,14 +158,18 @@ class InvoiceService():
             credit_line_size  = whitelist_entry.credit_line_size if whitelist_entry != 0 else 0
             res = self.session.query(Invoice.value).\
                 filter(Invoice.receiver_id == receiver).\
-                filter(Invoice.finance_status.in_(["DISBURSED", "DISBURSAL_REQUESTED"])).all()
+                filter(Invoice.finance_status.in_(["DISBURSED"])).all()
             to_be_repaid = sum(x[0] for x in res)
-            print('repaid', to_be_repaid, res)
+            res = self.session.query(Invoice.value).\
+                filter(Invoice.receiver_id == receiver).\
+                filter(Invoice.finance_status.in_(["DISBURSAL_REQUESTED"])).all()
+            requested = sum(x[0] for x in res)
             credit_line_breakdown[receiver] = CreditLineInfo(**{
                 "name": whitelist_entry.receiver_info.receiver_name,
                 "total": credit_line_size,
-                "available": credit_line_size - to_be_repaid , #invoince.value for invoice in to_be_repaid)
-                "used":to_be_repaid
+                "available": credit_line_size - to_be_repaid - requested, #invoince.value for invoice in to_be_repaid)
+                "used":to_be_repaid,
+                "requested": requested
             })
         return credit_line_breakdown
 

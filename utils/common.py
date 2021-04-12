@@ -105,3 +105,4 @@ class CreditLineInfo(BaseModel):
     available: float
     used: float
     total: float
+    requested: float
