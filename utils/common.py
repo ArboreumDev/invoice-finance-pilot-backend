@@ -33,7 +33,7 @@ class BaseInvoice(CamelModel):
     invoice_id: str = ""
 
 
-class ReceiverInfo(BaseModel):
+class ReceiverInfo(CamelModel):
     receiver_id: str
     receiver_name: str = ""
 
