@@ -5,9 +5,10 @@ from typing import Dict
 from invoice.tusker_client import code_to_order_status, tusker_client
 from utils.email import EmailClient, terms_to_email_body
 import json
-from utils.common import LoanTerms, CreditLineInfo
+from utils.common import LoanTerms, CreditLineInfo, PaymentDetails
 from utils.constant import DISBURSAL_EMAIL, MAX_CREDIT, WHITELIST_DB, USER_DB
 from invoice.utils import raw_order_to_price
+import uuid
 
 
 def invoice_to_terms(id: str, amount: float, start_date: dt.datetime):
@@ -38,7 +39,11 @@ class InvoiceService():
             receiver_id=raw_order.get('rcvr').get('id'),
             value=raw_order_to_price(raw_order),
             # TODO maybe use pickle here? how are booleans preserved?
-            data=json.dumps(raw_order)
+            data=json.dumps(raw_order),
+            payment_details=json.dumps(PaymentDetails(
+                requestId=str(uuid.uuid4()),
+                repaymentId=str(uuid.uuid4())
+            ).dict())
         )
         self.session.add(new_invoice)
         self.session.commit()
@@ -158,7 +163,7 @@ class InvoiceService():
             credit_line_size  = whitelist_entry.credit_line_size if whitelist_entry != 0 else 0
             res = self.session.query(Invoice.value).\
                 filter(Invoice.receiver_id == receiver).\
-                filter(Invoice.finance_status.in_(["DISBURSED"])).all()
+                filter(Invoice.finance_status.in_(["FINANCED"])).all()
             to_be_repaid = sum(x[0] for x in res)
             res = self.session.query(Invoice.value).\
                 filter(Invoice.receiver_id == receiver).\

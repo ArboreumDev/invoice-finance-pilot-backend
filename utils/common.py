@@ -50,6 +50,11 @@ class Invoice(BaseInvoice):
     # status: FinanceStatus = FinanceStatus.NONE
 
 
+class PaymentDetails(CamelModel):
+    request_id: str = ""
+    repayment_id: str = ""
+
+
 class InvoiceFrontendInfo(BaseInvoice):
     invoice_id: str
     order_id: str
@@ -58,9 +63,9 @@ class InvoiceFrontendInfo(BaseInvoice):
     shipping_status: str = ""
     status: str = "INITIAL"
     receiver_info: ReceiverInfo
+    payment_details: PaymentDetails
     # shipping_status: ShipmentStatus = ShipmentStatus.AWAITING_SHIPMENT
     # status: FinanceStatus = FinanceStatus.NONE
-
 
 class JWTUser(BaseModel):
     username: str

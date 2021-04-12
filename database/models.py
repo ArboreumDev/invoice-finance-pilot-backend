@@ -30,10 +30,12 @@ class Invoice(Base):
     data = Column(Text, nullable=False)
     value = Column(Float, nullable=True)
 
+    payment_details = Column(Text, nullable=True)
+
     # delivery_date = Column(DateTime)
     # source_id = Column(String)
 
-    # created_on = Column(DateTime, default=datetime.now())
+    created_on = Column(DateTime, default=datetime.now())
     # updated_on = Column(DateTime)
 
 class Whitelist(Base):

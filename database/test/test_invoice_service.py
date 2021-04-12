@@ -49,7 +49,7 @@ def test_insert_invoice(invoice1):
     assert json.loads(invoice_in_db.data) == NEW_RAW_ORDER
 
 
-    # reset_db()
+    reset_db()
 
 @pytest.mark.skip()
 def test_insert_invoice_that_exists():
