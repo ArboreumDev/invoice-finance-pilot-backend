@@ -23,7 +23,8 @@ def raw_order_to_invoice(raw_order: Dict):
             "receiver_info": {
                 "receiver_name": raw_order.get('rcvr', {}).get('cntct', {}).get("name", "not found"),
                 "receiver_id": raw_order.get('rcvr', {}).get('id')
-            }
+            },
+            'payment_details': {}
         }
     )
 
@@ -40,6 +41,9 @@ def db_invoice_to_frontend_info(inv: Invoice):
         receiver_info=ReceiverInfo(receiver_id=inv.receiver_id, receiver_name=data.get('rcvr', {}).get('cntct', {}).get("name", "not found")),
         payment_details=PaymentDetails(
             request_id=payment_details.get('request_id', "unknown"),
-            repayment_id=payment_details.get('repayment_id', "unknown")
+            repayment_id=payment_details.get('repayment_id', "unknown"),
+            interest=payment_details.get('interest', "unknown"),
+            collection_date=payment_details.get('collection_date', "unknown"),
+            start_date=payment_details.get('start_date', "unknown"),
         )
     )

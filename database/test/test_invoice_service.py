@@ -1,7 +1,7 @@
 # %%
 import pytest
 import copy
-from database.service import InvoiceService
+from database.service import InvoiceService, invoice_to_terms
 from database.models import Invoice
 from database.test.fixtures import NEW_RAW_ORDER, RAW_ORDER
 from database.db import metadata, engine, session
@@ -10,6 +10,7 @@ import contextlib
 import json
 from utils.constant import MAX_CREDIT, USER_DB, WHITELIST_DB, RECEIVER_ID1, GURUGRUPA_CUSTOMER_ID
 from database.test.conftest import reset_db
+import datetime as dt
 
 invoice_service = InvoiceService()
 # %%
@@ -47,8 +48,6 @@ def test_insert_invoice(invoice1):
 
     # check raw data is conserved
     assert json.loads(invoice_in_db.data) == NEW_RAW_ORDER
-
-
     reset_db()
 
 @pytest.mark.skip()
@@ -59,6 +58,16 @@ def test_update_invoice_status(invoice1):
     invoice_service.update_invoice_shipment_status(invoice1.id, "NEW_STATUS")
     assert invoice1.shipment_status == "NEW_STATUS"
     reset_db()
+
+
+def test_update_invoice_with_payment_terms(invoice1):
+    terms = invoice_to_terms(invoice1.id, invoice1.value, dt.datetime.now())
+    terms.interest = 1000
+    invoice_service.update_invoice_with_loan_terms(invoice1, terms)
+
+    assert json.loads(invoice1.payment_details)['interest'] == 1000
+    reset_db()
+
 
 
 def test_delete_invoice(invoice1):

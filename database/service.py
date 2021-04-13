@@ -42,7 +42,7 @@ class InvoiceService():
             data=json.dumps(raw_order),
             payment_details=json.dumps(PaymentDetails(
                 requestId=str(uuid.uuid4()),
-                repaymentId=str(uuid.uuid4())
+                repaymentId=str(uuid.uuid4()),
             ).dict())
         )
         self.session.add(new_invoice)
@@ -57,6 +57,14 @@ class InvoiceService():
     def update_invoice_payment_status(self, invoice_id: str, new_status: str):
         invoice = self.session.query(Invoice).filter(Invoice.id == invoice_id).first()
         invoice.finance_status = new_status
+        self.session.commit()
+
+    def update_invoice_with_loan_terms(self, invoice: Invoice, terms: LoanTerms):
+        payment_details = json.loads(invoice.payment_details)
+        payment_details['start_date'] = str(terms.start_date)
+        payment_details['collection_date'] = str(terms.collection_date)
+        payment_details['interest'] = terms.interest
+        invoice.payment_details = json.dumps(payment_details)
         self.session.commit()
 
     def delete_invoice(self, invoice_id: str):
@@ -127,7 +135,7 @@ class InvoiceService():
         # TODO get actual invoice start date
         start_date = dt.datetime.utcnow()
         terms = invoice_to_terms(invoice.id, invoice.value, start_date)
-
+        self.update_invoice_with_loan_terms(invoice, terms)
         msg = terms_to_email_body(terms)
 
         # ================= send email to Tusker with FundRequest
@@ -164,7 +172,7 @@ class InvoiceService():
 
             invoices = self.session.query(Invoice).filter(Invoice.receiver_id == receiver).all()
             to_be_repaid = sum(i.value for i in invoices if i.finance_status == "FINANCED")
-            requested = sum(i.value for i in invoices if i.finance_status == "DISBURSAL_REQUESTED")
+            requested = sum(i.value for i in invoices if i.finance_status in ["DISBURSAL_REQUESTED", "INITIAL"])
             n_of_invoices = len(invoices)
 
             credit_line_breakdown[receiver] = CreditLineInfo(**{

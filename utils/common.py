@@ -53,6 +53,9 @@ class Invoice(BaseInvoice):
 class PaymentDetails(CamelModel):
     request_id: str = ""
     repayment_id: str = ""
+    interest: float = 0
+    collection_date: dt.datetime = None
+    start_date: dt.datetime = None
 
 
 class InvoiceFrontendInfo(BaseInvoice):
