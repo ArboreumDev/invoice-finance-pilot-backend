@@ -111,3 +111,4 @@ class CreditLineInfo(BaseModel):
     used: float
     total: float
     requested: float
+    invoices: int

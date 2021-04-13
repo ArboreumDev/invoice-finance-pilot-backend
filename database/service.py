@@ -161,20 +161,19 @@ class InvoiceService():
         for receiver in WHITELIST_DB.get(customer_id, {}).keys():
             whitelist_entry = WHITELIST_DB.get(customer_id, {}).get(receiver, 0)
             credit_line_size  = whitelist_entry.credit_line_size if whitelist_entry != 0 else 0
-            res = self.session.query(Invoice.value).\
-                filter(Invoice.receiver_id == receiver).\
-                filter(Invoice.finance_status.in_(["FINANCED"])).all()
-            to_be_repaid = sum(x[0] for x in res)
-            res = self.session.query(Invoice.value).\
-                filter(Invoice.receiver_id == receiver).\
-                filter(Invoice.finance_status.in_(["DISBURSAL_REQUESTED"])).all()
-            requested = sum(x[0] for x in res)
+
+            invoices = self.session.query(Invoice).filter(Invoice.receiver_id == receiver).all()
+            to_be_repaid = sum(i.value for i in invoices if i.finance_status == "FINANCED")
+            requested = sum(i.value for i in invoices if i.finance_status == "DISBURSAL_REQUESTED")
+            n_of_invoices = len(invoices)
+
             credit_line_breakdown[receiver] = CreditLineInfo(**{
                 "name": whitelist_entry.receiver_info.receiver_name,
                 "total": credit_line_size,
                 "available": credit_line_size - to_be_repaid - requested, #invoince.value for invoice in to_be_repaid)
                 "used":to_be_repaid,
-                "requested": requested
+                "requested": requested,
+                "invoices": n_of_invoices
             })
         return credit_line_breakdown
 
