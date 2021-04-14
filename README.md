@@ -6,6 +6,10 @@ The simplemost hacky solution to get us started
 create a `.env.staging` file and add the following variables
 ```
 JWT_SECRET_KEY="someSecretKey"
+EMAIL_PASSWORD=""
+EMAIL_HOST="email-smtp.eu-west-2.amazonaws.com"
+EMAIL_USERNAME=""
+EMAIL_PORT=""
 ```
 
 ## Backend
@@ -26,11 +30,14 @@ setup virtualenv (e.g named 'tenv') and point it to your local executable of pyt
 
 # create the db
 
+first time, create the docker container:
+
+docker run --name=arboreum_backend -e POSTGRES_USER=<SOME_VARIABLE> -e POSTGRES_PASSWORD={<SOME_VARIABLE> -e POSTGRES_DB=arboreum_backend -p  5433:5432 -d postgres:12
+
+then store the Variables in `db/const` or in an .env file
+
+
 > python3 -m database.create
-
-or 
-
-> make create_db
 
 ### test
 
