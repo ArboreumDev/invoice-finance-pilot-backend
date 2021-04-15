@@ -3,13 +3,11 @@
 The simplemost hacky solution to get us started
 ## setup
 
-create a `.env.staging` file and add the following variables
+rename .example.env  to `.env` and add the missing variables
 ```
 JWT_SECRET_KEY="someSecretKey"
 EMAIL_PASSWORD=""
-EMAIL_HOST="email-smtp.eu-west-2.amazonaws.com"
-EMAIL_USERNAME=""
-EMAIL_PORT=""
+...and more
 ```
 
 ## Backend

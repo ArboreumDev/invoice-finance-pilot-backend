@@ -7,6 +7,28 @@ from utils.common import WhiteListEntry, ReceiverInfo
 
 load_dotenv()
 
+config_keys = [
+    "JWT_SECRET_KEY",
+    "EMAIL_HOST",
+    "EMAIL_PASSWORD",
+    "EMAIL_USERNAME",
+    "EMAIL_PORT",
+    "FRONTEND_URL",
+    "GURUGRUPA_CUSTOMER_ID",
+    "DISBURSAL_EMAIL",
+    "TUSKER_API_URL"
+]
+
+for key in config_keys:
+    okay = True
+    if not os.getenv(key):
+        okay = False
+        print(f"missing env variable: {key}")
+    if not okay:
+        raise NotImplementedError("Invalid env file")
+        
+
+FRONTEND_URL=os.getenv("FRONTEND_URL")
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 if not JWT_SECRET_KEY:
     print("WARNING: please create a .env file!")
@@ -26,7 +48,7 @@ JWT_EXPIRATION_TIME_MINUTES = 60 * 24 * 5
 # ENDPOINT DESCRIPTIONS
 TOKEN_DESCRIPTION = "It checks username and password if they are true, it returns JWT token to you."
 
-GURUGRUPA_CUSTOMER_ID = "58f1e776-c372-4ec5-8fa4-f30ab74ca631"
+GURUGRUPA_CUSTOMER_ID = os.getenv("GURUGRUPA_CUSTOMER_ID")
 OTHER_CUSTOMER_ID = "6551e776-c372-4ec5-8fa4-f30ab74ca631"
 ANOTHER_CUSTOMER_ID = "7551e776-c372-4ec5-8fa4-f30ab74ca631"
 
@@ -65,22 +87,22 @@ USER_DB = {
 # dummy db to be replaced
 WHITELIST_DB = {
     GURUGRUPA_CUSTOMER_ID: {
-        RECEIVER_ID1: WhiteListEntry(receiver_info=ReceiverInfo(receiver_id=RECEIVER_ID1, receiver_name="gurugrupa test receiver 1"), credit_line_size=50000),
-        RECEIVER_ID2: WhiteListEntry(receiver_info=ReceiverInfo(receiver_id=RECEIVER_ID2, receiver_name="gurugrupa test receiver 2"), credit_line_size=50000),
+        RECEIVER_ID1: WhiteListEntry(receiver_info=ReceiverInfo(receiver_id=RECEIVER_ID1, receiver_name="A B C Kirani Stores"), credit_line_size=50000),
+        RECEIVER_ID2: WhiteListEntry(receiver_info=ReceiverInfo(receiver_id=RECEIVER_ID2, receiver_name="porwal ambe medicals"), credit_line_size=50000),
     },
     OTHER_CUSTOMER_ID: {
-        RECEIVER_ID3: WhiteListEntry(receiver_info=ReceiverInfo(receiver_id=RECEIVER_ID3, receiver_name="other test receiver 1"), credit_line_size=50000),
-        RECEIVER_ID4: WhiteListEntry(receiver_info=ReceiverInfo(receiver_id=RECEIVER_ID4, receiver_name="other test receiver 2"), credit_line_size=50000),
+        RECEIVER_ID3: WhiteListEntry(receiver_info=ReceiverInfo(receiver_id=RECEIVER_ID3, receiver_name="A B C Kirani Stores"), credit_line_size=50000),
+        RECEIVER_ID4: WhiteListEntry(receiver_info=ReceiverInfo(receiver_id=RECEIVER_ID4, receiver_name="porwal ambe medicals"), credit_line_size=50000),
     },
 }
 
 USERS = list(USER_DB.keys())
 
-DISBURSAL_EMAIL = "julius@arboreum.dev"
+DISBURSAL_EMAIL = os.getenv("DISBURSAL_EMAIL")
 GP_CONFIRMATION_MAIL = "julius@arboreum.dev"
 MONTHLY_INTEREST = 0.0165
 
-TUSKER_API_URL = "https://tusker-staging.logistimo.com/tusker-service/orders/search"
+TUSKER_API_URL = os.getenv("TUSKER_API_URL")
 
 MAX_CREDIT = 50000
 
