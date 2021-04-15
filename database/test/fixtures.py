@@ -1,3 +1,6 @@
+from utils.constant import RECEIVER_ID1, receiver1, receiver2
+
+
 RAW_ORDER = {
     "id": "971b4ce5-e8cf-4ab1-b85e-cc9e640b700b",
     "ept": 1443699853000,
@@ -71,7 +74,7 @@ RAW_ORDER = {
         "pr_init": 15.0,
         "disc": 0.0,
         "d_md": 0,
-        "pr_act": 15.0,
+        "pr_act": 15000.0,
         "pr_fx": False,
         "pr_ftr_md": 0,
         "pr_ty": 0,
@@ -203,7 +206,7 @@ RAW_ORDER = {
         "def": False
     },
     "rcvr": {
-        "id": "d362324c-3196-4e90-9acd-25da38e16dda",
+        "id": RECEIVER_ID1,
         "status": 0,
         "type": 2,
         "addressLine1": "opp old bus stand subhas road ",
@@ -218,7 +221,7 @@ RAW_ORDER = {
         "w_flg": 0,
         "pub": False,
         "cntct": {
-        "name": "porwal ambe medicals",
+        "name": receiver1.receiver_name,
         "f_name": "porwal ambe medicals",
         "p_mob": "+91-9986238611"
         },
@@ -359,7 +362,7 @@ NEW_RAW_ORDER = {
         "pr_init": 15.0,
         "disc": 0.0,
         "d_md": 0,
-        "pr_act": 20.0,
+        "pr_act": 20000.0,
         "pr_fx": False,
         "pr_ftr_md": 0,
         "pr_ty": 0,
@@ -491,7 +494,7 @@ NEW_RAW_ORDER = {
         "def": False
     },
     "rcvr": {
-        "id": "d362324c-3196-4e90-9acd-25da38e16dda",
+        "id": RECEIVER_ID1,
         "status": 0,
         "type": 2,
         "addressLine1": "opp old bus stand subhas road ",
@@ -506,7 +509,7 @@ NEW_RAW_ORDER = {
         "w_flg": 0,
         "pub": False,
         "cntct": {
-        "name": "porwal ambe medicals",
+        "name": receiver1.receiver_name,
         "f_name": "porwal ambe medicals",
         "p_mob": "+91-9986238611"
         },

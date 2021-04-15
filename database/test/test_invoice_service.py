@@ -1,14 +1,16 @@
 # %%
 import pytest
-from database.service import InvoiceService
+import copy
+from database.service import InvoiceService, invoice_to_terms
 from database.models import Invoice
-from database.test.fixtures import NEW_RAW_ORDER
+from database.test.fixtures import NEW_RAW_ORDER, RAW_ORDER
 from database.db import metadata, engine, session
 from invoice.tusker_client import code_to_order_status, tusker_client
 import contextlib
 import json
-from utils.constant import MAX_CREDIT
+from utils.constant import MAX_CREDIT, USER_DB, WHITELIST_DB, RECEIVER_ID1, GURUGRUPA_CUSTOMER_ID
 from database.test.conftest import reset_db
+import datetime as dt
 
 invoice_service = InvoiceService()
 # %%
@@ -42,12 +44,11 @@ def test_insert_invoice(invoice1):
     assert invoice_in_db.order_ref == NEW_RAW_ORDER.get('ref_no')
     assert invoice_in_db.shipment_status == "PLACED_AND_VALID"
     assert invoice_in_db.finance_status == "INITIAL"
+    assert invoice_in_db.receiver_id == NEW_RAW_ORDER.get('rcvr').get('id')
 
     # check raw data is conserved
     assert json.loads(invoice_in_db.data) == NEW_RAW_ORDER
-
-
-    # reset_db()
+    reset_db()
 
 @pytest.mark.skip()
 def test_insert_invoice_that_exists():
@@ -57,6 +58,16 @@ def test_update_invoice_status(invoice1):
     invoice_service.update_invoice_shipment_status(invoice1.id, "NEW_STATUS")
     assert invoice1.shipment_status == "NEW_STATUS"
     reset_db()
+
+
+def test_update_invoice_with_payment_terms(invoice1):
+    terms = invoice_to_terms(invoice1.id, invoice1.value, dt.datetime.now())
+    terms.interest = 1000
+    invoice_service.update_invoice_with_loan_terms(invoice1, terms)
+
+    assert json.loads(invoice1.payment_details)['interest'] == 1000
+    reset_db()
+
 
 
 def test_delete_invoice(invoice1):
@@ -92,15 +103,6 @@ def test_update_db(invoice1):
     assert updated[0][0] == invoice1.id
     assert updated[0][1] == tmp
 
-def test_free_credit(invoices):
-    assert invoice_service.free_credit() == MAX_CREDIT
-
-    in1 = invoices[0]
-    in1.finance_status = "DISBURSED"
-    invoice_service.update_invoice_payment_status(in1.id, "DISBURSED")
-    # verify invoices with disbursed status are deducted from available credit
-
-    assert invoice_service.free_credit() == MAX_CREDIT - in1.value
 
 def test_update_invoices(invoice1):
     assert invoice1.finance_status == "INITIAL"
@@ -114,6 +116,27 @@ def test_update_invoices(invoice1):
 
     # invoice_service.update_invoice_payment_status
 
+def test_whitelist_okay():
+    test_customer = USER_DB.get("test").get('customer_id')
+    whitelisted_receivers = list(WHITELIST_DB.get(test_customer).keys())
+    order_receiver = NEW_RAW_ORDER.get('rcvr').get('id')
+
+    assert order_receiver in whitelisted_receivers
+    assert invoice_service.is_whitelisted(NEW_RAW_ORDER, username="test")
+
+def test_whitelist_failure():
+    test_customer = USER_DB.get("test").get('customer_id')
+    whitelisted_receivers = list(WHITELIST_DB.get(test_customer).keys())
+
+    #set order receiver to something not in whitelist
+    order = copy.deepcopy(RAW_ORDER)
+    order_receiver = "0xdeadbeef"
+    order['rcvr']['id'] = order_receiver
+
+    assert order_receiver not in whitelisted_receivers
+    assert not invoice_service.is_whitelisted(order, username="test")
+
+
 
 @pytest.mark.skip()
 def test_multiple_invoice_updates():
@@ -126,3 +149,31 @@ def test_update_error_reporting():
     # see whether errors are reported correctly
     pass
  
+
+def test_credit_line_breakdown(invoices):
+    gurugrupa_receiver1 = list(WHITELIST_DB[GURUGRUPA_CUSTOMER_ID].keys())[0]
+    gurugrupa_receiver2 = list(WHITELIST_DB[GURUGRUPA_CUSTOMER_ID].keys())[1]
+    before = copy.deepcopy(invoice_service.get_credit_line_info(GURUGRUPA_CUSTOMER_ID))
+
+    in1 = invoices[0]
+    invoice_service.update_invoice_payment_status(in1.id, "FINANCED")
+
+    # verify invoices with disbursed status are deducted from available credit
+    after =  invoice_service.get_credit_line_info(GURUGRUPA_CUSTOMER_ID)
+    assert in1.receiver_id == gurugrupa_receiver1
+    assert after[gurugrupa_receiver1].used  == before[gurugrupa_receiver1].used + in1.value
+    assert after[gurugrupa_receiver2].available == before[gurugrupa_receiver2].available
+
+    # verify consistency
+    c = after[gurugrupa_receiver2]
+    c2 = before[gurugrupa_receiver2]
+    assert c.available + c.used == c.total and c2.available + c2.used == c2.total
+
+    # do the same for the DISBURSAL_REQUESTED status => iniital & disbursed are currently both shwon as requested
+    # in2 = invoices[1]
+    # invoice_service.update_invoice_payment_status(in2.id, "DISBURSAL_REQUESTED")
+    # after = invoice_service.get_credit_line_info(GURUGRUPA_CUSTOMER_ID)
+    # assert after[gurugrupa_receiver1].used == before[gurugrupa_receiver1].used + in1.value + in2.value
+
+def test_credit_line_breakdown_invalid_customer_id():
+    assert invoice_service.get_credit_line_info("deadbeef") == {}

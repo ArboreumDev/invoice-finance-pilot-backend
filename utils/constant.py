@@ -3,8 +3,32 @@ import os
 
 from dotenv import load_dotenv
 
+from utils.common import ReceiverInfo, WhiteListEntry
+
 load_dotenv()
 
+config_keys = [
+    "JWT_SECRET_KEY",
+    "EMAIL_HOST",
+    "EMAIL_PASSWORD",
+    "EMAIL_USERNAME",
+    "EMAIL_PORT",
+    "FRONTEND_URL",
+    "GURUGRUPA_CUSTOMER_ID",
+    "DISBURSAL_EMAIL",
+    "TUSKER_API_URL",
+]
+
+for key in config_keys:
+    okay = True
+    if not os.getenv(key):
+        okay = False
+        print(f"missing env variable: {key}")
+    if not okay:
+        raise NotImplementedError("Invalid env file")
+
+
+FRONTEND_URL = os.getenv("FRONTEND_URL")
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 if not JWT_SECRET_KEY:
     print("WARNING: please create a .env file!")
@@ -24,6 +48,24 @@ JWT_EXPIRATION_TIME_MINUTES = 60 * 24 * 5
 # ENDPOINT DESCRIPTIONS
 TOKEN_DESCRIPTION = "It checks username and password if they are true, it returns JWT token to you."
 
+GURUGRUPA_CUSTOMER_ID = os.getenv("GURUGRUPA_CUSTOMER_ID")
+OTHER_CUSTOMER_ID = "6551e776-c372-4ec5-8fa4-f30ab74ca631"
+ANOTHER_CUSTOMER_ID = "7551e776-c372-4ec5-8fa4-f30ab74ca631"
+
+# these exist in tusker system
+RECEIVER_ID1 = "216c6829-6439-4fcb-b7dc-d35d337e9315"
+RECEIVER_ID4 = "85ca2349-073d-4137-a38b-fc246a381270"
+
+# these are made up
+RECEIVER_ID2 = "3be36644-3171-4441-a0f4-75ae4fef0a4b"
+RECEIVER_ID3 = "316c6829-6439-4fcb-b7dc-d35d337e9315"
+
+# add names
+receiver1 = ReceiverInfo(receiver_id=RECEIVER_ID1, receiver_name="A B C Kirani Stores")
+receiver2 = ReceiverInfo(receiver_id=RECEIVER_ID2, receiver_name="Dharwad Surgical")
+receiver3 = ReceiverInfo(receiver_id=RECEIVER_ID3, receiver_name="Other amde up store")
+receiver4 = ReceiverInfo(receiver_id=RECEIVER_ID4, receiver_name="new jeewan medicale")
+
 # DUMMY DB
 # constructed by doing:
 # "test_user": get_hashed_password("test_password"),
@@ -31,21 +73,43 @@ TOKEN_DESCRIPTION = "It checks username and password if they are true, it return
 # "admin": get_hashed_password("admin_password")
 # TODO use actual DB
 USER_DB = {
-    "test": {"hashed_password": "$2b$12$p3W5at39PORCphT4T5Kbx.TDvGNchgQ2mee8AdEDOcvZ8ZfafG0ZK", "role": "user"},
-    "admin": {"hashed_password": "$2b$12$EkTEXspTZJGjidCV4W3D5.YyUPU1UhC9JDAjxCHRl5a8POttPEcEq", "role": "admin"},
-    "rc": {"hashed_password": "$2b$12$orWKHb1jGlMPkHalVdeiSe9o980PymTZ3HF2FeuYSE6cU2kZsgRCy", "role": "rc_admin"},
+    "test": {
+        "hashed_password": "$2b$12$p3W5at39PORCphT4T5Kbx.TDvGNchgQ2mee8AdEDOcvZ8ZfafG0ZK",
+        "role": "user",
+        "customer_id": GURUGRUPA_CUSTOMER_ID,
+    },
+    "admin": {
+        "hashed_password": "$2b$12$EkTEXspTZJGjidCV4W3D5.YyUPU1UhC9JDAjxCHRl5a8POttPEcEq",
+        "role": "admin",
+        "customer_id": OTHER_CUSTOMER_ID,
+    },
+    "rc": {
+        "hashed_password": "$2b$12$orWKHb1jGlMPkHalVdeiSe9o980PymTZ3HF2FeuYSE6cU2kZsgRCy",
+        "role": "rc_admin",
+        "customer_id": ANOTHER_CUSTOMER_ID,
+    },
 }
 
 
+# dummy db to be replaced
+WHITELIST_DB = {
+    GURUGRUPA_CUSTOMER_ID: {
+        RECEIVER_ID1: WhiteListEntry(receiver_info=receiver1, credit_line_size=50000),
+        RECEIVER_ID2: WhiteListEntry(receiver_info=receiver2, credit_line_size=50000),
+    },
+    OTHER_CUSTOMER_ID: {
+        RECEIVER_ID3: WhiteListEntry(receiver_info=receiver3, credit_line_size=50000),
+        RECEIVER_ID4: WhiteListEntry(receiver_info=receiver4, credit_line_size=50000),
+    },
+}
 
 USERS = list(USER_DB.keys())
 
-DISBURSAL_EMAIL = "julius@arboreum.dev"
+DISBURSAL_EMAIL = os.getenv("DISBURSAL_EMAIL")
 GP_CONFIRMATION_MAIL = "julius@arboreum.dev"
 MONTHLY_INTEREST = 0.0165
 
-TUSKER_API_URL = "https://tusker-staging.logistimo.com/tusker-service/orders/search"
-GURUGRUPA_CUSTOMER_ID = "58f1e776-c372-4ec5-8fa4-f30ab74ca631"
+TUSKER_API_URL = os.getenv("TUSKER_API_URL")
 
 MAX_CREDIT = 50000
 
@@ -55,7 +119,7 @@ TUSKER_DEFAULT_NEW_ORDER = {
         "shppr": {"id": "3776254c-cbf5-4b84-9276-8f4aa0439d0e"},
         "rcvr": {"id": "216c6829-6439-4fcb-b7dc-d35d337e9315"},
         "shipper_contact": {"o_id": "da899034-c729-418d-b70c-ea02d4796735"},
-        "receiver_contact": {"o_id": "1aee8ce8-9c4c-4b7c-a790-6d8b4684e287"},
+        "receiver_contact": {"o_id": RECEIVER_ID1},
         "consgt": {
             "cat": "8",
             "it_sm": 3,

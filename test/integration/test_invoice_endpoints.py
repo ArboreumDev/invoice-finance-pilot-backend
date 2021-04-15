@@ -8,6 +8,7 @@ from database.test.conftest import reset_db
 from invoice.tusker_client import tusker_client
 from main import app
 from utils.common import InvoiceFrontendInfo
+from utils.constant import GURUGRUPA_CUSTOMER_ID, RECEIVER_ID4, WHITELIST_DB
 
 client = TestClient(app)
 
@@ -15,8 +16,13 @@ client = TestClient(app)
 @pytest.fixture(scope="function")
 def invoices():
     reset_db()
-    inv_id1, order_ref1, _ = tusker_client.create_test_order()
-    inv_id2, order_ref2, _ = tusker_client.create_test_order()
+    whitelisted_receiver_id = list(WHITELIST_DB.get(GURUGRUPA_CUSTOMER_ID).values())[0].receiver_info.receiver_id
+    inv_id1, order_ref1, _ = tusker_client.create_test_order(
+        customer_id=GURUGRUPA_CUSTOMER_ID, receiver_id=whitelisted_receiver_id
+    )
+    inv_id2, order_ref2, _ = tusker_client.create_test_order(
+        customer_id=GURUGRUPA_CUSTOMER_ID, receiver_id=whitelisted_receiver_id
+    )
     yield (inv_id1, order_ref1), (inv_id2, order_ref2)
     reset_db()
 
@@ -52,6 +58,15 @@ def test_get_order(invoices):
     response = client.get(f"v1/order/{invoices[0][1]}", headers=AUTH_HEADER)
     order = InvoiceFrontendInfo(**response.json())
     assert order.shipping_status == "PLACED_AND_VALID"
+
+
+def test_whitelist_failure():
+    # create order for customer that is not whitelisted
+    _, order_ref, _ = tusker_client.create_test_order(customer_id=GURUGRUPA_CUSTOMER_ID, receiver_id=RECEIVER_ID4)
+
+    # try querying order
+    response = client.get(f"v1/order/{order_ref}", headers=AUTH_HEADER)
+    assert response.status_code == 400
 
 
 def test_get_order_invalid_order_id():
@@ -122,3 +137,15 @@ def test_update_db(invoices):
     InvoiceFrontendInfo(**response.json()[0]).shipping_status == "IN_TRANSIT" != before
 
     # TODO should trigger finance_status updates (send email) when shipment gets delivered
+
+
+def test_credit():
+    response = client.get("v1/credit", headers=AUTH_HEADER)
+
+    assert response.status_code == HTTP_200_OK
+
+    credit_breakdown = response.json()
+    gurugrupa_receiver1 = list(WHITELIST_DB[GURUGRUPA_CUSTOMER_ID].keys())[0]
+    gurugrupa_receiver2 = list(WHITELIST_DB[GURUGRUPA_CUSTOMER_ID].keys())[1]
+
+    assert gurugrupa_receiver1 in credit_breakdown and gurugrupa_receiver2 in credit_breakdown

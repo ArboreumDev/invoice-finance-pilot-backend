@@ -33,6 +33,11 @@ class BaseInvoice(CamelModel):
     invoice_id: str = ""
 
 
+class ReceiverInfo(CamelModel):
+    receiver_id: str
+    receiver_name: str = ""
+
+
 class Invoice(BaseInvoice):
     order_id: str
     value: int = 1
@@ -40,8 +45,17 @@ class Invoice(BaseInvoice):
     shipping_status: str = ""
     status: str = "INITIAL"
     raw: str = ""
+    receiver_info: ReceiverInfo
     # shipping_status: ShipmentStatus = ShipmentStatus.AWAITING_SHIPMENT
     # status: FinanceStatus = FinanceStatus.NONE
+
+
+class PaymentDetails(CamelModel):
+    request_id: str = ""
+    repayment_id: str = ""
+    interest: float = 0
+    collection_date: dt.datetime = None
+    start_date: dt.datetime = None
 
 
 class InvoiceFrontendInfo(BaseInvoice):
@@ -51,6 +65,8 @@ class InvoiceFrontendInfo(BaseInvoice):
     destination: str = ""
     shipping_status: str = ""
     status: str = "INITIAL"
+    receiver_info: ReceiverInfo
+    payment_details: PaymentDetails
     # shipping_status: ShipmentStatus = ShipmentStatus.AWAITING_SHIPMENT
     # status: FinanceStatus = FinanceStatus.NONE
 
@@ -86,3 +102,17 @@ class MappingInput(CamelModel):
 
 class Mapping(CamelModel):
     allocations: Dict[str, float]
+
+
+class WhiteListEntry(BaseModel):
+    receiver_info: ReceiverInfo
+    credit_line_size: float
+
+
+class CreditLineInfo(BaseModel):
+    name: str
+    available: float
+    used: float
+    total: float
+    requested: float
+    invoices: int

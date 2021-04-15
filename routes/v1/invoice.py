@@ -1,13 +1,16 @@
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from starlette.status import (HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND,
                               HTTP_500_INTERNAL_SERVER_ERROR)
 
 from database.service import invoice_service
 from invoice.tusker_client import tusker_client
 from invoice.utils import db_invoice_to_frontend_info, raw_order_to_invoice
-from utils.common import CamelModel, Invoice, InvoiceFrontendInfo
+from utils.common import (CamelModel, CreditLineInfo, Invoice,
+                          InvoiceFrontendInfo)
+from utils.constant import USER_DB
+from utils.security import check_jwt_token_role
 
 # ===================== routes ==========================
 invoice_app = APIRouter()
@@ -23,12 +26,18 @@ def _health():
 
 
 @invoice_app.get("/order/{order_reference_number}", response_model=InvoiceFrontendInfo, tags=["orders"])
-def _get_order(order_reference_number: str):
+def _get_order(order_reference_number: str, user_info: Tuple[str, str] = Depends(check_jwt_token_role)):
     """ read raw order data from tusker """
+    username, role = user_info
+    print(f"{username} with role {role} wants to know about order {order_reference_number}")
     raw_orders = tusker_client.track_orders([order_reference_number])
+    # check against whitelist
     if raw_orders:
-        return raw_order_to_invoice(raw_orders[0])
-    raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Unknown order id")
+        raw_order = raw_orders[0]
+        if not invoice_service.is_whitelisted(raw_order, username):
+            raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Invalid order id: invalid receiver")
+        return raw_order_to_invoice(raw_order)
+    raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Unknown order id: Order not found")
 
 
 @invoice_app.get("/order", response_model=List[Invoice], tags=["orders"])
@@ -45,6 +54,7 @@ def _get_invoices_from_db():
     """
     return all invoices that we are currently tracking as they are in our db
     """
+    # TODO filter by customer once we have more than one
     invoices = invoice_service.get_all_invoices()
     print("found", len(invoices))
     # print(invoices[0] if invoices)
@@ -96,6 +106,13 @@ def add_new_invoice(order_reference_number: str):
 
     # change status to awaiting_delivery
     # invoice_service.update_invoice_shipment_status(order_id, "AWAITING_DELIVERY")
+
+
+@invoice_app.get("/credit", response_model=Dict[str, CreditLineInfo])
+def get_credit_lines(user_info: Tuple[str, str] = Depends(check_jwt_token_role)):
+    username, role = user_info
+    print(f"{username} with role {role} wants to know their credit line info")
+    return invoice_service.get_credit_line_info(customer_id=USER_DB.get(username).get("customer_id"))
 
 
 # deprecated

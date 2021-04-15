@@ -5,9 +5,10 @@ from typing import Dict
 from invoice.tusker_client import code_to_order_status, tusker_client
 from utils.email import EmailClient, terms_to_email_body
 import json
-from utils.common import LoanTerms 
-from utils.constant import DISBURSAL_EMAIL, MAX_CREDIT
+from utils.common import LoanTerms, CreditLineInfo, PaymentDetails
+from utils.constant import DISBURSAL_EMAIL, MAX_CREDIT, WHITELIST_DB, USER_DB
 from invoice.utils import raw_order_to_price
+import uuid
 
 
 def invoice_to_terms(id: str, amount: float, start_date: dt.datetime):
@@ -35,9 +36,15 @@ class InvoiceService():
             order_ref=raw_order.get('ref_no'),
             shipment_status=code_to_order_status(raw_order.get('status')),
             finance_status="INITIAL",
+            receiver_id=raw_order.get('rcvr').get('id'),
             value=raw_order_to_price(raw_order),
+            customer_id=raw_order.get('cust').get('id'),
             # TODO maybe use pickle here? how are booleans preserved?
-            data=json.dumps(raw_order)
+            data=json.dumps(raw_order),
+            payment_details=json.dumps(PaymentDetails(
+                requestId=str(uuid.uuid4()),
+                repaymentId=str(uuid.uuid4()),
+            ).dict())
         )
         self.session.add(new_invoice)
         self.session.commit()
@@ -48,9 +55,22 @@ class InvoiceService():
         invoice.shipment_status = new_status
         self.session.commit()
 
+    def update_invoice_value(self, invoice_id: str, new_value: int):
+        invoice = self.session.query(Invoice).filter(Invoice.id == invoice_id).first()
+        invoice.value = new_value
+        self.session.commit()
+
     def update_invoice_payment_status(self, invoice_id: str, new_status: str):
         invoice = self.session.query(Invoice).filter(Invoice.id == invoice_id).first()
         invoice.finance_status = new_status
+        self.session.commit()
+
+    def update_invoice_with_loan_terms(self, invoice: Invoice, terms: LoanTerms):
+        payment_details = json.loads(invoice.payment_details)
+        payment_details['start_date'] = str(terms.start_date)
+        payment_details['collection_date'] = str(terms.collection_date)
+        payment_details['interest'] = terms.interest
+        invoice.payment_details = json.dumps(payment_details)
         self.session.commit()
 
     def delete_invoice(self, invoice_id: str):
@@ -121,7 +141,7 @@ class InvoiceService():
         # TODO get actual invoice start date
         start_date = dt.datetime.utcnow()
         terms = invoice_to_terms(invoice.id, invoice.value, start_date)
-
+        self.update_invoice_with_loan_terms(invoice, terms)
         msg = terms_to_email_body(terms)
 
         # ================= send email to Tusker with FundRequest
@@ -129,17 +149,17 @@ class InvoiceService():
             ec = EmailClient()
             ec.send_email(body=msg, subject="Arboreum Disbursal Request", targets=[DISBURSAL_EMAIL])
             invoice.finance_status = "DISBURSAL_REQUESTED"
+            self.session.commit()
         except Exception as e:
+            invoice.finance_status = "ERROR_SENDING_REQUEST"
+            self.session.commit()
             raise AssertionError(f"Could not send email: {str(e)}") # TODO add custom exception
 
 
-    # TODO turn this into a view using
-    # https://stackoverflow.com/questions/9766940/how-to-create-an-sql-view-with-sqlalchemy
-    def free_credit(self):
-        financed_invoices = self.session.query(Invoice).filter(Invoice.finance_status.in_(["DISBURSED", "DISBURSAL_REQUESTED"])).all()
-        print('financed', financed_invoices)
-        return MAX_CREDIT - sum([i.value for i in financed_invoices])
-        # return 10000000
+    def is_whitelisted(self, raw_order: Dict, username: str):
+        receiver_id = raw_order.get('rcvr', {}).get('id', "")
+        customer_id = USER_DB[username].get('customer_id')
+        return receiver_id in WHITELIST_DB.get(customer_id).keys()
 
     def final_checks(self, raw_order):
         # verify doesnt cross credit limit
@@ -148,6 +168,28 @@ class InvoiceService():
         # if not return custom error
         return True, "Ok"
 
+    # TODO turn this into a view using
+    # https://stackoverflow.com/questions/9766940/how-to-create-an-sql-view-with-sqlalchemy
+    def get_credit_line_info(self, customer_id):
+        credit_line_breakdown = {}
+        for receiver in WHITELIST_DB.get(customer_id, {}).keys():
+            whitelist_entry = WHITELIST_DB.get(customer_id, {}).get(receiver, 0)
+            credit_line_size  = whitelist_entry.credit_line_size if whitelist_entry != 0 else 0
+
+            invoices = self.session.query(Invoice).filter(Invoice.receiver_id == receiver).all()
+            to_be_repaid = sum(i.value for i in invoices if i.finance_status == "FINANCED")
+            requested = sum(i.value for i in invoices if i.finance_status in ["DISBURSAL_REQUESTED", "INITIAL"])
+            n_of_invoices = len(invoices)
+
+            credit_line_breakdown[receiver] = CreditLineInfo(**{
+                "name": whitelist_entry.receiver_info.receiver_name,
+                "total": credit_line_size,
+                "available": credit_line_size - to_be_repaid - requested, #invoince.value for invoice in to_be_repaid)
+                "used":to_be_repaid,
+                "requested": requested,
+                "invoices": n_of_invoices
+            })
+        return credit_line_breakdown
 
 
 invoice_service = InvoiceService()

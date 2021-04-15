@@ -20,20 +20,42 @@ class Invoice(Base):
 
     id = Column(String(50), primary_key=True)
     order_ref = Column(String(50), nullable=False)
+    customer_id = Column(String(50), nullable=False)
 
     shipment_status = Column(String(50), nullable=True)
     finance_status = Column(String(50), nullable=True)
     # shipment_status = Column(Integer, ForeignKey("shipment_status_map.id"), nullable=False)
     # finance_status = Column(Integer, ForeignKey("finance_status_map.id"), nullable=True)
+    receiver_id = Column(String(50), nullable=False)
 
     data = Column(Text, nullable=False)
     value = Column(Float, nullable=True)
 
+    payment_details = Column(Text, nullable=True)
+
     # delivery_date = Column(DateTime)
     # source_id = Column(String)
 
-    # created_on = Column(DateTime, default=datetime.now())
+    created_on = Column(DateTime, default=datetime.now())
     # updated_on = Column(DateTime)
+
+class Whitelist(Base):
+    __tablename__ = "whitelist"
+
+    borrower_id = Column(String(50), primary_key=True)
+    receiver_id = Column(String(50), primary_key=True)
+    receiver_name = Column(String(50), nullable=False)
+
+    credit_line_size = Column(String(50), nullable=True)
+
+class User(Base):
+    """ used to look up usernames and their passwords and their associated customer id """
+    __tablename__ = "user"
+
+    email = Column(String(50), primary_key=True)
+    customer_id = Column(String(50))
+    password = Column(String(50), nullable=False)
+ 
 
 
 

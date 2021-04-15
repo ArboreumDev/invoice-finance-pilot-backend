@@ -90,15 +90,18 @@ class TuskerClient:
                 raise NotImplementedError(str(response.json()))
         return raw_orders
 
-    def create_test_order(self, customer_id: str = ""):
-        if not customer_id:
-            customer_id = self.customer_id
+    def create_test_order(self, customer_id: str = "", receiver_id: str = ""):
         _input = copy.deepcopy(TUSKER_DEFAULT_NEW_ORDER)
+
+        # plug in parameters if given
+        if receiver_id:
+            _input["pl"]["rcvr"]["id"] = receiver_id
         _input["pl"]["cust"]["id"] = customer_id if customer_id else self.customer_id
+
         response = requests.post(self.base_url + TUSKER_ORDER_URL, json=_input, headers=self.headers)
         if response.status_code == 200:
             new_order = response.json().get("pl", {})
-            print(new_order)
+            # print(new_order)
             # return new_order
             return new_order["id"], new_order["ref_no"], new_order["status"]
         else:
@@ -111,9 +114,11 @@ class TuskerClient:
             "pl": [
                 {"op": "3", "path": "\\status", "val": str(order_status_to_code(new_status))},
                 # NOTE: if we ever want to update other stuff it would go like this:
-                # { "op": "2", "path": "\\remarks", "val": "Arboreum Testing" }
+                {"op": "2", "path": "\\remarks", "val": "Arboreum Testing"},
             ]
         }
+        url = f"{self.base_url}{TUSKER_ORDER_URL}/{invoice_id}"
+        print(url)
         response = requests.patch(f"{self.base_url}{TUSKER_ORDER_URL}/{invoice_id}", json=_input, headers=self.headers)
         if response.status_code == 200:
             return True

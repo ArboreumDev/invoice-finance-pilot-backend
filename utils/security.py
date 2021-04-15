@@ -51,7 +51,7 @@ def create_jwt_token(user: JWTUser):
 
 # Check whether JWT token is correct
 def check_jwt_token_role(token: str = Depends(oauth_schema)):
-    """ raise exceptions if unauthorized, else return role """
+    """ raise exceptions if unauthorized, else return role and username """
     try:
         jwt_payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=JWT_ALGORITHM)
         username = jwt_payload.get("sub")
@@ -60,7 +60,7 @@ def check_jwt_token_role(token: str = Depends(oauth_schema)):
         print("r", role)
         if time.time() < expiration:
             if username in USERS:
-                return role
+                return username, role
                 # return final_checks(role, auth_level)
             else:
                 raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Unknown User")
