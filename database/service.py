@@ -54,6 +54,11 @@ class InvoiceService():
         invoice.shipment_status = new_status
         self.session.commit()
 
+    def update_invoice_value(self, invoice_id: str, new_value: int):
+        invoice = self.session.query(Invoice).filter(Invoice.id == invoice_id).first()
+        invoice.value = new_value
+        self.session.commit()
+
     def update_invoice_payment_status(self, invoice_id: str, new_status: str):
         invoice = self.session.query(Invoice).filter(Invoice.id == invoice_id).first()
         invoice.finance_status = new_status

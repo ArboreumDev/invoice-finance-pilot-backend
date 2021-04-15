@@ -91,8 +91,8 @@ WHITELIST_DB = {
         RECEIVER_ID2: WhiteListEntry(receiver_info=ReceiverInfo(receiver_id=RECEIVER_ID2, receiver_name="porwal ambe medicals"), credit_line_size=50000),
     },
     OTHER_CUSTOMER_ID: {
-        RECEIVER_ID3: WhiteListEntry(receiver_info=ReceiverInfo(receiver_id=RECEIVER_ID3, receiver_name="A B C Kirani Stores"), credit_line_size=50000),
-        RECEIVER_ID4: WhiteListEntry(receiver_info=ReceiverInfo(receiver_id=RECEIVER_ID4, receiver_name="porwal ambe medicals"), credit_line_size=50000),
+        RECEIVER_ID3: WhiteListEntry(receiver_info=ReceiverInfo(receiver_id=RECEIVER_ID3, receiver_name="Other Store"), credit_line_size=50000),
+        RECEIVER_ID4: WhiteListEntry(receiver_info=ReceiverInfo(receiver_id=RECEIVER_ID4, receiver_name="Another Pharmacy"), credit_line_size=50000),
     },
 }
 

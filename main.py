@@ -19,6 +19,7 @@ app = FastAPI()
 # app.include_router(mapping_app, prefix="/v1", dependencies=[])
 app.include_router(invoice_app, prefix="/v1", dependencies=[Depends(check_jwt_token_role)])
 # app.include_router(invoice_app, prefix="/v1", dependencies=[])
+app.include_router(test_app, prefix="/v1/test", dependencies=[])
 
 
 app.add_middleware(
