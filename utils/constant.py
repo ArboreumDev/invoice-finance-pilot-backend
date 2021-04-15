@@ -57,7 +57,7 @@ RECEIVER_ID1 = "216c6829-6439-4fcb-b7dc-d35d337e9315"
 RECEIVER_ID4 = "85ca2349-073d-4137-a38b-fc246a381270"
 
 # these are made up
-RECEIVER_ID2 = "1aee8ce8-9c4c-4b7c-a790-6d8b4684e287"
+RECEIVER_ID2 = "3be36644-3171-4441-a0f4-75ae4fef0a4b"
 RECEIVER_ID3 = "316c6829-6439-4fcb-b7dc-d35d337e9315"
 # DUMMY DB
 # constructed by doing:
@@ -88,11 +88,11 @@ USER_DB = {
 WHITELIST_DB = {
     GURUGRUPA_CUSTOMER_ID: {
         RECEIVER_ID1: WhiteListEntry(receiver_info=ReceiverInfo(receiver_id=RECEIVER_ID1, receiver_name="A B C Kirani Stores"), credit_line_size=50000),
-        RECEIVER_ID2: WhiteListEntry(receiver_info=ReceiverInfo(receiver_id=RECEIVER_ID2, receiver_name="porwal ambe medicals"), credit_line_size=50000),
+        RECEIVER_ID2: WhiteListEntry(receiver_info=ReceiverInfo(receiver_id=RECEIVER_ID2, receiver_name="Dharwad Surgical"), credit_line_size=50000),
     },
     OTHER_CUSTOMER_ID: {
         RECEIVER_ID3: WhiteListEntry(receiver_info=ReceiverInfo(receiver_id=RECEIVER_ID3, receiver_name="Other Store"), credit_line_size=50000),
-        RECEIVER_ID4: WhiteListEntry(receiver_info=ReceiverInfo(receiver_id=RECEIVER_ID4, receiver_name="Another Pharmacy"), credit_line_size=50000),
+        RECEIVER_ID4: WhiteListEntry(receiver_info=ReceiverInfo(receiver_id=RECEIVER_ID4, receiver_name="new jeevan medicale"), credit_line_size=50000),
     },
 }
 
