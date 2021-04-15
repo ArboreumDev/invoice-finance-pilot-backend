@@ -1,4 +1,4 @@
-from utils.constant import RECEIVER_ID1
+from utils.constant import RECEIVER_ID1, receiver1, receiver2
 
 
 RAW_ORDER = {
@@ -221,7 +221,7 @@ RAW_ORDER = {
         "w_flg": 0,
         "pub": False,
         "cntct": {
-        "name": "porwal ambe medicals",
+        "name": receiver1.receiver_name,
         "f_name": "porwal ambe medicals",
         "p_mob": "+91-9986238611"
         },
@@ -509,7 +509,7 @@ NEW_RAW_ORDER = {
         "w_flg": 0,
         "pub": False,
         "cntct": {
-        "name": "porwal ambe medicals",
+        "name": receiver1.receiver_name,
         "f_name": "porwal ambe medicals",
         "p_mob": "+91-9986238611"
         },
