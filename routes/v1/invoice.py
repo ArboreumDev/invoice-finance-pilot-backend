@@ -53,6 +53,7 @@ def _get_invoices_from_db():
     """
     return all invoices that we are currently tracking as they are in our db
     """
+    # TODO filter by customer once we have more than one
     invoices = invoice_service.get_all_invoices()
     print("found", len(invoices))
     # print(invoices[0] if invoices)

@@ -20,6 +20,7 @@ class Invoice(Base):
 
     id = Column(String(50), primary_key=True)
     order_ref = Column(String(50), nullable=False)
+    customer_id = Column(String(50), nullable=False)
 
     shipment_status = Column(String(50), nullable=True)
     finance_status = Column(String(50), nullable=True)
