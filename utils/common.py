@@ -70,6 +70,7 @@ class InvoiceFrontendInfo(BaseInvoice):
     # shipping_status: ShipmentStatus = ShipmentStatus.AWAITING_SHIPMENT
     # status: FinanceStatus = FinanceStatus.NONE
 
+
 class JWTUser(BaseModel):
     username: str
     password: str

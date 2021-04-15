@@ -3,7 +3,7 @@ import os
 
 from dotenv import load_dotenv
 
-from utils.common import WhiteListEntry, ReceiverInfo
+from utils.common import ReceiverInfo, WhiteListEntry
 
 load_dotenv()
 
@@ -16,7 +16,7 @@ config_keys = [
     "FRONTEND_URL",
     "GURUGRUPA_CUSTOMER_ID",
     "DISBURSAL_EMAIL",
-    "TUSKER_API_URL"
+    "TUSKER_API_URL",
 ]
 
 for key in config_keys:
@@ -26,9 +26,9 @@ for key in config_keys:
         print(f"missing env variable: {key}")
     if not okay:
         raise NotImplementedError("Invalid env file")
-        
 
-FRONTEND_URL=os.getenv("FRONTEND_URL")
+
+FRONTEND_URL = os.getenv("FRONTEND_URL")
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 if not JWT_SECRET_KEY:
     print("WARNING: please create a .env file!")

@@ -3,7 +3,7 @@ from typing import Dict
 
 from database.models import Invoice
 from invoice.tusker_client import code_to_order_status
-from utils.common import InvoiceFrontendInfo, ReceiverInfo, PaymentDetails
+from utils.common import InvoiceFrontendInfo, PaymentDetails, ReceiverInfo
 
 
 def raw_order_to_price(raw_order: Dict):
@@ -21,10 +21,10 @@ def raw_order_to_invoice(raw_order: Dict):
             "status": "NONE",
             "shipping_status": code_to_order_status(raw_order.get("status")),
             "receiver_info": {
-                "receiver_name": raw_order.get('rcvr', {}).get('cntct', {}).get("name", "not found"),
-                "receiver_id": raw_order.get('rcvr', {}).get('id')
+                "receiver_name": raw_order.get("rcvr", {}).get("cntct", {}).get("name", "not found"),
+                "receiver_id": raw_order.get("rcvr", {}).get("id"),
             },
-            'payment_details': {}
+            "payment_details": {},
         }
     )
 
@@ -38,12 +38,14 @@ def db_invoice_to_frontend_info(inv: Invoice):
         value=inv.value,
         status=inv.finance_status,
         shipping_status=inv.shipment_status,
-        receiver_info=ReceiverInfo(receiver_id=inv.receiver_id, receiver_name=data.get('rcvr', {}).get('cntct', {}).get("name", "not found")),
+        receiver_info=ReceiverInfo(
+            receiver_id=inv.receiver_id, receiver_name=data.get("rcvr", {}).get("cntct", {}).get("name", "not found")
+        ),
         payment_details=PaymentDetails(
-            request_id=payment_details.get('request_id', "unknown"),
-            repayment_id=payment_details.get('repayment_id', "unknown"),
-            interest=payment_details.get('interest', "unknown"),
-            collection_date=payment_details.get('collection_date', "unknown"),
-            start_date=payment_details.get('start_date', "unknown"),
-        )
+            request_id=payment_details.get("request_id", "unknown"),
+            repayment_id=payment_details.get("repayment_id", "unknown"),
+            interest=payment_details.get("interest", "unknown"),
+            collection_date=payment_details.get("collection_date", "unknown"),
+            start_date=payment_details.get("start_date", "unknown"),
+        ),
     )

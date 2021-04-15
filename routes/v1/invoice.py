@@ -7,7 +7,8 @@ from starlette.status import (HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND,
 from database.service import invoice_service
 from invoice.tusker_client import tusker_client
 from invoice.utils import db_invoice_to_frontend_info, raw_order_to_invoice
-from utils.common import CamelModel, Invoice, InvoiceFrontendInfo, CreditLineInfo
+from utils.common import (CamelModel, CreditLineInfo, Invoice,
+                          InvoiceFrontendInfo)
 from utils.constant import USER_DB
 from utils.security import check_jwt_token_role
 
@@ -107,7 +108,7 @@ def add_new_invoice(order_reference_number: str):
     # invoice_service.update_invoice_shipment_status(order_id, "AWAITING_DELIVERY")
 
 
-@invoice_app.get("/credit",response_model=Dict[str, CreditLineInfo])
+@invoice_app.get("/credit", response_model=Dict[str, CreditLineInfo])
 def get_credit_lines(user_info: Tuple[str, str] = Depends(check_jwt_token_role)):
     username, role = user_info
     print(f"{username} with role {role} wants to know their credit line info")

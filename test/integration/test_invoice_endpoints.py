@@ -140,7 +140,7 @@ def test_update_db(invoices):
 
 
 def test_credit():
-    response = client.get(f"v1/credit", headers=AUTH_HEADER)
+    response = client.get("v1/credit", headers=AUTH_HEADER)
 
     assert response.status_code == HTTP_200_OK
 

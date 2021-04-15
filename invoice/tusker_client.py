@@ -101,7 +101,7 @@ class TuskerClient:
         response = requests.post(self.base_url + TUSKER_ORDER_URL, json=_input, headers=self.headers)
         if response.status_code == 200:
             new_order = response.json().get("pl", {})
-            print(new_order)
+            # print(new_order)
             # return new_order
             return new_order["id"], new_order["ref_no"], new_order["status"]
         else:
@@ -114,9 +114,11 @@ class TuskerClient:
             "pl": [
                 {"op": "3", "path": "\\status", "val": str(order_status_to_code(new_status))},
                 # NOTE: if we ever want to update other stuff it would go like this:
-                # { "op": "2", "path": "\\remarks", "val": "Arboreum Testing" }
+                {"op": "2", "path": "\\remarks", "val": "Arboreum Testing"},
             ]
         }
+        url = f"{self.base_url}{TUSKER_ORDER_URL}/{invoice_id}"
+        print(url)
         response = requests.patch(f"{self.base_url}{TUSKER_ORDER_URL}/{invoice_id}", json=_input, headers=self.headers)
         if response.status_code == 200:
             return True

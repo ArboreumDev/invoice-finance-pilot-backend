@@ -1,21 +1,19 @@
-from typing import Dict, List, Tuple
+from typing import Tuple
 
 from fastapi import APIRouter, Depends, HTTPException
-from starlette.status import (HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND,
-                              HTTP_500_INTERNAL_SERVER_ERROR, HTTP_200_OK)
+from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
 
 from database.service import invoice_service
 from invoice.tusker_client import tusker_client
-from invoice.utils import db_invoice_to_frontend_info, raw_order_to_invoice
-from utils.common import CamelModel, Invoice, InvoiceFrontendInfo, CreditLineInfo
 from utils.constant import USER_DB
 from utils.security import check_jwt_token_role
 
 # ===================== routes ==========================
 test_app = APIRouter()
 
-# DESC: this is just a very fast hack to have an admin interface so that non-technical 
+# DESC: this is just a very fast hack to have an admin interface so that non-technical
 # people can play around with it without having to use dev-tools like insomnia
+
 
 @test_app.post("/update/value/{invoiceId}/{value}")
 def update_invoice_value(invoiceId: str, value: int):
@@ -29,22 +27,23 @@ def update_invoice_finance_status(invoiceId: str, new_status: str):
     invoice_service.update_invoice_payment_status(invoiceId, new_status)
     return {"OK"}
 
+
 @test_app.post("/update/shipment/{invoiceId}/{new_status}")
-def update_invoice_finance_status(invoiceId: str, new_status: str):
+def update_invoice_delivery_status(invoiceId: str, new_status: str):
     invoice_service.update_invoice_shipment_status(invoiceId, new_status)
     return {"OK"}
 
 
 @test_app.patch("/update/shipment/{invoiceId}")
 def mark_as_delivered(invoiceId: str):
-    print('got as id', invoiceId)
+    print("got as id", invoiceId)
     try:
         res = tusker_client.mark_test_order_as(invoiceId, "DELIVERED")
         if res:
             return {"OK"}
 
     except Exception as e:
-        print('error trying to mark invoice as delivered')
+        print("error trying to mark invoice as delivered")
         raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, str(e))
 
 
@@ -52,9 +51,10 @@ def mark_as_delivered(invoiceId: str):
 def create_new_test_order(receiverId: str, user_info: Tuple[str, str] = Depends(check_jwt_token_role)):
     username, _ = user_info
     try:
-        res = tusker_client.create_test_order(customer_id=USER_DB.get(username).get("customer_id"), receiver_id=receiverId)
+        res = tusker_client.create_test_order(
+            customer_id=USER_DB.get(username).get("customer_id"), receiver_id=receiverId
+        )
         invoice_id, ref_no, _ = res
-        return {'status': "OK", 'invoiceId': invoice_id, 'orderRef': ref_no}
+        return {"status": "OK", "invoiceId": invoice_id, "orderRef": ref_no}
     except Exception as e:
         raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, str(e))
-
