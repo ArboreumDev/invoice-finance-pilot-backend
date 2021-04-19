@@ -117,15 +117,15 @@ def test_update_invoices(invoice1):
     # invoice_service.update_invoice_payment_status
 
 def test_whitelist_okay():
-    test_customer = USER_DB.get("test").get('customer_id')
+    test_customer = USER_DB.get("gurugrupa").get('customer_id')
     whitelisted_receivers = list(WHITELIST_DB.get(test_customer).keys())
     order_receiver = NEW_RAW_ORDER.get('rcvr').get('id')
 
     assert order_receiver in whitelisted_receivers
-    assert invoice_service.is_whitelisted(NEW_RAW_ORDER, username="test")
+    assert invoice_service.is_whitelisted(NEW_RAW_ORDER, username="gurugrupa")
 
 def test_whitelist_failure():
-    test_customer = USER_DB.get("test").get('customer_id')
+    test_customer = USER_DB.get("gurugrupa").get('customer_id')
     whitelisted_receivers = list(WHITELIST_DB.get(test_customer).keys())
 
     #set order receiver to something not in whitelist
@@ -134,7 +134,7 @@ def test_whitelist_failure():
     order['rcvr']['id'] = order_receiver
 
     assert order_receiver not in whitelisted_receivers
-    assert not invoice_service.is_whitelisted(order, username="test")
+    assert not invoice_service.is_whitelisted(order, username="gurugrupa")
 
 
 

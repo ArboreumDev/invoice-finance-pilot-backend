@@ -79,15 +79,15 @@ USER_DB = {
         "role": "user",
         "customer_id": GURUGRUPA_CUSTOMER_ID,
     },
-    "admin": {
-        "hashed_password": "$2b$12$EkTEXspTZJGjidCV4W3D5.YyUPU1UhC9JDAjxCHRl5a8POttPEcEq",
-        "role": "admin",
+    # "admin": {
+    #     "hashed_password": "$2b$12$EkTEXspTZJGjidCV4W3D5.YyUPU1UhC9JDAjxCHRl5a8POttPEcEq",
+    #     "role": "admin",
+    #     "customer_id": OTHER_CUSTOMER_ID,
+    # },
+    "test": {
+        "hashed_password": "$2b$12$iHdjkqY330UiGG2K452dKeI9bVgOZs6r0dCgtZXe2YhlWkrchZ7I2",
+        "role": "test",
         "customer_id": OTHER_CUSTOMER_ID,
-    },
-    "rc": {
-        "hashed_password": "$2b$12$orWKHb1jGlMPkHalVdeiSe9o980PymTZ3HF2FeuYSE6cU2kZsgRCy",
-        "role": "rc_admin",
-        "customer_id": ANOTHER_CUSTOMER_ID,
     },
 }
 
@@ -99,6 +99,10 @@ WHITELIST_DB = {
         RECEIVER_ID2: WhiteListEntry(receiver_info=receiver2, credit_line_size=50000),
     },
     OTHER_CUSTOMER_ID: {
+        RECEIVER_ID3: WhiteListEntry(receiver_info=receiver3, credit_line_size=50000),
+        RECEIVER_ID4: WhiteListEntry(receiver_info=receiver4, credit_line_size=50000),
+    },
+    ANOTHER_CUSTOMER_ID: {
         RECEIVER_ID3: WhiteListEntry(receiver_info=receiver3, credit_line_size=50000),
         RECEIVER_ID4: WhiteListEntry(receiver_info=receiver4, credit_line_size=50000),
     },

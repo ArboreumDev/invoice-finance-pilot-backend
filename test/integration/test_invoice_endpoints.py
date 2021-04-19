@@ -8,7 +8,10 @@ from database.test.conftest import reset_db
 from invoice.tusker_client import tusker_client
 from main import app
 from utils.common import InvoiceFrontendInfo
-from utils.constant import GURUGRUPA_CUSTOMER_ID, RECEIVER_ID4, WHITELIST_DB
+from utils.constant import GURUGRUPA_CUSTOMER_ID, RECEIVER_ID4, WHITELIST_DB, OTHER_CUSTOMER_ID
+
+import os
+from dotenv import load_dotenv
 
 client = TestClient(app)
 
@@ -28,7 +31,7 @@ def invoices():
 
 
 def get_auth_header():
-    response = client.post("/token", dict(username="test", password="test"))
+    response = client.post("/token", dict(username="test", password=os.getenv("TEST_AUTH_PW")))
     jwt_token = response.json()["access_token"]
     auth_header = {"Authorization": f"Bearer {jwt_token}"}
     return auth_header
@@ -145,7 +148,7 @@ def test_credit():
     assert response.status_code == HTTP_200_OK
 
     credit_breakdown = response.json()
-    gurugrupa_receiver1 = list(WHITELIST_DB[GURUGRUPA_CUSTOMER_ID].keys())[0]
-    gurugrupa_receiver2 = list(WHITELIST_DB[GURUGRUPA_CUSTOMER_ID].keys())[1]
+    receiver1 = list(WHITELIST_DB[OTHER_CUSTOMER_ID].keys())[0]
+    receiver2 = list(WHITELIST_DB[OTHER_CUSTOMER_ID].keys())[1]
 
-    assert gurugrupa_receiver1 in credit_breakdown and gurugrupa_receiver2 in credit_breakdown
+    assert receiver1 in credit_breakdown and receiver2 in credit_breakdown

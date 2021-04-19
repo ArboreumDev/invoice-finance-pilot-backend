@@ -10,5 +10,4 @@ def get_hashed_password(password: str):
     return pwd_context.hash(password)
 
 
-print(get_hashed_password("OnZibleVErL"))
-# print(get_hashed_password("admin"))
+print(get_hashed_password("<somethingyouwantothash>"))
