@@ -73,8 +73,9 @@ receiver4 = ReceiverInfo(receiver_id=RECEIVER_ID4, receiver_name="new jeewan med
 # "admin": get_hashed_password("admin_password")
 # TODO use actual DB
 USER_DB = {
-    "test": {
-        "hashed_password": "$2b$12$p3W5at39PORCphT4T5Kbx.TDvGNchgQ2mee8AdEDOcvZ8ZfafG0ZK",
+    "gurugrupa": {
+        # "hashed_password": "$2b$12$p3W5at39PORCphT4T5Kbx.TDvGNchgQ2mee8AdEDOcvZ8ZfafG0ZK",
+        "hashed_password": "$2b$12$oxnGYBLZ2x73IaDHjd4ccuFayzCDoVfJHRqZQnjwM01Du8V8DNDS.",
         "role": "user",
         "customer_id": GURUGRUPA_CUSTOMER_ID,
     },
