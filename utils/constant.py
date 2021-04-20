@@ -4,6 +4,7 @@ import os
 from dotenv import load_dotenv
 
 from utils.common import ReceiverInfo, WhiteListEntry
+from database.whitelist_mock_db import PROD_WHITELIST_DB
 
 load_dotenv()
 
@@ -93,7 +94,7 @@ USER_DB = {
 
 
 # dummy db to be replaced
-WHITELIST_DB = {
+TEST_WHITELIST_DB = {
     GURUGRUPA_CUSTOMER_ID: {
         RECEIVER_ID1: WhiteListEntry(receiver_info=receiver1, credit_line_size=50000),
         RECEIVER_ID2: WhiteListEntry(receiver_info=receiver2, credit_line_size=50000),
@@ -107,6 +108,9 @@ WHITELIST_DB = {
         RECEIVER_ID4: WhiteListEntry(receiver_info=receiver4, credit_line_size=50000),
     },
 }
+
+WHITELIST_DB = PROD_WHITELIST_DB if os.getenv("PRODUCTION") == "TEST" else TEST_WHITELIST_DB
+# WHITELIST_DB = PROD_WHITELIST_DB
 
 USERS = list(USER_DB.keys())
 

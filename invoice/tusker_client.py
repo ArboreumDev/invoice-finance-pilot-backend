@@ -4,6 +4,7 @@ from typing import List
 
 import requests
 
+from utils.common import ReceiverInfo
 from utils.constant import GURUGRUPA_CUSTOMER_ID, TUSKER_DEFAULT_NEW_ORDER
 
 # TODO save thie in .env
@@ -126,39 +127,105 @@ class TuskerClient:
             # TODO implement custom exception class
             raise NotImplementedError(str(response.json()))
 
+    def customer_to_receiver_info(self, search_string: str, _city: str = "", _phone=""):
+        _input = {"pl": {"type": 4, "p_txt": search_string, "stts": [0], "s_by": "name", "s_dir": 1}}
+        response = requests.post(f"{self.base_url}/search/users/suggestions", json=_input, headers=self.headers)
+        data = response.json()
+        assert response.status_code == 200, "some error"
+        users = data.get("pl").get("users")
+        # assert users, "no user found"
+        selected = ""
+        found = []
+        for user in users:
+            city = user.get("loc").get("addr").get("city")
+            phone = user.get("cntct").get("p_mob")
+            rr = ReceiverInfo(id=user.get("id"), name=user.get("cntct").get("name"), phone=phone, city=city)
+            found.append(rr)
+            # print(rr)
+            if _city in city:
+                # print('found one',rr)
+                if selected:
+                    pass
+                    # print('oho, double entry for', _city)
+                else:
+                    selected = rr
+
+        return {"results":found, "match": selected}
+
 
 # %%
 tusker_client = TuskerClient(base_url=TUSKER_STAGING_BASE_URL, token=TUSKER_STAGING_TOKEN)
 # res = tc.get_latest_orders()
 #
 # print(orders.json())
+# %% code to create hitelist
+searchtuples = [
+    ("N K Pharma", "Bagalkot", "9480500862"),
+    ("Sant Antonio Pharma", "Dandeli", "7760171632"),
+    ("Rajendra Medical", "Haliyal", "9448778008"),
+    ("New Shri manjunath medical & General Store", "Haliyal", "9632885458"),
+    ("Mudabagil medicals", "Haliyal", "9845455958"),
+    ("Geeta Medicals", "Haliyal", "9449988959"),
+    ("Vansh Medical", "Haliyal", "9901331875"),
+    ("Shrinivas Medical And General Store", "Haliyal", "9845456015"),
+    ("Ganesh medical", "Haliyal", "9483135506"),
+    ("Vidyashree medical", "Haliyal", "9900846420"),
+    ("Sanjeevini medical", "Haveri", "9448139277"),
+    ("New Haveri medical", "Haveri", "7975132991"),
+    ("K G N Medical", "Kala", "9986840853"),
+    ("Shri Shambhavi Med And Gen", "Kalas", "9686637521"),
+    ("Shriram Medicals", "Kundagol", "9980381450"),
+    ("Shri Kalmeshwar Medical", "Kundagol", "9113667708"),
+    ("Shri Raghavendra Medical", "Kundagol", "9449121663"),
+    ("Shivayogeshwar Medical", "Kundagol", "7406883791"),
+    ("sainath medicals", "Kundagol", "9886913839"),
+    ("Mahantesh Medical", "Kundagol", "9449642927"),
+    ("Sainaath medical and general store", "Kundagol", "9945759225"),
+    ("Padmamba Medical", "Laxmeshwa", "9148046108"),
+    ("Agadi Sunrise Hospital Pvt Ltd", "Laxmeshwa", "8095294422"),
+    ("Adinath Medical Stores", "Laxmeshwa", "8310653180"),
+    ("Gangadhar Medical", "Laxmeshwa", "9448980902"),
+    ("Shri Verabhadreshwar Medical Store", "Laxmeshwa", "9448186108"),
+    ("Gourishankar Medical Store", "Saundatt", "8330222312"),
+    ("Gurusparsha Medical And General Store", "Saundatt", "7353383821"),
+    ("Shri Kalika Medical Stores", "Saundatti", "9880293524"),
+    ("Mahesh Medical", "Saundatti", "9620073108"),
+    ("Hanumant gad medical", "Saundatt", "8618903521"),
+    ("Amareshwar Medicals", "Saundatt", "9113000177"),
+    ("Shri Siddharoodha Medicals", "Shirur", "9535936595"),
+    ("Shri Sai Medical Dhanguda Hospital", "Saundatti", "8971309257"),
+    ("Nagareshwar Medical", "Saundatti", "9341397102"),
+    ("Sangameshwar Med & Gen Stores", "Saundatti", "9448436752"),
+]
+
+whitelist = {}
+missing = {}
+duplicates = {}
+match, toomany, none = 0, 0, 0
+for t in searchtuples:
+    name, city, phone = t[0], t[1], t[2]
+    print("")
+    print(f"looking for {name}, {phone}")
+    r_info = tusker_client.customer_to_receiver_info(phone, city)
+    if not r_info["match"]:
+        if len(r_info["results"]) > 1:
+            print(f"{name, city} --> DUPLICATE")
+            toomany += 1
+            duplicates[name] = r_info['results']
+        else:
+            print(f"{name, city} --> MISSING")
+            missing[name] = r_info['results']
+            none += 1
+    elif r_info["match"]:
+        print("-> match!")
+        match += 1
+        whitelist[r_info["match"].id] = r_info["match"]
+
+print(f"found{match}, missing {none}, double{toomany}")
+
 # %%
-# def get_latest_orders(self, invoice_ids: List[str], customer_id: str = ""):
-#     """ should get all invoices since the last time we fetched """
-#     # prob we need to add a parameter here to only fetch the latest invoices
-#     print("got", invoice_ids)
-#     # TODO implement pagination here if len(invoice_ids > 10)
-#     c_id = customer_id if customer_id else self.customer_id
-#     raw_orders = []
-#     while invoice_ids:
-#         to_be_fetched = invoice_ids[:10]
-#         del invoice_ids[:10]
-#         input = {
-#             "pl": {
-#                 "c_id": c_id,
-#                 "o_sts": STATUS_ELIGIBLE_FOR_FINANCING,
-#                 "pg_no": 1,
-#                 "size": 10,
-#                 "s_by": "crt",
-#                 "s_dir": 0,
-#                 "ids": to_be_fetched,
-#             }
-#         }
-#         response = requests.post(self.base_url + TUSKER_ORDER_URL, json=input, headers=self.headers)
-#         if response.status_code == 200:
-#             orders = response.json().get("pl", {}).get("orders", [])
-#             raw_orders += orders
-#         else:
-#             # TODO implement custom exception class
-#             raise NotImplementedError(str(response.json()))
-#     return raw_orders
+import pprint
+# copy this into whitelist_mock_db.py:
+pprint.pprint(whitelist)
+
+# %%
