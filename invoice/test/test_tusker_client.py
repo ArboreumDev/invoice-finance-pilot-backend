@@ -33,6 +33,8 @@ def test_create_test_order():
     assert shipment_status == order_status_to_code("PLACED_AND_VALID")
 
 
+# no longer possible to mark orders as something
+@pytest.mark.xfail()
 def test_mark_order_as():
     test_id = "test_customer_id"
     # tusker_client.create_test_order(customer_id=test_id)

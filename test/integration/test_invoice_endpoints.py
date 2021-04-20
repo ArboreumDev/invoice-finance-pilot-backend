@@ -117,6 +117,8 @@ def test_get_invoices_from_db(invoices):
     assert res.json()[0]["orderId"] == order_ref1
 
 
+# canno longer change invoice status
+@pytest.mark.xfail()
 def test_update_db(invoices):
     # add order to db
     (inv_id1, order_ref1), _ = invoices
