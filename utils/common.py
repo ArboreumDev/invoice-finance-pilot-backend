@@ -34,8 +34,10 @@ class BaseInvoice(CamelModel):
 
 
 class ReceiverInfo(CamelModel):
-    receiver_id: str
-    receiver_name: str = ""
+    id: str = ""
+    name: str = ""
+    phone: str = ""
+    city: str = ""
 
 
 class Invoice(BaseInvoice):

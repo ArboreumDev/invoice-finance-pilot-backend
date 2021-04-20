@@ -61,10 +61,10 @@ RECEIVER_ID2 = "3be36644-3171-4441-a0f4-75ae4fef0a4b"
 RECEIVER_ID3 = "316c6829-6439-4fcb-b7dc-d35d337e9315"
 
 # add names
-receiver1 = ReceiverInfo(receiver_id=RECEIVER_ID1, receiver_name="A B C Kirani Stores")
-receiver2 = ReceiverInfo(receiver_id=RECEIVER_ID2, receiver_name="Dharwad Surgical")
-receiver3 = ReceiverInfo(receiver_id=RECEIVER_ID3, receiver_name="Other amde up store")
-receiver4 = ReceiverInfo(receiver_id=RECEIVER_ID4, receiver_name="new jeewan medicale")
+receiver1 = ReceiverInfo(id=RECEIVER_ID1, name="A B C Kirani Stores")
+receiver2 = ReceiverInfo(id=RECEIVER_ID2, name="Dharwad Surgical")
+receiver3 = ReceiverInfo(id=RECEIVER_ID3, name="Other amde up store")
+receiver4 = ReceiverInfo(id=RECEIVER_ID4, name="new jeewan medicale")
 
 # DUMMY DB
 # constructed by doing:

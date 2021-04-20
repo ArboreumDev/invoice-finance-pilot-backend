@@ -11,6 +11,15 @@ def raw_order_to_price(raw_order: Dict):
     return raw_order.get("prc", {}).get("pr_act", 0)
 
 
+def raw_order_to_receiverInfo(raw_order: Dict):
+    return ReceiverInfo(
+        id=raw_order.get("id"),
+        name=raw_order.get("cntct").get("name"),
+        phone=raw_order.get("cntct").get("phone"),
+        city=raw_order.get("loc").get("addr").get("city"),
+    )
+
+
 def raw_order_to_invoice(raw_order: Dict):
     """ takes a raw order and returns an object that can be displayed by the frontend """
     return InvoiceFrontendInfo(
@@ -21,8 +30,8 @@ def raw_order_to_invoice(raw_order: Dict):
             "status": "NONE",
             "shipping_status": code_to_order_status(raw_order.get("status")),
             "receiver_info": {
-                "receiver_name": raw_order.get("rcvr", {}).get("cntct", {}).get("name", "not found"),
-                "receiver_id": raw_order.get("rcvr", {}).get("id"),
+                "name": raw_order.get("rcvr", {}).get("cntct", {}).get("name", "not found"),
+                "id": raw_order.get("rcvr", {}).get("id"),
             },
             "payment_details": {},
         }
@@ -39,7 +48,7 @@ def db_invoice_to_frontend_info(inv: Invoice):
         status=inv.finance_status,
         shipping_status=inv.shipment_status,
         receiver_info=ReceiverInfo(
-            receiver_id=inv.receiver_id, receiver_name=data.get("rcvr", {}).get("cntct", {}).get("name", "not found")
+            id=inv.receiver_id, name=data.get("rcvr", {}).get("cntct", {}).get("name", "not found")
         ),
         payment_details=PaymentDetails(
             request_id=payment_details.get("request_id", "unknown"),
