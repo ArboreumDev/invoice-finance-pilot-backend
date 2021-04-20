@@ -54,6 +54,15 @@ def test_insert_invoice(invoice1):
 def test_insert_invoice_that_exists():
     pass
 
+
+@pytest.mark.skip()
+def test_insert_new_invoice_exceeds_credit_line_failure():
+    pass
+
+@pytest.mark.skip()
+def test_insert_new_invoice_not_in_whitelist_failure():
+    pass
+
 def test_update_invoice_status(invoice1):
     invoice_service.update_invoice_shipment_status(invoice1.id, "NEW_STATUS")
     assert invoice1.shipment_status == "NEW_STATUS"

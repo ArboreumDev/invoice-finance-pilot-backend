@@ -162,10 +162,22 @@ class InvoiceService():
         return receiver_id in WHITELIST_DB.get(customer_id).keys()
 
     def final_checks(self, raw_order):
-        # verify doesnt cross credit limit
-        # if not return custom error
+        receiver_id=raw_order.get('rcvr').get('id')
+        customer_id=raw_order.get('cust').get('id')
+        value=raw_order_to_price(raw_order)
+        credit = self.get_credit_line_info(customer_id)
+
         # verify customer / recipient is whitelisted
-        # if not return custom error
+        if receiver_id not in credit:
+            print(credit.keys(), receiver_id)
+            print('receiverfail')
+            return False, "receiver not in whitelist"
+
+        # verify doesnt cross credit limit
+        if credit[receiver_id].available < value:
+            print('credit fail')
+            return False, "Not enough credit"
+
         return True, "Ok"
 
     # TODO turn this into a view using
