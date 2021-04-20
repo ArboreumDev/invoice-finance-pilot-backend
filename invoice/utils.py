@@ -32,6 +32,8 @@ def raw_order_to_invoice(raw_order: Dict):
             "receiver_info": {
                 "name": raw_order.get("rcvr", {}).get("cntct", {}).get("name", "not found"),
                 "id": raw_order.get("rcvr", {}).get("id"),
+                "city": raw_order.get("rcvr", {}).get("addr", {}).get("city", "not found"),
+                "phone": raw_order.get("rcvr", {}).get("cntct", {}).get("p_mob", "not found"),
             },
             "payment_details": {},
         }
@@ -48,7 +50,10 @@ def db_invoice_to_frontend_info(inv: Invoice):
         status=inv.finance_status,
         shipping_status=inv.shipment_status,
         receiver_info=ReceiverInfo(
-            id=inv.receiver_id, name=data.get("rcvr", {}).get("cntct", {}).get("name", "not found")
+            id=inv.receiver_id, 
+            name=data.get("rcvr", {}).get("cntct", {}).get("name", "not found"),
+            city=data.get("rcvr", {}).get("addr", {}).get("city", "not found"),
+            phone=data.get("rcvr", {}).get("cntct", {}).get("p_mob", "not found")
         ),
         payment_details=PaymentDetails(
             request_id=payment_details.get("request_id", "unknown"),

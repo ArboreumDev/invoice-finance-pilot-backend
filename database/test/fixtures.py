@@ -221,7 +221,7 @@ RAW_ORDER = {
         "w_flg": 0,
         "pub": False,
         "cntct": {
-        "name": receiver1.receiver_name,
+        "name": receiver1.name,
         "f_name": "porwal ambe medicals",
         "p_mob": "+91-9986238611"
         },
@@ -509,7 +509,7 @@ NEW_RAW_ORDER = {
         "w_flg": 0,
         "pub": False,
         "cntct": {
-        "name": receiver1.receiver_name,
+        "name": receiver1.name,
         "f_name": "porwal ambe medicals",
         "p_mob": "+91-9986238611"
         },

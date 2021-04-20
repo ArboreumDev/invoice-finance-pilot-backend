@@ -112,7 +112,7 @@ class WhiteListEntry(BaseModel):
 
 
 class CreditLineInfo(BaseModel):
-    name: str
+    info: ReceiverInfo
     available: float
     used: float
     total: float

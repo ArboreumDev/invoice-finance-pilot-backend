@@ -194,7 +194,7 @@ class InvoiceService():
             n_of_invoices = len(invoices)
 
             credit_line_breakdown[receiver] = CreditLineInfo(**{
-                "name": whitelist_entry.receiver_info.receiver_name,
+                "info": whitelist_entry.receiver_info,
                 "total": credit_line_size,
                 "available": credit_line_size - to_be_repaid - requested, #invoince.value for invoice in to_be_repaid)
                 "used":to_be_repaid,
