@@ -6,6 +6,7 @@ import requests
 
 from utils.common import ReceiverInfo
 from utils.constant import GURUGRUPA_CUSTOMER_ID, TUSKER_DEFAULT_NEW_ORDER
+from database.whitelist_mock_db import searchtuples
 
 # TODO save thie in .env
 TUSKER_STAGING_TOKEN = "EKtk84IF9xzutyEMD-I_w35SlqcaXlOrKGcHIoxm3Ow"
@@ -13,6 +14,7 @@ TUSKER_STAGING_BASE_URL = "https://tusker-staging.logistimo.com/tusker-service"
 TUSKER_USER_URL = "/search/users/suggestions"
 TUSKER_ORDER_URL = "/orders"
 TUSKER_ORDER_SEARCH_URL = "/orders/search"
+
 
 # TODO refactor status to be enum
 
@@ -155,77 +157,35 @@ class TuskerClient:
 
 # %%
 tusker_client = TuskerClient(base_url=TUSKER_STAGING_BASE_URL, token=TUSKER_STAGING_TOKEN)
-# res = tc.get_latest_orders()
-#
-# print(orders.json())
 # %% code to create hitelist
-searchtuples = [
-    ("N K Pharma", "Bagalkot", "9480500862"),
-    ("Sant Antonio Pharma", "Dandeli", "7760171632"),
-    ("Rajendra Medical", "Haliyal", "9448778008"),
-    ("New Shri manjunath medical & General Store", "Haliyal", "9632885458"),
-    ("Mudabagil medicals", "Haliyal", "9845455958"),
-    ("Geeta Medicals", "Haliyal", "9449988959"),
-    ("Vansh Medical", "Haliyal", "9901331875"),
-    ("Shrinivas Medical And General Store", "Haliyal", "9845456015"),
-    ("Ganesh medical", "Haliyal", "9483135506"),
-    ("Vidyashree medical", "Haliyal", "9900846420"),
-    ("Sanjeevini medical", "Haveri", "9448139277"),
-    ("New Haveri medical", "Haveri", "7975132991"),
-    ("K G N Medical", "Kala", "9986840853"),
-    ("Shri Shambhavi Med And Gen", "Kalas", "9686637521"),
-    ("Shriram Medicals", "Kundagol", "9980381450"),
-    ("Shri Kalmeshwar Medical", "Kundagol", "9113667708"),
-    ("Shri Raghavendra Medical", "Kundagol", "9449121663"),
-    ("Shivayogeshwar Medical", "Kundagol", "7406883791"),
-    ("sainath medicals", "Kundagol", "9886913839"),
-    ("Mahantesh Medical", "Kundagol", "9449642927"),
-    ("Sainaath medical and general store", "Kundagol", "9945759225"),
-    ("Padmamba Medical", "Laxmeshwa", "9148046108"),
-    ("Agadi Sunrise Hospital Pvt Ltd", "Laxmeshwa", "8095294422"),
-    ("Adinath Medical Stores", "Laxmeshwa", "8310653180"),
-    ("Gangadhar Medical", "Laxmeshwa", "9448980902"),
-    ("Shri Verabhadreshwar Medical Store", "Laxmeshwa", "9448186108"),
-    ("Gourishankar Medical Store", "Saundatt", "8330222312"),
-    ("Gurusparsha Medical And General Store", "Saundatt", "7353383821"),
-    ("Shri Kalika Medical Stores", "Saundatti", "9880293524"),
-    ("Mahesh Medical", "Saundatti", "9620073108"),
-    ("Hanumant gad medical", "Saundatt", "8618903521"),
-    ("Amareshwar Medicals", "Saundatt", "9113000177"),
-    ("Shri Siddharoodha Medicals", "Shirur", "9535936595"),
-    ("Shri Sai Medical Dhanguda Hospital", "Saundatti", "8971309257"),
-    ("Nagareshwar Medical", "Saundatti", "9341397102"),
-    ("Sangameshwar Med & Gen Stores", "Saundatti", "9448436752"),
-]
 
-whitelist = {}
-missing = {}
-duplicates = {}
-match, toomany, none = 0, 0, 0
-for t in searchtuples:
-    name, city, phone = t[0], t[1], t[2]
-    print("")
-    print(f"looking for {name}, {phone}")
-    r_info = tusker_client.customer_to_receiver_info(phone, city)
-    if not r_info["match"]:
-        if len(r_info["results"]) > 1:
-            print(f"{name, city} --> DUPLICATE")
-            toomany += 1
-            duplicates[name] = r_info['results']
-        else:
-            print(f"{name, city} --> MISSING")
-            missing[name] = r_info['results']
-            none += 1
-    elif r_info["match"]:
-        print("-> match!")
-        match += 1
-        whitelist[r_info["match"].id] = r_info["match"]
+# whitelist = {}
+# missing = {}
+# duplicates = {}
+# match, toomany, none = 0, 0, 0
+# for t in searchtuples:
+#     name, city, phone = t[0], t[1], t[2]
+#     print("")
+#     print(f"looking for {name}, {phone}")
+#     r_info = tusker_client.customer_to_receiver_info(phone, city)
+#     if not r_info["match"]:
+#         if len(r_info["results"]) > 1:
+#             print(f"{name, city} --> DUPLICATE")
+#             toomany += 1
+#             duplicates[name] = r_info['results']
+#         else:
+#             print(f"{name, city} --> MISSING")
+#             missing[name] = r_info['results']
+#             none += 1
+#     elif r_info["match"]:
+#         print("-> match!")
+#         match += 1
+#         whitelist[r_info["match"].id] = r_info["match"]
 
-print(f"found{match}, missing {none}, double{toomany}")
+# print(f"found{match}, missing {none}, double{toomany}")
 
-# %%
-import pprint
+# %% create a print out to be used as DB
+# import pprint
 # copy this into whitelist_mock_db.py:
-pprint.pprint(whitelist)
+# pprint.pprint(whitelist)
 
-# %%
