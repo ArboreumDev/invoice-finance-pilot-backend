@@ -1,3 +1,5 @@
+import os
+
 import pytest
 from starlette.status import (HTTP_200_OK, HTTP_400_BAD_REQUEST,
                               HTTP_404_NOT_FOUND)
@@ -8,10 +10,7 @@ from database.test.conftest import reset_db
 from invoice.tusker_client import tusker_client
 from main import app
 from utils.common import InvoiceFrontendInfo
-from utils.constant import GURUGRUPA_CUSTOMER_ID, RECEIVER_ID4, WHITELIST_DB, OTHER_CUSTOMER_ID
-
-import os
-from dotenv import load_dotenv
+from utils.constant import GURUGRUPA_CUSTOMER_ID, RECEIVER_ID4, WHITELIST_DB
 
 client = TestClient(app)
 

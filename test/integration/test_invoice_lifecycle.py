@@ -1,7 +1,8 @@
+import pytest
+
 from database.service import invoice_service
 from database.test.conftest import reset_db
 from invoice.tusker_client import tusker_client
-import pytest
 
 
 # no longer possible to mark orders as something
