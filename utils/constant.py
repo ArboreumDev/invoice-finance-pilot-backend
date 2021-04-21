@@ -18,6 +18,11 @@ config_keys = [
     "GURUGRUPA_CUSTOMER_ID",
     "DISBURSAL_EMAIL",
     "TUSKER_API_URL",
+    "TEST_AUTH_PW",
+    "GURUGRUPA_PW",
+    "PROD_DB_USER",
+    "PROD_DB_PASSWORD",
+    "ENVIRONMENT",
 ]
 
 for key in config_keys:
