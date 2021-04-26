@@ -64,7 +64,7 @@ class PaymentDetails(CamelModel):
 class InvoiceFrontendInfo(BaseInvoice):
     invoice_id: str
     order_id: str
-    value: int = 1
+    value: float = 1
     destination: str = ""
     shipping_status: str = ""
     status: str = "INITIAL"
