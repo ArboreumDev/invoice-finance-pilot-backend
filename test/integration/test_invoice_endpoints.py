@@ -11,6 +11,8 @@ from invoice.tusker_client import tusker_client
 from main import app
 from utils.common import InvoiceFrontendInfo
 from utils.constant import GURUGRUPA_CUSTOMER_ID, RECEIVER_ID4, WHITELIST_DB, LOC_ID4
+from database.whitelist_service import get_whitelist_ids_for_customer
+
 
 client = TestClient(app)
 
@@ -18,7 +20,7 @@ client = TestClient(app)
 @pytest.fixture(scope="function")
 def invoices():
     reset_db()
-    whitelisted_receiver_id = list(WHITELIST_DB.get(GURUGRUPA_CUSTOMER_ID).values())[0].receiver_info.location_id
+    whitelisted_receiver_id = get_whitelist_ids_for_customer(GURUGRUPA_CUSTOMER_ID)[0]
     inv_id1, order_ref1, _ = tusker_client.create_test_order(
         customer_id=GURUGRUPA_CUSTOMER_ID, receiver_id=whitelisted_receiver_id
     )
@@ -71,9 +73,9 @@ def test_whitelist_failure():
     assert response.status_code == 400
 
 def test_whitelist_success():
-    whitelisted_receiver = list(WHITELIST_DB[GURUGRUPA_CUSTOMER_ID].keys())[0]
     # create order for customer that is whitelisted
-    _, order_ref, _ = tusker_client.create_test_order(customer_id=GURUGRUPA_CUSTOMER_ID, receiver_id=whitelisted_receiver)
+    whitelisted_receiver_id = get_whitelist_ids_for_customer(GURUGRUPA_CUSTOMER_ID)[0]
+    _, order_ref, _ = tusker_client.create_test_order(GURUGRUPA_CUSTOMER_ID, whitelisted_receiver_id)
 
     # try querying order
     # order_ref = 10637833
@@ -160,7 +162,6 @@ def test_credit():
     assert response.status_code == HTTP_200_OK
 
     credit_breakdown = response.json()
-    receiver1 = list(WHITELIST_DB[GURUGRUPA_CUSTOMER_ID].keys())[0]
-    receiver2 = list(WHITELIST_DB[GURUGRUPA_CUSTOMER_ID].keys())[1]
+    whitelist_ids = get_whitelist_ids_for_customer(GURUGRUPA_CUSTOMER_ID) 
 
-    assert receiver1 in credit_breakdown and receiver2 in credit_breakdown
+    assert whitelist_ids[0] in credit_breakdown and whitelist_ids[1] in credit_breakdown

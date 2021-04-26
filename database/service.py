@@ -9,6 +9,7 @@ from utils.common import LoanTerms, CreditLineInfo, PaymentDetails
 from utils.constant import DISBURSAL_EMAIL, MAX_CREDIT, WHITELIST_DB, USER_DB
 from invoice.utils import raw_order_to_price
 import uuid
+from database.whitelist_service import  get_whitelist_ids_for_customer
 
 
 def invoice_to_terms(id: str, amount: float, start_date: dt.datetime):
@@ -159,7 +160,7 @@ class InvoiceService():
     def is_whitelisted(self, raw_order: Dict, username: str):
         receiver_id = raw_order.get('rcvr', {}).get('id', "")
         customer_id = USER_DB[username].get('customer_id')
-        return receiver_id in WHITELIST_DB.get(customer_id).keys()
+        return receiver_id in get_whitelist_ids_for_customer(customer_id)
 
     def final_checks(self, raw_order):
         receiver_id=raw_order.get('rcvr').get('id')

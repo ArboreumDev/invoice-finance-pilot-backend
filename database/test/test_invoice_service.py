@@ -11,7 +11,7 @@ import json
 from utils.constant import MAX_CREDIT, USER_DB, WHITELIST_DB, RECEIVER_ID1, GURUGRUPA_CUSTOMER_ID
 from database.test.conftest import reset_db
 import datetime as dt
-from database.whitelist_mock_db import get_whitelist_ids_for_customer, get_whitelist_info_for_customer
+from database.whitelist_service import get_whitelist_ids_for_customer, get_whitelist_info_for_customer
 
 invoice_service = InvoiceService()
 # %%
@@ -128,7 +128,7 @@ def test_update_invoices(invoice1):
 
 def test_whitelist_okay():
     test_customer = USER_DB.get("gurugrupa").get('customer_id')
-    whitelisted_receivers = get_whitelist_info_for_customer(WHITELIST_DB, test_customer)
+    whitelisted_receivers = get_whitelist_info_for_customer(test_customer)
 
     order = get_new_raw_order(receiver=whitelisted_receivers[0].receiver_info)
 
@@ -140,7 +140,7 @@ def test_whitelist_failure():
     order_receiver = "0xdeadbeef"
     order['rcvr']['id'] = order_receiver
 
-    assert order_receiver not in get_whitelist_ids_for_customer(WHITELIST_DB, USER_DB.get("gurugrupa").get('customer_id'))
+    assert order_receiver not in get_whitelist_ids_for_customer(USER_DB.get("gurugrupa").get('customer_id'))
     assert not invoice_service.is_whitelisted(order, username="gurugrupa")
 
 
@@ -158,7 +158,7 @@ def test_update_error_reporting():
  
 
 def test_credit_line_breakdown(invoices):
-    whitelist_info = get_whitelist_info_for_customer(WHITELIST_DB, GURUGRUPA_CUSTOMER_ID)
+    whitelist_info = get_whitelist_info_for_customer(GURUGRUPA_CUSTOMER_ID)
     gurugrupa_receiver1 = whitelist_info[0]
     gurugrupa_receiver2 = whitelist_info[1]
     before = copy.deepcopy(invoice_service.get_credit_line_info(GURUGRUPA_CUSTOMER_ID))

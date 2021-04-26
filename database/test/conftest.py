@@ -5,7 +5,7 @@ from database.models import Invoice, Base
 from database.test.fixtures import RAW_ORDER, NEW_RAW_ORDER, get_new_raw_order
 from invoice.tusker_client import tusker_client
 from utils.constant import WHITELIST_DB, GURUGRUPA_CUSTOMER_ID
-from database.whitelist_mock_db import get_whitelist_info_for_customer, get_whitelist_ids_for_customer
+from database.whitelist_service import get_whitelist_info_for_customer
 
 
 invoice_service = InvoiceService()
@@ -52,7 +52,7 @@ def invoice1():
 @pytest.fixture(scope="function")
 def invoices():
     """ insert two invoices from gurugrupa to their whitelisted receivers """
-    whitelist_info = get_whitelist_info_for_customer(WHITELIST_DB, GURUGRUPA_CUSTOMER_ID)
+    whitelist_info = get_whitelist_info_for_customer(GURUGRUPA_CUSTOMER_ID)
 
     reset_db()
     invoice_service.insert_new_invoice(get_new_raw_order(receiver=whitelist_info[0].receiver_info))
