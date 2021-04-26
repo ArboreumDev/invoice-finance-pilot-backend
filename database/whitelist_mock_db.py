@@ -1,6 +1,7 @@
 from utils.common import ReceiverInfo, WhiteListEntry
 import os
 from dotenv import load_dotenv
+from typing import Dict, List
 
 
 load_dotenv()
@@ -85,3 +86,13 @@ GURUGRUPA_CUSTOMER_ID = os.getenv("GURUGRUPA_CUSTOMER_ID")
 PROD_WHITELIST_DB = {
     GURUGRUPA_CUSTOMER_ID: {r: WhiteListEntry(receiver_info=GURUGRUPA_RECEIVERS[r], credit_line_size=50000) for r in GURUGRUPA_RECEIVERS}
 }
+
+def get_whitelist_ids_for_customer(db: Dict, customer_id: str) -> List[str]:
+    return list(db.get(customer_id).keys())
+
+def get_whitelist_info_for_customer(db: Dict, customer_id: str) -> List[str]:
+    return list(db.get(customer_id).values())
+
+# def get_receivers_ids(db: Dict, customer_id: str):
+#     return list(db.get(customer_id).values())
+#     return db.get(customer_id)
