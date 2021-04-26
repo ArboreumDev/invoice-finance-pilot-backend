@@ -1,5 +1,14 @@
 from utils.constant import RECEIVER_ID1, receiver1, receiver2
+from utils.common import ReceiverInfo
+import copy
+import uuid
 
+def get_new_raw_order(receiver: ReceiverInfo):
+    order = copy.deepcopy(RAW_ORDER)
+    order['rcvr']['id'] = receiver.location_id
+    order['rcvr']['name'] = receiver.name
+    order['id'] = str(uuid.uuid4())
+    return order
 
 RAW_ORDER = {
     "id": "971b4ce5-e8cf-4ab1-b85e-cc9e640b700b",
@@ -206,7 +215,7 @@ RAW_ORDER = {
         "def": False
     },
     "rcvr": {
-        "id": RECEIVER_ID1,
+        "id": receiver1.location_id,
         "status": 0,
         "type": 2,
         "addressLine1": "opp old bus stand subhas road ",
@@ -494,7 +503,7 @@ NEW_RAW_ORDER = {
         "def": False
     },
     "rcvr": {
-        "id": RECEIVER_ID1,
+        "id": receiver1.location_id,
         "status": 0,
         "type": 2,
         "addressLine1": "opp old bus stand subhas road ",
