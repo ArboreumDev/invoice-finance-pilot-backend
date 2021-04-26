@@ -55,22 +55,27 @@ JWT_EXPIRATION_TIME_MINUTES = 60 * 24 * 5
 TOKEN_DESCRIPTION = "It checks username and password if they are true, it returns JWT token to you."
 
 GURUGRUPA_CUSTOMER_ID = os.getenv("GURUGRUPA_CUSTOMER_ID")
+print('gg is', GURUGRUPA_CUSTOMER_ID)
 OTHER_CUSTOMER_ID = "6551e776-c372-4ec5-8fa4-f30ab74ca631"
 ANOTHER_CUSTOMER_ID = "7551e776-c372-4ec5-8fa4-f30ab74ca631"
 
 # these exist in tusker system
-RECEIVER_ID1 = "216c6829-6439-4fcb-b7dc-d35d337e9315"
-RECEIVER_ID4 = "85ca2349-073d-4137-a38b-fc246a381270"
+RECEIVER_ID1 = "d4dd6fee-5702-4c16-b687-75343a9af850"
+RECEIVER_ID4 = "1b7ef520-70ec-490c-b533-cb06b601af5e"
+LOC_ID1 = "216c6829-6439-4fcb-b7dc-d35d337e9315"
+LOC_ID4 = "c3847461-c478-40db-a394-1ccc0c712dce"
 
 # these are made up
 RECEIVER_ID2 = "3be36644-3171-4441-a0f4-75ae4fef0a4b"
 RECEIVER_ID3 = "316c6829-6439-4fcb-b7dc-d35d337e9315"
+LOC_ID2 = "d3847461-c478-40db-a394-1ccc0c712dce"
+LOC_ID3 = "g3847461-c478-40db-a394-1ccc0c712dce"
 
 # add names
-receiver1 = ReceiverInfo(id=RECEIVER_ID1, name="A B C Kirani Stores")
-receiver2 = ReceiverInfo(id=RECEIVER_ID2, name="Dharwad Surgical")
-receiver3 = ReceiverInfo(id=RECEIVER_ID3, name="Other amde up store")
-receiver4 = ReceiverInfo(id=RECEIVER_ID4, name="new jeewan medicale")
+receiver1 = ReceiverInfo(id=RECEIVER_ID1, location_id=LOC_ID1, name="A B C Kirani Stores")
+receiver2 = ReceiverInfo(id=RECEIVER_ID2, location_id=LOC_ID2, name="Dharwad Surgical")
+receiver3 = ReceiverInfo(id=RECEIVER_ID3, location_id=LOC_ID3,  name="Other amde up store")
+receiver4 = ReceiverInfo(id=RECEIVER_ID4, location_id=LOC_ID4, name="new jeewan medicale")
 
 # DUMMY DB
 # constructed by doing:
@@ -101,20 +106,20 @@ USER_DB = {
 # dummy db to be replaced
 TEST_WHITELIST_DB = {
     GURUGRUPA_CUSTOMER_ID: {
-        RECEIVER_ID1: WhiteListEntry(receiver_info=receiver1, credit_line_size=50000),
-        RECEIVER_ID2: WhiteListEntry(receiver_info=receiver2, credit_line_size=50000),
+        LOC_ID1: WhiteListEntry(receiver_info=receiver1, credit_line_size=50000),
+        LOC_ID2: WhiteListEntry(receiver_info=receiver2, credit_line_size=50000),
     },
     OTHER_CUSTOMER_ID: {
-        RECEIVER_ID3: WhiteListEntry(receiver_info=receiver3, credit_line_size=50000),
-        RECEIVER_ID4: WhiteListEntry(receiver_info=receiver4, credit_line_size=50000),
+        LOC_ID3: WhiteListEntry(receiver_info=receiver3, credit_line_size=50000),
+        LOC_ID4: WhiteListEntry(receiver_info=receiver4, credit_line_size=50000),
     },
     ANOTHER_CUSTOMER_ID: {
-        RECEIVER_ID3: WhiteListEntry(receiver_info=receiver3, credit_line_size=50000),
-        RECEIVER_ID4: WhiteListEntry(receiver_info=receiver4, credit_line_size=50000),
+        LOC_ID3: WhiteListEntry(receiver_info=receiver3, credit_line_size=50000),
+        LOC_ID4: WhiteListEntry(receiver_info=receiver4, credit_line_size=50000),
     },
 }
 
-WHITELIST_DB = PROD_WHITELIST_DB if os.getenv("PRODUCTION") == "TEST" else TEST_WHITELIST_DB
+WHITELIST_DB = PROD_WHITELIST_DB if os.getenv("ENVIRONMENT") == "PRODUCTION" else TEST_WHITELIST_DB
 # WHITELIST_DB = PROD_WHITELIST_DB
 
 USERS = list(USER_DB.keys())

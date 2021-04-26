@@ -167,11 +167,18 @@ tusker_client = TuskerClient(base_url=TUSKER_STAGING_BASE_URL, token=TUSKER_STAG
 # missing = {}
 # duplicates = {}
 # match, toomany, none = 0, 0, 0
+
+# searchtuples2 = [
+#     ("Sant Antonio Pharma", "Dandeli", "7760171632"),
+#     ("Shivayogeshwar Medical", "Kundagol", "7406883791"),
+#     # ("Sant Antonio Pharma", "Dandeli", "" ),
+#     # ("Shivayogeshwar Medical", "Kundagol", "" ),
+# ]
 # for t in searchtuples:
 #     name, city, phone = t[0], t[1], t[2]
 #     print("")
 #     print(f"looking for {name}, {phone}")
-#     r_info = tusker_client.customer_to_receiver_info(phone, city)
+#     r_info = tusker_client.customer_to_receiver_info(name, city)
 #     if not r_info["match"]:
 #         if len(r_info["results"]) > 1:
 #             print(f"{name, city} --> DUPLICATE")
@@ -184,12 +191,15 @@ tusker_client = TuskerClient(base_url=TUSKER_STAGING_BASE_URL, token=TUSKER_STAG
 #     elif r_info["match"]:
 #         print("-> match!")
 #         match += 1
-#         whitelist[r_info["match"].id] = r_info["match"]
+#         # store by id
+#         # whitelist[r_info["match"].id] = r_info["match"]
+#         # store by location id
+#         whitelist[r_info["match"].location_id] = r_info["match"]
 
 # print(f"found{match}, missing {none}, double{toomany}")
 
-# %% create a print out to be used as DB
+# # %% create a print out to be used as DB
 # import pprint
-# copy this into whitelist_mock_db.py:
+# # copy this into whitelist_mock_db.py:
 # pprint.pprint(whitelist)
 
