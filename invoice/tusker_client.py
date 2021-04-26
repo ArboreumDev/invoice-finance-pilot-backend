@@ -6,7 +6,6 @@ import requests
 
 from utils.common import ReceiverInfo
 from utils.constant import GURUGRUPA_CUSTOMER_ID, TUSKER_DEFAULT_NEW_ORDER
-from database.whitelist_mock_db import searchtuples
 
 # TODO save thie in .env
 TUSKER_STAGING_TOKEN = "EKtk84IF9xzutyEMD-I_w35SlqcaXlOrKGcHIoxm3Ow"
@@ -143,8 +142,7 @@ class TuskerClient:
             phone = user.get("cntct").get("p_mob")
             loc_id = user.get("loc").get("id")
             rr = ReceiverInfo(
-                id=user.get("id"), name=user.get("cntct").get("name"), 
-                phone=phone, city=city, location_id=loc_id
+                id=user.get("id"), name=user.get("cntct").get("name"), phone=phone, city=city, location_id=loc_id
             )
             found.append(rr)
             # print(rr)
@@ -156,7 +154,7 @@ class TuskerClient:
                 else:
                     selected = rr
 
-        return {"results":found, "match": selected}
+        return {"results": found, "match": selected}
 
 
 # %%
@@ -202,4 +200,3 @@ tusker_client = TuskerClient(base_url=TUSKER_STAGING_BASE_URL, token=TUSKER_STAG
 # import pprint
 # # copy this into whitelist_mock_db.py:
 # pprint.pprint(whitelist)
-

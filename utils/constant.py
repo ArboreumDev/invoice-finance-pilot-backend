@@ -3,8 +3,8 @@ import os
 
 from dotenv import load_dotenv
 
-from utils.common import ReceiverInfo, WhiteListEntry
 from database.whitelist_mock_db import PROD_WHITELIST_DB
+from utils.common import ReceiverInfo, WhiteListEntry
 
 load_dotenv()
 
@@ -55,7 +55,7 @@ JWT_EXPIRATION_TIME_MINUTES = 60 * 24 * 5
 TOKEN_DESCRIPTION = "It checks username and password if they are true, it returns JWT token to you."
 
 GURUGRUPA_CUSTOMER_ID = os.getenv("GURUGRUPA_CUSTOMER_ID")
-print('gg is', GURUGRUPA_CUSTOMER_ID)
+print("gg is", GURUGRUPA_CUSTOMER_ID)
 OTHER_CUSTOMER_ID = "6551e776-c372-4ec5-8fa4-f30ab74ca631"
 ANOTHER_CUSTOMER_ID = "7551e776-c372-4ec5-8fa4-f30ab74ca631"
 
@@ -74,7 +74,7 @@ LOC_ID3 = "g3847461-c478-40db-a394-1ccc0c712dce"
 # add names
 receiver1 = ReceiverInfo(id=RECEIVER_ID1, location_id=LOC_ID1, name="A B C Kirani Stores")
 receiver2 = ReceiverInfo(id=RECEIVER_ID2, location_id=LOC_ID2, name="Dharwad Surgical")
-receiver3 = ReceiverInfo(id=RECEIVER_ID3, location_id=LOC_ID3,  name="Other amde up store")
+receiver3 = ReceiverInfo(id=RECEIVER_ID3, location_id=LOC_ID3, name="Other amde up store")
 receiver4 = ReceiverInfo(id=RECEIVER_ID4, location_id=LOC_ID4, name="new jeewan medicale")
 
 # DUMMY DB

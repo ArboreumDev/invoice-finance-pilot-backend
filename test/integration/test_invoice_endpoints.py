@@ -7,12 +7,11 @@ from starlette.testclient import TestClient
 
 from database.service import invoice_service
 from database.test.conftest import reset_db
+from database.whitelist_service import get_whitelist_ids_for_customer
 from invoice.tusker_client import tusker_client
 from main import app
 from utils.common import InvoiceFrontendInfo
-from utils.constant import GURUGRUPA_CUSTOMER_ID, RECEIVER_ID4, WHITELIST_DB, LOC_ID4
-from database.whitelist_service import get_whitelist_ids_for_customer
-
+from utils.constant import GURUGRUPA_CUSTOMER_ID, LOC_ID4
 
 client = TestClient(app)
 
@@ -72,6 +71,7 @@ def test_whitelist_failure():
     response = client.get(f"v1/order/{order_ref}", headers=AUTH_HEADER)
     assert response.status_code == 400
 
+
 def test_whitelist_success():
     # create order for customer that is whitelisted
     whitelisted_receiver_id = get_whitelist_ids_for_customer(GURUGRUPA_CUSTOMER_ID)[0]
@@ -81,7 +81,6 @@ def test_whitelist_success():
     # order_ref = 10637833
     response = client.get(f"v1/order/{order_ref}", headers=AUTH_HEADER)
     assert response.status_code == 200
-
 
 
 def test_get_order_invalid_order_id():
@@ -162,6 +161,6 @@ def test_credit():
     assert response.status_code == HTTP_200_OK
 
     credit_breakdown = response.json()
-    whitelist_ids = get_whitelist_ids_for_customer(GURUGRUPA_CUSTOMER_ID) 
+    whitelist_ids = get_whitelist_ids_for_customer(GURUGRUPA_CUSTOMER_ID)
 
     assert whitelist_ids[0] in credit_breakdown and whitelist_ids[1] in credit_breakdown
