@@ -141,7 +141,11 @@ class TuskerClient:
         for user in users:
             city = user.get("loc").get("addr").get("city")
             phone = user.get("cntct").get("p_mob")
-            rr = ReceiverInfo(id=user.get("id"), name=user.get("cntct").get("name"), phone=phone, city=city)
+            loc_id = user.get("loc").get("id")
+            rr = ReceiverInfo(
+                id=user.get("id"), name=user.get("cntct").get("name"), 
+                phone=phone, city=city, location_id=loc_id
+            )
             found.append(rr)
             # print(rr)
             if _city in city:

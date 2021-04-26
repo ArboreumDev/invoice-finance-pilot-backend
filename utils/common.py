@@ -38,6 +38,7 @@ class ReceiverInfo(CamelModel):
     name: str = ""
     phone: str = ""
     city: str = ""
+    location_id: str = ""
 
 
 class Invoice(BaseInvoice):

@@ -17,6 +17,7 @@ def raw_order_to_receiverInfo(raw_order: Dict):
         name=raw_order.get("cntct").get("name"),
         phone=raw_order.get("cntct").get("phone"),
         city=raw_order.get("loc").get("addr").get("city"),
+        location_id=raw_order.get("loc").get("id")
     )
 
 
