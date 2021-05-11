@@ -95,11 +95,18 @@ USER_DB = {
     #     "role": "admin",
     #     "customer_id": OTHER_CUSTOMER_ID,
     # },
+    # hashed pw is "test"
     "test": {
-        "hashed_password": "$2b$12$iHdjkqY330UiGG2K452dKeI9bVgOZs6r0dCgtZXe2YhlWkrchZ7I2",
+        "hashed_password": "$2b$12$PhkBvaqPTISDzfsQAiWjQeExcRtSwRCIP5wW2HkmcwtOM0pk7nDXK",
         "role": "test",
         "customer_id": OTHER_CUSTOMER_ID,
     },
+    "tusker": {
+        # hash(tusker)
+        "hashed_password": "$2b$12$8t8LDzm.Ag68n6kv8pZoI.Oqd1x1rczNfe8QUcZwp6wnX8.dse0Ni",
+        "role": "provider",
+        "customer_id": ""
+    }
 }
 
 

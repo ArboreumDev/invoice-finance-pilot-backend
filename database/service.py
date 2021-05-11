@@ -5,7 +5,7 @@ from typing import Dict
 from invoice.tusker_client import code_to_order_status, tusker_client
 from utils.email import EmailClient, terms_to_email_body
 import json
-from utils.common import LoanTerms, CreditLineInfo, PaymentDetails
+from utils.common import LoanTerms, CreditLineInfo, PaymentDetails, ReceiverInfo
 from utils.constant import DISBURSAL_EMAIL, MAX_CREDIT, WHITELIST_DB, USER_DB
 from invoice.utils import raw_order_to_price
 import uuid
@@ -183,7 +183,7 @@ class InvoiceService():
 
     # TODO turn this into a view using
     # https://stackoverflow.com/questions/9766940/how-to-create-an-sql-view-with-sqlalchemy
-    def get_credit_line_info(self, customer_id):
+    def get_credit_line_info(self, customer_id: str):
         credit_line_breakdown = {}
         for receiver in WHITELIST_DB.get(customer_id, {}).keys():
             whitelist_entry = WHITELIST_DB.get(customer_id, {}).get(receiver, 0)
@@ -203,6 +203,26 @@ class InvoiceService():
                 "invoices": n_of_invoices
             })
         return credit_line_breakdown
+
+    def get_credit_line_summary(self, customer_id: str):
+        summary = CreditLineInfo(info=ReceiverInfo())
+        credit_line_breakdown = self.get_credit_line_info(customer_id)
+        for c in credit_line_breakdown.values():
+            summary.total += c.total
+            summary.available += c.available
+            summary.used += c.used
+            summary.requested += c.requested
+            summary.invoices += c.invoices
+        return summary
+
+    def get_provider_summary(self, provider: str):
+        """ create a credit line summary for all customers whose role is user """
+        credit = {}
+        for name, data in USER_DB.items():
+            if name != provider:
+                credit[name] = invoice_service.get_credit_line_summary(customer_id=data["customer_id"])
+        return credit
+
 
 
 invoice_service = InvoiceService()

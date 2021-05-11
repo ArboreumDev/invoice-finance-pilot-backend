@@ -196,3 +196,15 @@ def test_credit_line_breakdown(invoices):
 
 def test_credit_line_breakdown_invalid_customer_id():
     assert invoice_service.get_credit_line_info("deadbeef") == {}
+
+
+def test_credit_line_summary(invoices):
+    # as all invoices are from one customer, they should match the invividual breakdown
+    customer = invoice_service.get_credit_line_info(GURUGRUPA_CUSTOMER_ID)
+    summary = invoice_service.get_provider_summary("tusker")
+
+    assert sum(c.used for c in customer.values())== summary['gurugrupa'].used
+    assert sum(c.total for c in customer.values())== summary['gurugrupa'].total
+    assert sum(c.requested for c in customer.values())== summary['gurugrupa'].requested
+    assert sum(c.available for c in customer.values())== summary['gurugrupa'].available
+    assert sum(c.invoices for c in customer.values())== summary['gurugrupa'].invoices

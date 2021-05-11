@@ -112,7 +112,11 @@ def add_new_invoice(order_reference_number: str):
 def get_credit_lines(user_info: Tuple[str, str] = Depends(check_jwt_token_role)):
     username, role = user_info
     print(f"{username} with role {role} wants to know their credit line info")
+    if role == "provider":
+        return invoice_service.get_provider_summary(provider=username)
     return invoice_service.get_credit_line_info(customer_id=USER_DB.get(username).get("customer_id"))
+
+
 
 
 # deprecated

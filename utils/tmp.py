@@ -10,4 +10,4 @@ def get_hashed_password(password: str):
     return pwd_context.hash(password)
 
 
-print(get_hashed_password("<somethingyouwantothash>"))
+print(get_hashed_password("tusker"))
