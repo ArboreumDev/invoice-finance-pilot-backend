@@ -204,8 +204,8 @@ class InvoiceService():
             })
         return credit_line_breakdown
 
-    def get_credit_line_summary(self, customer_id: str):
-        summary = CreditLineInfo(info=ReceiverInfo())
+    def get_credit_line_summary(self, customer_id: str, customer_name: str):
+        summary = CreditLineInfo(info=ReceiverInfo(name=customer_name))
         credit_line_breakdown = self.get_credit_line_info(customer_id)
         for c in credit_line_breakdown.values():
             summary.total += c.total
@@ -220,7 +220,7 @@ class InvoiceService():
         credit = {}
         for name, data in USER_DB.items():
             if name != provider:
-                credit[name] = invoice_service.get_credit_line_summary(customer_id=data["customer_id"])
+                credit[name] = invoice_service.get_credit_line_summary(customer_id=data["customer_id"], customer_name=name)
         return credit
 
 
