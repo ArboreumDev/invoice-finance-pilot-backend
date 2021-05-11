@@ -63,6 +63,8 @@ class InvoiceService():
 
     def update_invoice_payment_status(self, invoice_id: str, new_status: str):
         invoice = self.session.query(Invoice).filter(Invoice.id == invoice_id).first()
+        if (new_status == "FINANCED"):
+            self.trigger_disbursal(invoice)
         invoice.finance_status = new_status
         self.session.commit()
 
