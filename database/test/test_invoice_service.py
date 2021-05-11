@@ -41,7 +41,7 @@ def test_insert_invoice(invoice1):
 
     # assert properties are correctly mapped
     invoice_in_db = [i for i in after if i.id == invoice_id][0]
-    assert invoice_in_db.value == NEW_RAW_ORDER.get("prc", {}).get("pr_act", 0)
+    assert invoice_in_db.value == NEW_RAW_ORDER.get("consgt", {}).get("val_dcl", 0)
     assert invoice_in_db.order_ref == NEW_RAW_ORDER.get('ref_no')
     assert invoice_in_db.shipment_status == "PLACED_AND_VALID"
     assert invoice_in_db.finance_status == "INITIAL"
