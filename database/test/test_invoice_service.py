@@ -71,7 +71,7 @@ def test_update_invoice_status(invoice1):
 
 
 def test_update_invoice_with_payment_terms(invoice1):
-    terms = invoice_to_terms(invoice1.id, invoice1.value, dt.datetime.now())
+    terms = invoice_to_terms(invoice1.id, invoice1.order_ref, invoice1.value, dt.datetime.now())
     terms.interest = 1000
     invoice_service.update_invoice_with_loan_terms(invoice1, terms)
 

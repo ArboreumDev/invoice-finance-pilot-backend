@@ -30,7 +30,7 @@ class EmailClient:
 def terms_to_email_body(terms: LoanTerms):
     msg = f"""
     Hello Tusker,\n
-    Gurugrupa has request to finance invoice {terms.invoice_id}\n
+    Gurugrupa has request to finance invoice {terms.invoice_id} from the order with reference number: {terms.order_id} \n
     to the following terms: \n
     {MONTHLY_INTEREST} percent monthly interest
     start: {terms.start_date.date()}

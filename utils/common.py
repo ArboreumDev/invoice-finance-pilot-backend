@@ -91,6 +91,7 @@ class Listing(BaseModel):
 
 
 class LoanTerms(BaseModel):
+    order_id: str
     principal: float
     invoice_id: str
     interest: float

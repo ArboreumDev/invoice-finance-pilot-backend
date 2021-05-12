@@ -12,8 +12,9 @@ import uuid
 from database.whitelist_service import  get_whitelist_ids_for_customer
 
 
-def invoice_to_terms(id: str, amount: float, start_date: dt.datetime):
+def invoice_to_terms(id: str, order_id: str, amount: float, start_date: dt.datetime):
     return LoanTerms(
+        order_id=order_id,
         invoice_id=id,
         principal=amount,
         interest=amount * 0.05,
@@ -143,7 +144,7 @@ class InvoiceService():
         # calculate repayment info
         # TODO get actual invoice start date
         start_date = dt.datetime.utcnow()
-        terms = invoice_to_terms(invoice.id, invoice.value, start_date)
+        terms = invoice_to_terms(invoice.id, invoice.order_ref, invoice.value, start_date)
         self.update_invoice_with_loan_terms(invoice, terms)
         msg = terms_to_email_body(terms)
 
