@@ -8,7 +8,8 @@ from utils.common import InvoiceFrontendInfo, PaymentDetails, ReceiverInfo
 
 def raw_order_to_price(raw_order: Dict):
     # TODO handle error
-    return raw_order.get("prc", {}).get("pr_act", 0)
+    # return raw_order.get("prc", {}).get("pr_act", 0)
+    return raw_order.get("consgt", {}).get("val_dcl", 0)
 
 
 def raw_order_to_receiverInfo(raw_order: Dict):

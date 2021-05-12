@@ -92,13 +92,15 @@ class TuskerClient:
                 raise NotImplementedError(str(response.json()))
         return raw_orders
 
-    def create_test_order(self, customer_id: str = "", receiver_id: str = ""):
+    def create_test_order(self, customer_id: str = "", receiver_id: str = "", value: float = 2000):
         _input = copy.deepcopy(TUSKER_DEFAULT_NEW_ORDER)
 
         # plug in parameters if given
         if receiver_id:
             _input["pl"]["rcvr"]["id"] = receiver_id
         _input["pl"]["cust"]["id"] = customer_id if customer_id else self.customer_id
+
+        _input['pl']['consgt']['val_dcl'] = value
 
         response = requests.post(self.base_url + TUSKER_ORDER_URL, json=_input, headers=self.headers)
         if response.status_code == 200:

@@ -17,6 +17,7 @@ config_keys = [
     "FRONTEND_URL",
     "GURUGRUPA_CUSTOMER_ID",
     "DISBURSAL_EMAIL",
+    "ARBOREUM_DISBURSAL_EMAIL",
     "TUSKER_API_URL",
     "TEST_AUTH_PW",
     "GURUGRUPA_PW",
@@ -95,11 +96,18 @@ USER_DB = {
     #     "role": "admin",
     #     "customer_id": OTHER_CUSTOMER_ID,
     # },
+    # hashed pw is "test"
     "test": {
-        "hashed_password": "$2b$12$iHdjkqY330UiGG2K452dKeI9bVgOZs6r0dCgtZXe2YhlWkrchZ7I2",
+        "hashed_password": "$2b$12$PhkBvaqPTISDzfsQAiWjQeExcRtSwRCIP5wW2HkmcwtOM0pk7nDXK",
         "role": "test",
         "customer_id": OTHER_CUSTOMER_ID,
     },
+    "tusker": {
+        # hash(tusker)
+        "hashed_password": "$2b$12$8t8LDzm.Ag68n6kv8pZoI.Oqd1x1rczNfe8QUcZwp6wnX8.dse0Ni",
+        "role": "provider",
+        "customer_id": ""
+    }
 }
 
 
@@ -125,6 +133,7 @@ WHITELIST_DB = PROD_WHITELIST_DB if os.getenv("ENVIRONMENT") == "PRODUCTION" els
 USERS = list(USER_DB.keys())
 
 DISBURSAL_EMAIL = os.getenv("DISBURSAL_EMAIL")
+ARBOREUM_DISBURSAL_EMAIL = os.getenv("ARBOREUM_DISBURSAL_EMAIL")
 GP_CONFIRMATION_MAIL = "julius@arboreum.dev"
 MONTHLY_INTEREST = 0.0165
 

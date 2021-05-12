@@ -91,6 +91,7 @@ class Listing(BaseModel):
 
 
 class LoanTerms(BaseModel):
+    order_id: str
     principal: float
     invoice_id: str
     interest: float
@@ -114,8 +115,8 @@ class WhiteListEntry(BaseModel):
 
 class CreditLineInfo(BaseModel):
     info: ReceiverInfo
-    available: float
-    used: float
-    total: float
-    requested: float
-    invoices: int
+    available: float = 0
+    used: float = 0
+    total: float = 0
+    requested: float = 0
+    invoices: int = 0

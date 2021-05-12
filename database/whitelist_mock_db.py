@@ -80,10 +80,20 @@ GURUGRUPA_RECEIVERS = {
     'f5824c53-c43b-4035-85df-9d8bdc7bd077': ReceiverInfo(id='d9abccd6-e4c7-445c-bc18-5db251c2865b', name='Sanjeevini medicals', phone='+91-9448139277', city='Haveri', location_id='f5824c53-c43b-4035-85df-9d8bdc7bd077')
 }
 
+TEST_CUSTOMER_ID = "6551e776-c372-4ec5-8fa4-f30ab74ca631" # aka other receiver
+TEST_RECEIVERS = {
+    'e0f2c12d-9371-4863-a39a-0037cd6c711b': ReceiverInfo(id='aa8b8369-be51-49a3-8419-3d1eb8c4146c', name='Mahantesh Medical', phone='+91-9449642927', city='Kundagol', location_id='e0f2c12d-9371-4863-a39a-0037cd6c711b'),
+    'e611c64d-4dc4-4fce-b99c-93ea88b8951e': ReceiverInfo(id='bda26d12-aee7-45e0-9686-1b173b839004', name='New Shri manjunath medical & General Store', phone='+91-9632885549', city='Haliyal', location_id='e611c64d-4dc4-4fce-b99c-93ea88b8951e'),
+    'ec5daa93-a2e4-4193-a65f-25b15d97c7ca': ReceiverInfo(id='fcba19ca-b98b-4183-b58e-0e00484246eb', name='Shri Kalmeshwar Medical', phone='+91-9448322713', city='Kundagol', location_id='ec5daa93-a2e4-4193-a65f-25b15d97c7ca'),
+    'ed7bf996-b805-4415-a990-195b50140921': ReceiverInfo(id='9e682e92-2350-4e8c-bba5-457e8ab94ded', name='shri shambhavi med and gen', phone='+91-9686637521', city='Kalas', location_id='ed7bf996-b805-4415-a990-195b50140921'),
+    'f4264545-6f96-4c12-b388-aa543187c5d8': ReceiverInfo(id='2a6d415a-cc16-439f-83a6-95d1336db5bb', name='vansh medical', phone='+91-9901331875', city='Haliyal', location_id='f4264545-6f96-4c12-b388-aa543187c5d8'),
+    'f5824c53-c43b-4035-85df-9d8bdc7bd077': ReceiverInfo(id='d9abccd6-e4c7-445c-bc18-5db251c2865b', name='Sanjeevini medicals', phone='+91-9448139277', city='Haveri', location_id='f5824c53-c43b-4035-85df-9d8bdc7bd077')
+}
 
 GURUGRUPA_CUSTOMER_ID = os.getenv("GURUGRUPA_CUSTOMER_ID")
 
 PROD_WHITELIST_DB = {
-    GURUGRUPA_CUSTOMER_ID: {r: WhiteListEntry(receiver_info=GURUGRUPA_RECEIVERS[r], credit_line_size=50000) for r in GURUGRUPA_RECEIVERS}
+    GURUGRUPA_CUSTOMER_ID: {r: WhiteListEntry(receiver_info=GURUGRUPA_RECEIVERS[r], credit_line_size=50000) for r in GURUGRUPA_RECEIVERS},
+    TEST_CUSTOMER_ID: {r: WhiteListEntry(receiver_info=TEST_RECEIVERS[r], credit_line_size=50000) for r in TEST_RECEIVERS}
 }
 

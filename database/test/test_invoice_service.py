@@ -41,7 +41,7 @@ def test_insert_invoice(invoice1):
 
     # assert properties are correctly mapped
     invoice_in_db = [i for i in after if i.id == invoice_id][0]
-    assert invoice_in_db.value == NEW_RAW_ORDER.get("prc", {}).get("pr_act", 0)
+    assert invoice_in_db.value == NEW_RAW_ORDER.get("consgt", {}).get("val_dcl", 0)
     assert invoice_in_db.order_ref == NEW_RAW_ORDER.get('ref_no')
     assert invoice_in_db.shipment_status == "PLACED_AND_VALID"
     assert invoice_in_db.finance_status == "INITIAL"
@@ -71,7 +71,7 @@ def test_update_invoice_status(invoice1):
 
 
 def test_update_invoice_with_payment_terms(invoice1):
-    terms = invoice_to_terms(invoice1.id, invoice1.value, dt.datetime.now())
+    terms = invoice_to_terms(invoice1.id, invoice1.order_ref, invoice1.value, dt.datetime.now())
     terms.interest = 1000
     invoice_service.update_invoice_with_loan_terms(invoice1, terms)
 
@@ -196,3 +196,15 @@ def test_credit_line_breakdown(invoices):
 
 def test_credit_line_breakdown_invalid_customer_id():
     assert invoice_service.get_credit_line_info("deadbeef") == {}
+
+
+def test_credit_line_summary(invoices):
+    # as all invoices are from one customer, they should match the invividual breakdown
+    customer = invoice_service.get_credit_line_info(GURUGRUPA_CUSTOMER_ID)
+    summary = invoice_service.get_provider_summary("tusker")
+
+    assert sum(c.used for c in customer.values())== summary['gurugrupa'].used
+    assert sum(c.total for c in customer.values())== summary['gurugrupa'].total
+    assert sum(c.requested for c in customer.values())== summary['gurugrupa'].requested
+    assert sum(c.available for c in customer.values())== summary['gurugrupa'].available
+    assert sum(c.invoices for c in customer.values())== summary['gurugrupa'].invoices
