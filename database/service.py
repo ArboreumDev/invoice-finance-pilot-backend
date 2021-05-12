@@ -6,7 +6,7 @@ from invoice.tusker_client import code_to_order_status, tusker_client
 from utils.email import EmailClient, terms_to_email_body
 import json
 from utils.common import LoanTerms, CreditLineInfo, PaymentDetails, ReceiverInfo
-from utils.constant import DISBURSAL_EMAIL, MAX_CREDIT, WHITELIST_DB, USER_DB
+from utils.constant import DISBURSAL_EMAIL, MAX_CREDIT, WHITELIST_DB, USER_DB, ARBOREUM_DISBURSAL_EMAIL
 from invoice.utils import raw_order_to_price
 import uuid
 from database.whitelist_service import  get_whitelist_ids_for_customer
@@ -151,7 +151,7 @@ class InvoiceService():
         # ================= send email to Tusker with FundRequest
         try:
             ec = EmailClient()
-            ec.send_email(body=msg, subject="Arboreum Disbursal Request", targets=[DISBURSAL_EMAIL])
+            ec.send_email(body=msg, subject="Arboreum Disbursal Request", targets=[DISBURSAL_EMAIL, ARBOREUM_DISBURSAL_EMAIL])
             invoice.finance_status = "DISBURSAL_REQUESTED"
             self.session.commit()
         except Exception as e:
