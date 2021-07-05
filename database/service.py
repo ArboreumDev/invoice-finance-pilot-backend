@@ -5,11 +5,11 @@ from typing import Dict
 from invoice.tusker_client import code_to_order_status, tusker_client
 from utils.email import EmailClient, terms_to_email_body
 import json
-from utils.common import LoanTerms, CreditLineInfo, PaymentDetails, ReceiverInfo
-from utils.constant import DISBURSAL_EMAIL, MAX_CREDIT, WHITELIST_DB, USER_DB, ARBOREUM_DISBURSAL_EMAIL
+from utils.common import LoanTerms, CreditLineInfo, PaymentDetails, PurchaserInfo
+from utils.constant import DISBURSAL_EMAIL, MAX_CREDIT, USER_DB, ARBOREUM_DISBURSAL_EMAIL
 from invoice.utils import raw_order_to_price
 import uuid
-from database.whitelist_service import  get_whitelist_ids_for_customer
+from database.whitelist_service import  whitelist_service, whitelist_entry_to_receiverInfo
 
 
 def invoice_to_terms(id: str, order_id: str, amount: float, start_date: dt.datetime):
@@ -26,8 +26,18 @@ def invoice_to_terms(id: str, order_id: str, amount: float, start_date: dt.datet
 class InvoiceService():
     def __init__(self):
         self.session = session
-    
-    def insert_new_invoice(self, raw_order: Dict):
+
+    def insert_new_invoice_from_raw_order(self, raw_order: Dict):
+        # identify purchaser by location
+        whitelist_service.get_purchaser_from_location_id(location_id),
+
+        # verify the customer of the order has the purchaser whitelisted
+        supplier_id=raw_order.get('cust').get('id')
+        location_id = raw_order.get('rcvr').get('id')
+        purchaser_id = whitelist_service.get_whitelisted_purchaser_from_location_id(supplier_id, location_id)
+        return self._insert_new_invoice_for_purchaser(raw_order, purchaser_id, supplier_id)
+
+    def _insert_new_invoice_for_purchaser_x_supplier(self, raw_order: Dict, purchaser_id: str, supplier_id: str):
         exists = self.session.query(Invoice.id).filter_by(id=raw_order.get('id')).first() is not None
         if exists:
             # TODO graceful error handling
@@ -38,9 +48,9 @@ class InvoiceService():
             order_ref=raw_order.get('ref_no'),
             shipment_status=code_to_order_status(raw_order.get('status')),
             finance_status="INITIAL",
-            receiver_id=raw_order.get('rcvr').get('id'),
+            purchaser_id=purchaser_id,
             value=raw_order_to_price(raw_order),
-            customer_id=raw_order.get('cust').get('id'),
+            supplier_id=raw_order.get('cust').get('id'),
             # TODO maybe use pickle here? how are booleans preserved?
             data=json.dumps(raw_order),
             payment_details=json.dumps(PaymentDetails(
@@ -95,6 +105,7 @@ class InvoiceService():
         errored = []
         # get latest data for all (TODO non-final) orders in DB
         res = self.session.query(Invoice).all()
+        # TODO optimize by moving all filtering into the query
         invoices = {i.id: i for i in res}
         # get order_ref to track by
         all_reference_numbers = [i.order_ref for i in res]
@@ -161,9 +172,12 @@ class InvoiceService():
 
 
     def is_whitelisted(self, raw_order: Dict, username: str):
-        receiver_id = raw_order.get('rcvr', {}).get('id', "")
+        receiver_id = raw_order.get('rcvr', {}).get('id', "") #  location_id of a purchaser
         customer_id = USER_DB[username].get('customer_id')
-        return receiver_id in get_whitelist_ids_for_customer(customer_id)
+        whitelisted = whitelist_service.get_whitelisted_receivers(customer_id)
+        # target_ids = [x.purchaser_id for x in whitelisted] + [x.location_id for x in whitelisted]
+        target_ids = [x.location_id for x in whitelisted]
+        return receiver_id in target_ids
 
     def final_checks(self, raw_order):
         receiver_id=raw_order.get('rcvr').get('id')
@@ -188,17 +202,16 @@ class InvoiceService():
     # https://stackoverflow.com/questions/9766940/how-to-create-an-sql-view-with-sqlalchemy
     def get_credit_line_info(self, customer_id: str):
         credit_line_breakdown = {}
-        for receiver in WHITELIST_DB.get(customer_id, {}).keys():
-            whitelist_entry = WHITELIST_DB.get(customer_id, {}).get(receiver, 0)
-            credit_line_size  = whitelist_entry.credit_line_size if whitelist_entry != 0 else 0
+        for receiver in whitelist_service.get_whitelisted_receivers(customer_id):
+            credit_line_size  = receiver.creditline_size if receiver.creditline_size != 0 else 0
 
-            invoices = self.session.query(Invoice).filter(Invoice.receiver_id == receiver).all()
+            invoices = self.session.query(Invoice).filter(Invoice.receiver_id == receiver.receiver_id).all()
             to_be_repaid = sum(i.value for i in invoices if i.finance_status == "FINANCED")
             requested = sum(i.value for i in invoices if i.finance_status in ["DISBURSAL_REQUESTED", "INITIAL"])
             n_of_invoices = len(invoices)
 
             credit_line_breakdown[receiver] = CreditLineInfo(**{
-                "info": whitelist_entry.receiver_info,
+                "info": whitelist_entry_to_receiverInfo(receiver),
                 "total": credit_line_size,
                 "available": credit_line_size - to_be_repaid - requested, #invoince.value for invoice in to_be_repaid)
                 "used":to_be_repaid,

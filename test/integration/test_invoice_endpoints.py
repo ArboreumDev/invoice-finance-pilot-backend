@@ -7,7 +7,7 @@ from starlette.testclient import TestClient
 
 from database.service import invoice_service
 from database.test.conftest import reset_db
-from database.whitelist_service import get_whitelist_ids_for_customer
+from database.whitelist_service import whitelist_service
 from invoice.tusker_client import tusker_client
 from main import app
 from utils.common import InvoiceFrontendInfo
@@ -19,12 +19,12 @@ client = TestClient(app)
 @pytest.fixture(scope="function")
 def invoices():
     reset_db()
-    whitelisted_receiver_id = get_whitelist_ids_for_customer(GURUGRUPA_CUSTOMER_ID)[0]
+    whitelisted_receiver = whitelist_service.get_whitelisted_receivers(GURUGRUPA_CUSTOMER_ID)[0]
     inv_id1, order_ref1, _ = tusker_client.create_test_order(
-        customer_id=GURUGRUPA_CUSTOMER_ID, receiver_id=whitelisted_receiver_id
+        customer_id=GURUGRUPA_CUSTOMER_ID, location_id=whitelisted_receiver.location_id
     )
     inv_id2, order_ref2, _ = tusker_client.create_test_order(
-        customer_id=GURUGRUPA_CUSTOMER_ID, receiver_id=whitelisted_receiver_id
+        customer_id=GURUGRUPA_CUSTOMER_ID, location_id=whitelisted_receiver.location_id
     )
     yield (inv_id1, order_ref1), (inv_id2, order_ref2)
     reset_db()
@@ -65,7 +65,7 @@ def test_get_order(invoices):
 
 def test_whitelist_failure():
     # create order for customer that is not whitelisted
-    _, order_ref, _ = tusker_client.create_test_order(customer_id=GURUGRUPA_CUSTOMER_ID, receiver_id=LOC_ID4)
+    _, order_ref, _ = tusker_client.create_test_order(customer_id=GURUGRUPA_CUSTOMER_ID, location_id=LOC_ID4)
 
     # try querying order
     response = client.get(f"v1/order/{order_ref}", headers=AUTH_HEADER)
@@ -74,8 +74,11 @@ def test_whitelist_failure():
 
 def test_whitelist_success():
     # create order for customer that is whitelisted
-    whitelisted_receiver_id = get_whitelist_ids_for_customer(GURUGRUPA_CUSTOMER_ID)[0]
-    _, order_ref, _ = tusker_client.create_test_order(GURUGRUPA_CUSTOMER_ID, whitelisted_receiver_id)
+    whitelisted_receiver = whitelist_service.get_whitelisted_receivers(GURUGRUPA_CUSTOMER_ID)[0]
+    _, order_ref, _ = tusker_client.create_test_order(
+        customer_id=GURUGRUPA_CUSTOMER_ID, 
+        location_id=whitelisted_receiver.location_id
+    )
 
     # try querying order
     # order_ref = 10637833
@@ -161,6 +164,6 @@ def test_credit():
     assert response.status_code == HTTP_200_OK
 
     credit_breakdown = response.json()
-    whitelist_ids = get_whitelist_ids_for_customer(GURUGRUPA_CUSTOMER_ID)
+    whitelist_ids = whitelist_service.get_whitelisted_locations_for_customer(GURUGRUPA_CUSTOMER_ID)
 
     assert whitelist_ids[0] in credit_breakdown and whitelist_ids[1] in credit_breakdown

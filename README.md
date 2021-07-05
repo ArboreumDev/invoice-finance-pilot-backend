@@ -38,6 +38,11 @@ then store the Variables in `db/const` or in an .env file
 
 > python3 -m database.create
 
+# seed the db with whitelist
+
+add gurugrupas receiver into whitelist:
+
+> python3 -m database.seed
 ### test
 
 > make test

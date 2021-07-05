@@ -4,7 +4,7 @@ from typing import List
 
 import requests
 
-from utils.common import ReceiverInfo
+from utils.common import PurchaserInfo
 from utils.constant import GURUGRUPA_CUSTOMER_ID, TUSKER_DEFAULT_NEW_ORDER
 
 # TODO save thie in .env
@@ -78,6 +78,7 @@ class TuskerClient:
 
     def track_orders(self, reference_numbers: List[str], customer_id=""):
         raw_orders = []
+        # TODO add some retries with https://github.com/litl/backoff
         while reference_numbers:
             # TODO properly understand pagination
             to_be_fetched = reference_numbers[:10]
@@ -92,12 +93,14 @@ class TuskerClient:
                 raise NotImplementedError(str(response.json()))
         return raw_orders
 
-    def create_test_order(self, customer_id: str = "", receiver_id: str = "", value: float = 2000):
+    def create_test_order(self, customer_id: str = "", location_id: str = "", value: float = 2000):
         _input = copy.deepcopy(TUSKER_DEFAULT_NEW_ORDER)
 
         # plug in parameters if given
-        if receiver_id:
-            _input["pl"]["rcvr"]["id"] = receiver_id
+        if location_id:
+            # so a user in tusker system has an location_id & and user_id.
+            # in an order, the users location_id will be used in the receiver_id-field
+            _input["pl"]["rcvr"]["id"] = location_id
         _input["pl"]["cust"]["id"] = customer_id if customer_id else self.customer_id
 
         _input['pl']['consgt']['val_dcl'] = value
@@ -143,7 +146,7 @@ class TuskerClient:
             city = user.get("loc").get("addr").get("city")
             phone = user.get("cntct").get("p_mob")
             loc_id = user.get("loc").get("id")
-            rr = ReceiverInfo(
+            rr = PurchaserInfo(
                 id=user.get("id"), name=user.get("cntct").get("name"), phone=phone, city=city, location_id=loc_id
             )
             found.append(rr)

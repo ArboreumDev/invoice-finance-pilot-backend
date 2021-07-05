@@ -3,6 +3,7 @@ import pytest
 from invoice.tusker_client import (TUSKER_STAGING_BASE_URL,
                                    TUSKER_STAGING_TOKEN, TuskerClient,
                                    order_status_to_code, tusker_client)
+from utils.constant import GURUGRUPA_CUSTOMER_ID, LOC_ID1
 
 # NOTE: as this is not our api, we can not really test that well, so I just try to everything once
 
@@ -22,7 +23,10 @@ def test_init_client_valid_credentials():
 def test_create_test_order():
     test_id = "test_customer_id"
     # tusker_client.create_test_order(customer_id=test_id)
-    inv_id, order_ref, shipment_status = tusker_client.create_test_order()
+    inv_id, order_ref, shipment_status = tusker_client.create_test_order(
+        customer_id=GURUGRUPA_CUSTOMER_ID,
+        location_id=LOC_ID1
+    )
 
     raw_order = tusker_client.track_orders(reference_numbers=[order_ref], customer_id=test_id)[0]
 

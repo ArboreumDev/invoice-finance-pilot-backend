@@ -18,7 +18,7 @@ db_url = PROD_DB_URL if env==1 else TEST_DB_URL
 
 
 
-engine = create_engine(PROD_DB_URL, echo=True)
+engine = create_engine(db_url, echo=True)
 engine.connect()
 # print(TEST_DB_URL)
 # print(engine)

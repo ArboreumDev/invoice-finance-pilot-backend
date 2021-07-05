@@ -18,7 +18,7 @@ class Message(BaseModel):
 
 
 app = FastAPI()
-
+# TODO remove this!
 
 # @app.get("/items/{item_id}", response_model=Item, responses={404: {"model": Message}})
 # async def read_item(item_id: str):

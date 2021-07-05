@@ -3,7 +3,7 @@ from typing import Dict
 
 from database.models import Invoice
 from invoice.tusker_client import code_to_order_status
-from utils.common import InvoiceFrontendInfo, PaymentDetails, ReceiverInfo
+from utils.common import InvoiceFrontendInfo, PaymentDetails, PurchaserInfo
 
 
 def raw_order_to_price(raw_order: Dict):
@@ -13,7 +13,7 @@ def raw_order_to_price(raw_order: Dict):
 
 
 def raw_order_to_receiverInfo(raw_order: Dict):
-    return ReceiverInfo(
+    return PurchaserInfo(
         id=raw_order.get("id"),
         name=raw_order.get("cntct").get("name"),
         phone=raw_order.get("cntct").get("phone"),
@@ -51,7 +51,7 @@ def db_invoice_to_frontend_info(inv: Invoice):
         value=inv.value,
         status=inv.finance_status,
         shipping_status=inv.shipment_status,
-        receiver_info=ReceiverInfo(
+        receiver_info=PurchaserInfo(
             id=inv.receiver_id,
             name=data.get("rcvr", {}).get("cntct", {}).get("name", "not found"),
             city=data.get("rcvr", {}).get("addr", {}).get("city", "not found"),

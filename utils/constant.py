@@ -4,7 +4,7 @@ import os
 from dotenv import load_dotenv
 
 from database.whitelist_mock_db import PROD_WHITELIST_DB
-from utils.common import ReceiverInfo, WhiteListEntry
+from utils.common import PurchaserInfo, WhiteListEntry
 
 load_dotenv()
 
@@ -73,10 +73,10 @@ LOC_ID2 = "d3847461-c478-40db-a394-1ccc0c712dce"
 LOC_ID3 = "g3847461-c478-40db-a394-1ccc0c712dce"
 
 # add names
-receiver1 = ReceiverInfo(id=RECEIVER_ID1, location_id=LOC_ID1, name="A B C Kirani Stores")
-receiver2 = ReceiverInfo(id=RECEIVER_ID2, location_id=LOC_ID2, name="Dharwad Surgical")
-receiver3 = ReceiverInfo(id=RECEIVER_ID3, location_id=LOC_ID3, name="Other amde up store")
-receiver4 = ReceiverInfo(id=RECEIVER_ID4, location_id=LOC_ID4, name="new jeewan medicale")
+receiver1 = PurchaserInfo(id=RECEIVER_ID1, location_id=LOC_ID1, name="A B C Kirani Stores")
+receiver2 = PurchaserInfo(id=RECEIVER_ID2, location_id=LOC_ID2, name="Dharwad Surgical")
+receiver3 = PurchaserInfo(id=RECEIVER_ID3, location_id=LOC_ID3, name="Other amde up store")
+receiver4 = PurchaserInfo(id=RECEIVER_ID4, location_id=LOC_ID4, name="new jeewan medicale")
 
 # DUMMY DB
 # constructed by doing:
@@ -127,8 +127,7 @@ TEST_WHITELIST_DB = {
     },
 }
 
-WHITELIST_DB = PROD_WHITELIST_DB if os.getenv("ENVIRONMENT") == "PRODUCTION" else TEST_WHITELIST_DB
-# WHITELIST_DB = PROD_WHITELIST_DB
+WHITELIST_DB = PROD_WHITELIST_DB #if os.getenv("ENVIRONMENT") == "PRODUCTION" else TEST_WHITELIST_DB
 
 USERS = list(USER_DB.keys())
 
@@ -136,6 +135,7 @@ DISBURSAL_EMAIL = os.getenv("DISBURSAL_EMAIL")
 ARBOREUM_DISBURSAL_EMAIL = os.getenv("ARBOREUM_DISBURSAL_EMAIL")
 GP_CONFIRMATION_MAIL = "julius@arboreum.dev"
 MONTHLY_INTEREST = 0.0165
+DEFAULT_LOAN_TENOR = 90 # days
 
 TUSKER_API_URL = os.getenv("TUSKER_API_URL")
 

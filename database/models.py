@@ -7,26 +7,21 @@ from sqlalchemy import  create_engine
 
 Base = declarative_base()
 
-# from database.db import engine, metadata
-
-# Tables, auto map
-# ShipmentStatusMap = Table("shipment_status_map", metadata, autoload=True, autoload_with=engine)
-# FinanceStausMap = Table("finance_status_map", metadata, autoload=True, autoload_with=engine)
-# InvoiceTable = Table("invoice", metadata, autoload=True, autoload_with=engine)
-
-
 class Invoice(Base):
     __tablename__ = "invoice"
 
     id = Column(String(50), primary_key=True)
     order_ref = Column(String(50), nullable=False)
-    customer_id = Column(String(50), nullable=False)
+    supplier_id = Column(String(50), nullable=False) # on the order its called customer_id
+    purchaser_id = Column(String(50), nullable=False)
 
     shipment_status = Column(String(50), nullable=True)
     finance_status = Column(String(50), nullable=True)
-    # shipment_status = Column(Integer, ForeignKey("shipment_status_map.id"), nullable=False)
-    # finance_status = Column(Integer, ForeignKey("finance_status_map.id"), nullable=True)
-    receiver_id = Column(String(50), nullable=False)
+
+    financed_on = Column(DateTime, nullable=True)
+    apr = Column(Float, nullable=True)
+    # repaid = Column(Float, nullable=True)
+    tenor_in_days=Column(Integer, nullable=True)
 
     data = Column(Text, nullable=False)
     value = Column(Float, nullable=True)
@@ -34,27 +29,39 @@ class Invoice(Base):
     payment_details = Column(Text, nullable=True)
 
     # delivery_date = Column(DateTime)
-    # source_id = Column(String)
 
     created_on = Column(DateTime, default=datetime.now())
     # updated_on = Column(DateTime)
 
 class Whitelist(Base):
+    """ keeps track of the receivers whose invoices can be financed for each customer """
     __tablename__ = "whitelist"
+    supplier_id = Column(String(50), primary_key=True)
+    purchaser_id = Column(String(50), primary_key=True)
+    location_id = Column(String(50), nullable=False, index=True) # NOTE: tuskers order will use this in the receiver.id field
+    name = Column(String(50), nullable=False)
+    phone = Column(String(50), nullable=False)
+    city = Column(String(50), nullable=False)
+    creditline_size = Column(Integer, nullable=False)
+    apr = Column(Float, nullable=True)
+    tenor_in_days=Column(Integer, nullable=True)
 
-    borrower_id = Column(String(50), primary_key=True)
-    receiver_id = Column(String(50), primary_key=True)
-    receiver_name = Column(String(50), nullable=False)
 
-    credit_line_size = Column(String(50), nullable=True)
-
-class User(Base):
+class User(Base): #TUSKER
     """ used to look up usernames and their passwords and their associated customer id """
     __tablename__ = "user"
-
+    # TODO user_id = Column(String(50), primary_key=True) autoincrement
     email = Column(String(50), primary_key=True)
-    customer_id = Column(String(50))
     password = Column(String(50), nullable=False)
+
+
+class Suppliers(Base):
+    __tablename__ = "suppliers"
+    supplier_id = Column(String(50), primary_key=True) # matches customer_id in tuskers system 
+    name = Column(String(50), nullable=False)
+    creditline_size = Column(Integer, nullable=False)
+
+
  
 
 

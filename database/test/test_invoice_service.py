@@ -2,36 +2,39 @@
 import pytest
 import copy
 from database.service import InvoiceService, invoice_to_terms
+from database.whitelist_service import WhitelistService
 from database.models import Invoice
 from database.test.fixtures import NEW_RAW_ORDER, RAW_ORDER, get_new_raw_order
 from database.db import metadata, engine, session
 from invoice.tusker_client import code_to_order_status, tusker_client
 import contextlib
 import json
-from utils.constant import MAX_CREDIT, USER_DB, WHITELIST_DB, RECEIVER_ID1, GURUGRUPA_CUSTOMER_ID
+from utils.constant import MAX_CREDIT, USER_DB, RECEIVER_ID1, GURUGRUPA_CUSTOMER_ID
 from database.test.conftest import reset_db
 import datetime as dt
-from database.whitelist_service import get_whitelist_ids_for_customer, get_whitelist_info_for_customer
 
 invoice_service = InvoiceService()
-# %%
-
+whitelist_service = WhitelistService()
 
 
 # %%
 # @pytest.mark.skip()
 def test_reset_db():
     reset_db()
-    invoice_service.insert_new_invoice(NEW_RAW_ORDER)
+    invoice_service._insert_new_invoice_for_purchaser_x_supplier(NEW_RAW_ORDER, "p", "s")
     reset_db()
     after = invoice_service.get_all_invoices()
     assert len(after) == 0
 
 
-def test_insert_invoice(invoice1):
+def test_internal_insert_invoice(invoice1):
     before = invoice_service.get_all_invoices()
 
-    invoice_id = invoice_service.insert_new_invoice(NEW_RAW_ORDER)
+    invoice_id = invoice_service._insert_new_invoice_for_purchaser_x_supplier(
+        NEW_RAW_ORDER,
+        purchaser_id="testP",
+        supplier_id="testS"
+    )
 
     after = invoice_service.get_all_invoices()
 
@@ -45,24 +48,21 @@ def test_insert_invoice(invoice1):
     assert invoice_in_db.order_ref == NEW_RAW_ORDER.get('ref_no')
     assert invoice_in_db.shipment_status == "PLACED_AND_VALID"
     assert invoice_in_db.finance_status == "INITIAL"
-    assert invoice_in_db.receiver_id == NEW_RAW_ORDER.get('rcvr').get('id')
 
     # check raw data is conserved
     assert json.loads(invoice_in_db.data) == NEW_RAW_ORDER
     reset_db()
 
-@pytest.mark.skip()
-def test_insert_invoice_that_exists():
-    pass
-
 
 @pytest.mark.skip()
-def test_insert_new_invoice_exceeds_credit_line_failure():
-    pass
+def test_insert_invoice_that_exists_fail():
+    with pytest.raises(AssertionError):
+        invoice_service._insert_new_invoice_for_purchaser_x_supplier(
+            NEW_RAW_ORDER,
+            purchaser_id="testP",
+            supplier_id="testS"
+        )
 
-@pytest.mark.skip()
-def test_insert_new_invoice_not_in_whitelist_failure():
-    pass
 
 def test_update_invoice_status(invoice1):
     invoice_service.update_invoice_shipment_status(invoice1.id, "NEW_STATUS")
@@ -126,24 +126,6 @@ def test_update_invoices(invoice1):
 
     # invoice_service.update_invoice_payment_status
 
-def test_whitelist_okay():
-    test_customer = USER_DB.get("gurugrupa").get('customer_id')
-    whitelisted_receivers = get_whitelist_info_for_customer(test_customer)
-
-    order = get_new_raw_order(receiver=whitelisted_receivers[0].receiver_info)
-
-    assert invoice_service.is_whitelisted(order, username="gurugrupa")
-
-def test_whitelist_failure():
-    #set order receiver to something not in whitelist
-    order = copy.deepcopy(RAW_ORDER)
-    order_receiver = "0xdeadbeef"
-    order['rcvr']['id'] = order_receiver
-
-    assert order_receiver not in get_whitelist_ids_for_customer(USER_DB.get("gurugrupa").get('customer_id'))
-    assert not invoice_service.is_whitelisted(order, username="gurugrupa")
-
-
 
 @pytest.mark.skip()
 def test_multiple_invoice_updates():
@@ -157,54 +139,3 @@ def test_update_error_reporting():
     pass
  
 
-def test_credit_line_breakdown(invoices):
-    whitelist_info = get_whitelist_info_for_customer(GURUGRUPA_CUSTOMER_ID)
-    gurugrupa_receiver1 = whitelist_info[0]
-    gurugrupa_receiver2 = whitelist_info[1]
-    before = copy.deepcopy(invoice_service.get_credit_line_info(GURUGRUPA_CUSTOMER_ID))
-
-    in1 = invoices[0]
-    invoice_service.update_invoice_payment_status(in1.id, "FINANCED")
-
-    # verify invoices with disbursed status are deducted from available credit
-    after =  invoice_service.get_credit_line_info(GURUGRUPA_CUSTOMER_ID)
-
-    # note: orders are targeted to location id of receiver
-    target_id_on_invoice = in1.receiver_id
-    target_id_on_receiver_info = gurugrupa_receiver1.receiver_info.location_id
-    assert target_id_on_invoice == target_id_on_receiver_info
-
-    creditLine_id = target_id_on_receiver_info
-    assert after[creditLine_id].used  == before[creditLine_id].used + in1.value
-
-    # verify other credtiline is unchanged
-    other_creditLine_id = gurugrupa_receiver2.receiver_info.location_id
-    assert after[other_creditLine_id].available == before[other_creditLine_id].available
-
-    # verify consistency
-    c = after[creditLine_id]
-    c2 = before[creditLine_id]
-    print(c2)
-    assert c.available + c.used + c.requested== c.total
-    assert c2.available + c2.used + c2.requested == c2.total
-
-    # do the same for the DISBURSAL_REQUESTED status => iniital & disbursed are currently both shwon as requested
-    # in2 = invoices[1]
-    # invoice_service.update_invoice_payment_status(in2.id, "DISBURSAL_REQUESTED")
-    # after = invoice_service.get_credit_line_info(GURUGRUPA_CUSTOMER_ID)
-    # assert after[gurugrupa_receiver1].used == before[gurugrupa_receiver1].used + in1.value + in2.value
-
-def test_credit_line_breakdown_invalid_customer_id():
-    assert invoice_service.get_credit_line_info("deadbeef") == {}
-
-
-def test_credit_line_summary(invoices):
-    # as all invoices are from one customer, they should match the invividual breakdown
-    customer = invoice_service.get_credit_line_info(GURUGRUPA_CUSTOMER_ID)
-    summary = invoice_service.get_provider_summary("tusker")
-
-    assert sum(c.used for c in customer.values())== summary['gurugrupa'].used
-    assert sum(c.total for c in customer.values())== summary['gurugrupa'].total
-    assert sum(c.requested for c in customer.values())== summary['gurugrupa'].requested
-    assert sum(c.available for c in customer.values())== summary['gurugrupa'].available
-    assert sum(c.invoices for c in customer.values())== summary['gurugrupa'].invoices
