@@ -11,8 +11,10 @@ from database.whitelist_service import whitelist_service
 invoice_service = InvoiceService()
 
 
-def reset_db():
+def reset_db(deleteWhitelist = False):
     invoice_service.session.connection().execute("delete from invoice")
+    if deleteWhitelist:
+        invoice_service.session.connection().execute("delete from whitelist")
     invoice_service.session.commit()
 
 

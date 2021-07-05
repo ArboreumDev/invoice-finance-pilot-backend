@@ -54,7 +54,6 @@ def test_internal_insert_invoice(invoice1):
     reset_db()
 
 
-@pytest.mark.skip()
 def test_insert_invoice_that_exists_fail():
     with pytest.raises(AssertionError):
         invoice_service._insert_new_invoice_for_purchaser_x_supplier(

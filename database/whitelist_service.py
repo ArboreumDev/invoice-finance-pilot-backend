@@ -19,9 +19,8 @@ class WhitelistService():
     def __init__(self):
         self.session = session
     
-    # def get_whitelisted_locations_for_customer(self, customer_id: str) -> List[str]:
-    #     locations = self.session.query(Whitelist.location_id).filter(Whitelist.customer_id == customer_id).all()
-    #     return locations
+    def get_whitelisted_locations_for_supplier(self, supplier_id: str) -> List[str]:
+        return self.session.query(Whitelist.location_id).filter(Whitelist.supplier_id == supplier_id).all()
 
     # def get_whitelist_info_for_customer(self, customer_id: str): # -> List[WhiteListEntry]:
     #     receivers = self.session.query(Whitelist).filter(Whitelist.customer_id == customer_id).all()
@@ -69,6 +68,12 @@ class WhitelistService():
         apr: float,
         tenor_in_days: int
         ):
+        exists = self.session.query(Whitelist).filter(
+            Whitelist.supplier_id == supplier_id and Whitelist.purchaser_id == purchaser.id
+        ).first() is not None
+        if exists:
+            raise AssertionError("invoice already exists")
+
         new_whitelist_entry = Whitelist(
             supplier_id=supplier_id,
             purchaser_id=purchaser.id,
