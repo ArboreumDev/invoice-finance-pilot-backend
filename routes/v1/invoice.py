@@ -5,7 +5,6 @@ from starlette.status import (HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND,
                               HTTP_500_INTERNAL_SERVER_ERROR)
 
 from database.service import invoice_service
-from database.whitelist_service import whitelist_service
 from invoice.tusker_client import tusker_client
 from invoice.utils import db_invoice_to_frontend_info, raw_order_to_invoice
 from utils.common import (CamelModel, CreditLineInfo, Invoice,
@@ -116,8 +115,6 @@ def get_credit_lines(user_info: Tuple[str, str] = Depends(check_jwt_token_role))
     if role == "provider":
         return invoice_service.get_provider_summary(provider=username)
     return invoice_service.get_credit_line_info(customer_id=USER_DB.get(username).get("customer_id"))
-
-
 
 
 # deprecated

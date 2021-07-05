@@ -103,7 +103,7 @@ class TuskerClient:
             _input["pl"]["rcvr"]["id"] = location_id
         _input["pl"]["cust"]["id"] = customer_id if customer_id else self.customer_id
 
-        _input['pl']['consgt']['val_dcl'] = value
+        _input["pl"]["consgt"]["val_dcl"] = value
 
         response = requests.post(self.base_url + TUSKER_ORDER_URL, json=_input, headers=self.headers)
         if response.status_code == 200:

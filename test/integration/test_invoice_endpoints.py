@@ -76,8 +76,7 @@ def test_whitelist_success():
     # create order for customer that is whitelisted
     whitelisted_receiver = whitelist_service.get_whitelisted_receivers(GURUGRUPA_CUSTOMER_ID)[0]
     _, order_ref, _ = tusker_client.create_test_order(
-        customer_id=GURUGRUPA_CUSTOMER_ID, 
-        location_id=whitelisted_receiver.location_id
+        customer_id=GURUGRUPA_CUSTOMER_ID, location_id=whitelisted_receiver.location_id
     )
 
     # try querying order

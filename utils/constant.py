@@ -106,8 +106,8 @@ USER_DB = {
         # hash(tusker)
         "hashed_password": "$2b$12$8t8LDzm.Ag68n6kv8pZoI.Oqd1x1rczNfe8QUcZwp6wnX8.dse0Ni",
         "role": "provider",
-        "customer_id": ""
-    }
+        "customer_id": "",
+    },
 }
 
 
@@ -127,7 +127,7 @@ TEST_WHITELIST_DB = {
     },
 }
 
-WHITELIST_DB = PROD_WHITELIST_DB #if os.getenv("ENVIRONMENT") == "PRODUCTION" else TEST_WHITELIST_DB
+WHITELIST_DB = PROD_WHITELIST_DB  # if os.getenv("ENVIRONMENT") == "PRODUCTION" else TEST_WHITELIST_DB
 
 USERS = list(USER_DB.keys())
 
@@ -135,7 +135,7 @@ DISBURSAL_EMAIL = os.getenv("DISBURSAL_EMAIL")
 ARBOREUM_DISBURSAL_EMAIL = os.getenv("ARBOREUM_DISBURSAL_EMAIL")
 GP_CONFIRMATION_MAIL = "julius@arboreum.dev"
 MONTHLY_INTEREST = 0.0165
-DEFAULT_LOAN_TENOR = 90 # days
+DEFAULT_LOAN_TENOR = 90  # days
 
 TUSKER_API_URL = os.getenv("TUSKER_API_URL")
 
