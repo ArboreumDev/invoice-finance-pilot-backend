@@ -1,4 +1,4 @@
-import os
+from test.integration.conftest import get_auth_header
 from typing import Tuple
 
 import pytest
@@ -8,7 +8,6 @@ from starlette.testclient import TestClient
 
 from database.invoice_service import invoice_service
 from database.test.conftest import reset_db
-from test.integration.conftest import get_auth_header
 from database.test.fixtures import p1, p2
 from database.whitelist_service import whitelist_service
 from invoice.tusker_client import tusker_client
@@ -40,7 +39,6 @@ def whitelist_and_invoices():
     yield (inv_id1, order_ref1), (inv_id2, order_ref2), GURUGRUPA_CUSTOMER_ID, p1
 
     reset_db(deleteWhitelist=True)
-
 
 
 # TODO add jwt-token to all requests / modify client to have a valid header by default
