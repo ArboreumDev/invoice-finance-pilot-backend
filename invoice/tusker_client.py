@@ -93,7 +93,7 @@ class TuskerClient:
                 raise NotImplementedError(str(response.json()))
         return raw_orders
 
-    def create_test_order(self, customer_id: str = "", location_id: str = "", value: float = 2000):
+    def create_test_order(self, supplier_id: str = "", location_id: str = "", value: float = 2000):
         _input = copy.deepcopy(TUSKER_DEFAULT_NEW_ORDER)
 
         # plug in parameters if given
@@ -101,7 +101,7 @@ class TuskerClient:
             # so a user in tusker system has an location_id & and user_id.
             # in an order, the users location_id will be used in the receiver_id-field
             _input["pl"]["rcvr"]["id"] = location_id
-        _input["pl"]["cust"]["id"] = customer_id if customer_id else self.customer_id
+        _input["pl"]["cust"]["id"] = supplier_id if supplier_id else self.customer_id
 
         _input["pl"]["consgt"]["val_dcl"] = value
 

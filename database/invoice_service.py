@@ -198,18 +198,18 @@ class InvoiceService():
 
     # TODO turn this into a view using
     # https://stackoverflow.com/questions/9766940/how-to-create-an-sql-view-with-sqlalchemy
-    def get_credit_line_info(self, customer_id: str):
+    def get_credit_line_info(self, supplier_id: str):
         credit_line_breakdown = {}
-        for receiver in whitelist_service.get_whitelisted_receivers(customer_id):
-            credit_line_size  = receiver.creditline_size if receiver.creditline_size != 0 else 0
+        for w_entry in whitelist_service.get_whitelist(supplier_id):
+            credit_line_size  = w_entry.creditline_size if w_entry.creditline_size != 0 else 0
 
-            invoices = self.session.query(Invoice).filter(Invoice.receiver_id == receiver.receiver_id).all()
+            invoices = self.session.query(Invoice).filter(Invoice.purchaser_id == w_entry.purchaser_id).all()
             to_be_repaid = sum(i.value for i in invoices if i.finance_status == "FINANCED")
             requested = sum(i.value for i in invoices if i.finance_status in ["DISBURSAL_REQUESTED", "INITIAL"])
             n_of_invoices = len(invoices)
 
-            credit_line_breakdown[receiver] = CreditLineInfo(**{
-                "info": whitelist_entry_to_receiverInfo(receiver),
+            credit_line_breakdown[w_entry.purchaser_id] = CreditLineInfo(**{
+                "info": whitelist_entry_to_receiverInfo(w_entry),
                 "total": credit_line_size,
                 "available": credit_line_size - to_be_repaid - requested, #invoince.value for invoice in to_be_repaid)
                 "used":to_be_repaid,
@@ -218,9 +218,9 @@ class InvoiceService():
             })
         return credit_line_breakdown
 
-    def get_credit_line_summary(self, customer_id: str, customer_name: str):
-        summary = CreditLineInfo(info=ReceiverInfo(name=customer_name))
-        credit_line_breakdown = self.get_credit_line_info(customer_id)
+    def get_credit_line_summary(self, supplier_id: str, supplier_name: str):
+        summary = CreditLineInfo(info=PurchaserInfo(name=supplier_name))
+        credit_line_breakdown = self.get_credit_line_info(supplier_id)
         for c in credit_line_breakdown.values():
             summary.total += c.total
             summary.available += c.available
@@ -234,7 +234,7 @@ class InvoiceService():
         credit = {}
         for name, data in USER_DB.items():
             if name != provider:
-                credit[name] = invoice_service.get_credit_line_summary(customer_id=data["customer_id"], customer_name=name)
+                credit[name] = invoice_service.get_credit_line_summary(supplier_id=data["customer_id"], supplier_name=name)
         return credit
 
 

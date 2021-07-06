@@ -1,14 +1,15 @@
 from os import name
 from utils.common import PurchaserInfo, WhiteListEntry
 from typing import Dict, List
+from database.exceptions import UnknownPurchaserException, WhitelistException
 
 from database.db import session
 from database.models import Whitelist
 
 def whitelist_entry_to_receiverInfo(entry: Whitelist):
     return PurchaserInfo(
-        id=entry.receiver_id,
-        name=entry.receiver_name,
+        id=entry.purchaser_id,
+        name=entry.name,
         phone=entry.phone,
         city=entry.city,
         location_id=entry.location_id
@@ -27,11 +28,12 @@ class WhitelistService():
     #     return [whitelist_entry_to_receiverInfo(r) for r in receivers ]
 
 
-    # def get_whitelisted_purchaser_ids(self, supplier_id: str):
-    #     return self.session.query(Whitelist.purchaser_id).filter(Whitelist.supplier_id == supplier_id).all()
+    def get_whitelisted_purchaser_ids(self, supplier_id: str):
+        res_tuples = self.session.query(Whitelist.purchaser_id).filter_by(supplier_id = supplier_id).all()
+        return [x[0] for x in res_tuples]
 
-    # def get_whitelisted_receivers(self, supplier_id: str):
-    #     return self.session.query(Whitelist).filter(Whitelist.supplier_id == supplier_id).all()
+    def get_whitelist(self, supplier_id: str):
+        return self.session.query(Whitelist).filter(Whitelist.supplier_id == supplier_id).all()
 
     def purchaser_is_whitelisted(self, _supplier_id: str, _purchaser_id: str):
         exists = self.session.query(Whitelist).filter_by(
@@ -52,14 +54,14 @@ class WhitelistService():
     def get_whitelisted_purchaser_from_location_id(self, supplier_id: str, location_id: str):
         """ return a purchaser id if a given supplier has them whitelisted as customer """
         # note this is a two step query so we can get more informative error messages
-        whitelist_entry = self.session.query(Whitelist).filter(Whitelist.location_id == location_id).first()
+        whitelist_entry = self.session.query(Whitelist).filter_by(location_id = location_id).first()
         if not whitelist_entry:
-            raise AssertionError(f"Cant find purchaser for order-recipient with location_id {location_id}")
+            raise UnknownPurchaserException(f"Cant find purchaser for order-recipient with location_id {location_id}")
 
         if self.purchaser_is_whitelisted(supplier_id, whitelist_entry.purchaser_id):
             return whitelist_entry.purchaser_id
         else: 
-            raise AssertionError(f"Purchaser {whitelist_entry.name} not whitelisted for customer with id {whitelist_entry.customer_id}")
+            raise WhitelistException(f"Purchaser {whitelist_entry.name} not whitelisted for supplier with id {whitelist_entry.supplier_id}")
 
     # def get_whitelist_entry_for_location(self, customer_id: str, location_id: str):
     #     return self.session.query(Whitelist).filter(Whitelist.supplier_id == customer_id and Whitelist.location_id == location_id).first()
@@ -72,11 +74,10 @@ class WhitelistService():
         apr: float,
         tenor_in_days: int
         ):
-        exists = self.session.query(Whitelist).filter(
-            Whitelist.supplier_id == supplier_id and Whitelist.purchaser_id == purchaser.id
-        ).first() is not None
+        exists = self.session.query(Whitelist).filter_by(
+            supplier_id = supplier_id).filter_by(purchaser_id = purchaser.id).first() is not None
         if exists:
-            raise AssertionError("invoice already exists")
+            raise AssertionError("Whitelist entry already exists")
 
         new_whitelist_entry = Whitelist(
             supplier_id=supplier_id,

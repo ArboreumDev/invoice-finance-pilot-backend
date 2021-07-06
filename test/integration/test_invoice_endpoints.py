@@ -12,22 +12,39 @@ from invoice.tusker_client import tusker_client
 from main import app
 from utils.common import InvoiceFrontendInfo
 from utils.constant import GURUGRUPA_CUSTOMER_ID, LOC_ID4
+from database.test.fixtures import CUSTOMER_ID, OTHER_CUSTOMER_ID, p1, p2
 
 client = TestClient(app)
 
 
 @pytest.fixture(scope="function")
 def invoices():
-    reset_db()
-    whitelisted_receiver = whitelist_service.get_whitelisted_receivers(GURUGRUPA_CUSTOMER_ID)[0]
+    reset_db(deleteWhitelist=True)
+    whitelist_service.insert_whitelist_entry(
+        supplier_id=GURUGRUPA_CUSTOMER_ID,
+        purchaser=p1,
+        creditline_size=50000,
+        apr=0.1,
+        tenor_in_days=90
+    )
+    whitelist_service.insert_whitelist_entry(
+        supplier_id=GURUGRUPA_CUSTOMER_ID,
+        purchaser=p2,
+        creditline_size=50000,
+        apr=0.1,
+        tenor_in_days=90
+    )
+
     inv_id1, order_ref1, _ = tusker_client.create_test_order(
-        customer_id=GURUGRUPA_CUSTOMER_ID, location_id=whitelisted_receiver.location_id
+        supplier_id=GURUGRUPA_CUSTOMER_ID, location_id=p1.location_id
     )
     inv_id2, order_ref2, _ = tusker_client.create_test_order(
-        customer_id=GURUGRUPA_CUSTOMER_ID, location_id=whitelisted_receiver.location_id
+        supplier_id=GURUGRUPA_CUSTOMER_ID, location_id=p2.location_id
     )
+
     yield (inv_id1, order_ref1), (inv_id2, order_ref2)
-    reset_db()
+
+    reset_db(deleteWhitelist=True)
 
 
 def get_auth_header():
@@ -95,7 +112,10 @@ def test_add_new_invoice_success(invoices):
     assert len(invoice_service.get_all_invoices()) == 0
     # should add new invoice to db
     (_, order_ref1), _ = invoices
-    client.post(f"v1/invoice/{order_ref1}", headers=AUTH_HEADER)
+    res = client.post(f"v1/invoice/{order_ref1}", headers=AUTH_HEADER)
+    print(res)
+
+    assert res.status_code == HTTP_200_OK
     assert len(invoice_service.get_all_invoices()) == 1
 
 

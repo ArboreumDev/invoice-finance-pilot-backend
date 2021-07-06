@@ -1,3 +1,4 @@
+from database.exceptions import UnknownPurchaserException, WhitelistException
 from typing import Dict, List, Tuple
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -5,6 +6,7 @@ from starlette.status import (HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND,
                               HTTP_500_INTERNAL_SERVER_ERROR)
 
 from database.invoice_service import invoice_service
+from database.whitelist_service import whitelist_service
 from invoice.tusker_client import tusker_client
 from invoice.utils import db_invoice_to_frontend_info, raw_order_to_invoice
 from utils.common import (CamelModel, CreditLineInfo, Invoice,
@@ -34,8 +36,12 @@ def _get_order(order_reference_number: str, user_info: Tuple[str, str] = Depends
     # check against whitelist
     if raw_orders:
         raw_order = raw_orders[0]
-        if not invoice_service.is_whitelisted(raw_order, username):
-            raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Invalid order id: invalid receiver")
+        try:
+            invoice_service.insert_new_invoice_from_raw_order(raw_order)
+        except UnknownPurchaserException as e:
+            raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="invalid receiver")
+        except WhitelistException as e:
+            raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Receiver not whitelisted")
         return raw_order_to_invoice(raw_order)
     raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Unknown order id: Order not found")
 
