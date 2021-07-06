@@ -8,13 +8,12 @@ from starlette.testclient import TestClient
 
 from database.invoice_service import invoice_service
 from database.test.conftest import reset_db
+from database.test.fixtures import p1, p2
 from database.whitelist_service import whitelist_service
 from invoice.tusker_client import tusker_client
 from main import app
 from utils.common import InvoiceFrontendInfo, PurchaserInfo
 from utils.constant import GURUGRUPA_CUSTOMER_ID, LOC_ID4
-from database.test.fixtures import CUSTOMER_ID, OTHER_CUSTOMER_ID, p1, p2
-from database.test.conftest import whitelist_entry
 
 client = TestClient(app)
 
@@ -23,18 +22,10 @@ client = TestClient(app)
 def whitelist_and_invoices():
     reset_db(deleteWhitelist=True)
     whitelist_service.insert_whitelist_entry(
-        supplier_id=GURUGRUPA_CUSTOMER_ID,
-        purchaser=p1,
-        creditline_size=50000,
-        apr=0.1,
-        tenor_in_days=90
+        supplier_id=GURUGRUPA_CUSTOMER_ID, purchaser=p1, creditline_size=50000, apr=0.1, tenor_in_days=90
     )
     whitelist_service.insert_whitelist_entry(
-        supplier_id=GURUGRUPA_CUSTOMER_ID,
-        purchaser=p2,
-        creditline_size=50000,
-        apr=0.1,
-        tenor_in_days=90
+        supplier_id=GURUGRUPA_CUSTOMER_ID, purchaser=p2, creditline_size=50000, apr=0.1, tenor_in_days=90
     )
 
     inv_id1, order_ref1, _ = tusker_client.create_test_order(
@@ -84,10 +75,8 @@ def test_insert_existing_invoice_failure(whitelist_and_invoices):
     assert res.status_code == HTTP_400_BAD_REQUEST
 
 
-
-
 def test_get_order(whitelist_and_invoices):
-    _, (_, order_ref),_, _ = whitelist_and_invoices
+    _, (_, order_ref), _, _ = whitelist_and_invoices
     response = client.get(f"v1/order/{order_ref}", headers=AUTH_HEADER)
     order = InvoiceFrontendInfo(**response.json())
     assert order.shipping_status == "PLACED_AND_VALID"
@@ -103,11 +92,11 @@ def test_whitelist_failure(whitelist_and_invoices):
     # try querying order
     response = client.get(f"v1/order/{order_ref}", headers=AUTH_HEADER)
     assert response.status_code == 400
-    assert "whitelisted" in response.json()['detail']
+    assert "whitelisted" in response.json()["detail"]
 
 
 def test_whitelist_success(whitelist_and_invoices):
-    _, (inv_id, order_ref),supplier_id, purchaser = whitelist_and_invoices
+    _, (inv_id, order_ref), supplier_id, purchaser = whitelist_and_invoices
     response = client.get(f"v1/order/{order_ref}", headers=AUTH_HEADER)
     assert response.status_code == 200
 

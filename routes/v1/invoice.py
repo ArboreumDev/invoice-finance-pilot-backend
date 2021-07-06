@@ -1,16 +1,17 @@
-from database.exceptions import CreditLimitException, DuplicateInvoiceException, UnknownPurchaserException, WhitelistException
 from typing import Dict, List, Tuple
 
 from fastapi import APIRouter, Depends, HTTPException
 from starlette.status import (HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND,
                               HTTP_500_INTERNAL_SERVER_ERROR)
 
+from database.exceptions import (CreditLimitException,
+                                 DuplicateInvoiceException,
+                                 UnknownPurchaserException, WhitelistException)
 from database.invoice_service import invoice_service
 from database.whitelist_service import whitelist_service
 from invoice.tusker_client import tusker_client
 from invoice.utils import db_invoice_to_frontend_info, raw_order_to_invoice
-from utils.common import (CamelModel, CreditLineInfo, Invoice,
-                          InvoiceFrontendInfo)
+from utils.common import CamelModel, CreditLineInfo, InvoiceFrontendInfo
 from utils.constant import USER_DB
 from utils.security import check_jwt_token_role
 
@@ -36,11 +37,11 @@ def _get_order(order_reference_number: str, user_info: Tuple[str, str] = Depends
     # check against whitelist
     if raw_orders:
         raw_order = raw_orders[0]
-        supplier_id = raw_order.get('cust').get('id')
-        target_location_id = raw_order.get('rcvr').get('id')
+        supplier_id = raw_order.get("cust").get("id")
+        target_location_id = raw_order.get("rcvr").get("id")
         if not whitelist_service.location_is_whitelisted(supplier_id, target_location_id):
             raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Target not whitelisted for supplier")
-        else: 
+        else:
             return raw_order_to_invoice(raw_order)
     raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Unknown order id: Order not found")
 
@@ -91,20 +92,19 @@ def add_new_invoice(order_reference_number: str):
     try:
         invoice_service.check_credit_limit(raw_order)
         invoice_service.insert_new_invoice_from_raw_order(raw_order)
-        
+
     except CreditLimitException:
         raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Not enough credit")
     except DuplicateInvoiceException:
         raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Invoice already exists")
     except WhitelistException:
-            raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Reciever not whitelisted")
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Reciever not whitelisted")
     except UnknownPurchaserException:
-            raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Invalid recipient")
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Invalid recipient")
     except Exception as e:
         print(e)
         raise HTTPException(
-            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Unknown Failure, please inform us:" + str(e)
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Unknown Failure, please inform us:" + str(e)
         )
     #  notify disbursal manager about the request
     # TODO
