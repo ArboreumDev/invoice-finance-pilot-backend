@@ -1,4 +1,5 @@
 import pytest
+from typing import Tuple
 import copy
 from database.service import InvoiceService, invoice_to_terms
 from database.whitelist_service import WhitelistService
@@ -19,7 +20,7 @@ p1 = PurchaserInfo(id='aa8b8369-be51-49a3-8419-3d1eb8c4146c', name='Mahantesh Me
 p2 = PurchaserInfo(id='bda26d12-aee7-45e0-9686-1b173b839004', name='New Shri manjunath medical & General Store', phone='+91-9632885549', city='Haliyal', location_id='e611c64d-4dc4-4fce-b99c-93ea88b8951e')
 
 @pytest.fixture(scope="function")
-def whitelist_entry():
+def whitelist_entry() -> Tuple[PurchaserInfo, str]:
 	reset_db(deleteWhitelist=True)
 	whitelist_service.insert_whitelist_entry(
 		supplier_id=CUSTOMER_ID,
@@ -49,7 +50,7 @@ def test_insert_whitelist_entry():
 	
 
 
-def test_insert_duplicate_whitelist_entry_fails(whitelist_entry):
+def test_insert_duplicate_whitelist_entry_fails(whitelist_entry: Tuple[PurchaserInfo, str]):
     _p1, _customer_id = whitelist_entry
     with pytest.raises(AssertionError):
         whitelist_service.insert_whitelist_entry(
@@ -60,16 +61,10 @@ def test_insert_duplicate_whitelist_entry_fails(whitelist_entry):
             tenor_in_days=90
         )
 
-def test_whitelist_okay():
-    test_customer = USER_DB.get("gurugrupa").get('customer_id')
-    whitelisted_receiver = whitelist_service.get_whitelisted_receivers(test_customer)[0]
-
-    order = get_new_raw_order(
-        receiver_name=whitelisted_receiver.name,
-        receiver_location_id=whitelisted_receiver.location_id
-    )
-
-    assert invoice_service.is_whitelisted(order, username="gurugrupa")
+def test_whitelist_okay(whitelist_entry: Tuple[PurchaserInfo, str]):
+    _p1, _supplier_id = whitelist_entry
+    assert whitelist_service.purchaser_is_whitelisted(_supplier_id, _p1.id)
+    assert whitelist_service.location_is_whitelisted(_supplier_id, _p1.location_id)
 
 # def test_whitelist_failure():
 #     test_customer = USER_DB.get("gurugrupa").get('customer_id')
@@ -77,6 +72,19 @@ def test_whitelist_okay():
 #     order = copy.deepcopy(RAW_ORDER)
 #     unknown_order_receiver = "0xdeadbeef"
 #     order['rcvr']['id'] = unknown_order_receiver
+def test_whitelist_failure(whitelist_entry: Tuple[PurchaserInfo, str]):
+    _p1, _supplier_id = whitelist_entry
+
+    # verify with existing Purchaser/location
+    assert not whitelist_service.purchaser_is_whitelisted(_supplier_id, OTHER_PURCHASER_ID)
+    assert not whitelist_service.location_is_whitelisted(_supplier_id, OTHER_LOCATION_ID)
+
+    # # verify with non existing Supplier
+    assert not whitelist_service.purchaser_is_whitelisted(OTHER_CUSTOMER_ID, _p1.id)
+    assert not whitelist_service.location_is_whitelisted(OTHER_CUSTOMER_ID, _p1.location_id)
+
+
+
 
 #     assert unknown_order_receiver not in whitelist_service.get_whitelisted_purchaser_ids(test_customer)
 #     assert not invoice_service.is_whitelisted(order, username="gurugrupa")

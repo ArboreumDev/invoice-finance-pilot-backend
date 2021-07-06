@@ -54,12 +54,12 @@ def test_internal_insert_invoice(invoice1):
     reset_db()
 
 
-def test_insert_invoice_that_exists_fail():
+def test_insert_invoice_that_exists_fail(invoice1):
     with pytest.raises(AssertionError):
         invoice_service._insert_new_invoice_for_purchaser_x_supplier(
-            NEW_RAW_ORDER,
-            purchaser_id="testP",
-            supplier_id="testS"
+            raw_order = json.loads(invoice1.data),
+            purchaser_id=invoice1.purchaser_id,
+            supplier_id=invoice1.supplier_id
         )
 
 

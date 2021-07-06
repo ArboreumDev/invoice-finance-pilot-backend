@@ -33,15 +33,19 @@ class WhitelistService():
     # def get_whitelisted_receivers(self, supplier_id: str):
     #     return self.session.query(Whitelist).filter(Whitelist.supplier_id == supplier_id).all()
 
-    def purchaser_is_whitelisted(self, supplier_id: str, location_id: str):
-        exists = self.session.query(Whitelist).filter(
-            Whitelist.supplier_id == supplier_id and Whitelist.location_id == location_id
+    def purchaser_is_whitelisted(self, _supplier_id: str, _purchaser_id: str):
+        exists = self.session.query(Whitelist).filter_by(
+            supplier_id = _supplier_id
+        ).filter_by(
+            purchaser_id = _purchaser_id
         ).first()
         return bool(exists)
 
-    def location_is_whitelisted(self, supplier_id: str, purchaser_id: str):
-        exists = self.session.query(Whitelist).filter(
-            Whitelist.supplier_id == supplier_id and Whitelist.purchaser_id == purchaser_id
+    def location_is_whitelisted(self, _supplier_id: str, _location_id: str):
+        exists = self.session.query(Whitelist).filter_by(
+            supplier_id = _supplier_id
+        ).filter_by(
+            location_id = _location_id
         ).first()
         return bool(exists)
 
