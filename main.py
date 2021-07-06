@@ -3,6 +3,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 # from routes.v1.mapping import mapping_app
 from routes.v1.invoice import invoice_app
+from routes.v1.whitelist import whitelist_app
 from routes.v1.test import test_app
 from starlette.status import HTTP_401_UNAUTHORIZED
 from utils.common import JWTUser
@@ -18,6 +19,7 @@ app = FastAPI()
 # app.include_router(app_v1, prefix="/v1", dependencies=[Depends(check_jwt_token)])
 # app.include_router(mapping_app, prefix="/v1", dependencies=[])
 app.include_router(invoice_app, prefix="/v1", dependencies=[Depends(check_jwt_token_role)])
+app.include_router(whitelist_app, prefix="/v1", dependencies=[Depends(check_jwt_token_role)])
 # app.include_router(invoice_app, prefix="/v1", dependencies=[])
 app.include_router(test_app, prefix="/v1/test", dependencies=[])
 

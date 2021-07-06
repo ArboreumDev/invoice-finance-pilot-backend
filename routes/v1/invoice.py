@@ -120,27 +120,3 @@ def get_credit_lines(user_info: Tuple[str, str] = Depends(check_jwt_token_role))
     if role == "provider":
         return invoice_service.get_provider_summary(provider=username)
     return invoice_service.get_credit_line_info(customer_id=USER_DB.get(username).get("customer_id"))
-
-
-# deprecated
-# @invoice_app.post("/fund", tags=["invoice"])
-# def fund_invoice(input: BaseInvoice, str=Depends(check_jwt_token)):
-# ========== BASIC CHECKS ==================
-# # get invoiceInfo
-# if input.id not in invoices:
-#     raise HTTPException(HTTP_404_NOT_FOUND, "unknown invoice id")
-# invoice = invoices[input.id]
-# if invoice.status != FinanceStatus.NONE:
-#     raise HTTPException(HTTP_400_BAD_REQUEST, "Invoice not ready to be financed")
-# # TODO verify that invoice has been uploaded
-
-# # ========== change status of invoice in DB ==================
-# invoice.status = FinanceStatus.FINANCED
-# return {"status": "Request has been sent"}
-
-
-# OPEN ?
-# /repayment endoint
-#  - ??? get banking info reference id to put on repayment?
-# filterLogic:
-# takes invoices and filters them (for starters, just return all of them)

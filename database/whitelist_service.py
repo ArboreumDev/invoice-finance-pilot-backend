@@ -1,7 +1,7 @@
 from os import name
 from utils.common import PurchaserInfo, WhiteListEntry
 from typing import Dict, List
-from database.exceptions import UnknownPurchaserException, WhitelistException
+from database.exceptions import (DuplicateWhitelistEntryException, UnknownPurchaserException, WhitelistException)
 
 from database.db import session
 from database.models import Whitelist
@@ -80,7 +80,7 @@ class WhitelistService():
         exists = self.session.query(Whitelist).filter_by(
             supplier_id = supplier_id).filter_by(purchaser_id = purchaser.id).first() is not None
         if exists:
-            raise AssertionError("Whitelist entry already exists")
+            raise DuplicateWhitelistEntryException("Whitelist entry already exists")
 
         new_whitelist_entry = Whitelist(
             supplier_id=supplier_id,
