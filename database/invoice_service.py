@@ -28,14 +28,11 @@ class InvoiceService():
         self.session = session
 
     def insert_new_invoice_from_raw_order(self, raw_order: Dict):
-        # identify purchaser by location
-        whitelist_service.get_purchaser_from_location_id(location_id),
-
         # verify the customer of the order has the purchaser whitelisted
         supplier_id=raw_order.get('cust').get('id')
         location_id = raw_order.get('rcvr').get('id')
         purchaser_id = whitelist_service.get_whitelisted_purchaser_from_location_id(supplier_id, location_id)
-        return self._insert_new_invoice_for_purchaser(raw_order, purchaser_id, supplier_id)
+        return self._insert_new_invoice_for_purchaser_x_supplier(raw_order, purchaser_id, supplier_id)
 
     def _insert_new_invoice_for_purchaser_x_supplier(self, raw_order: Dict, purchaser_id: str, supplier_id: str):
         exists = self.session.query(Invoice.id).filter_by(id=raw_order.get('id')).first() is not None

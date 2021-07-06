@@ -68,3 +68,8 @@ whitelist_service = WhitelistService()
 #     assert sum(c.requested for c in customer.values())== summary['gurugrupa'].requested
 #     assert sum(c.available for c in customer.values())== summary['gurugrupa'].available
 #     assert sum(c.invoices for c in customer.values())== summary['gurugrupa'].invoices
+
+@pytest.mark.skip()
+def test_insert_new_invoice_exceeds_credit_line_failure():
+    pass
+

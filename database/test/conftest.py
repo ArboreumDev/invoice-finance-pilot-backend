@@ -6,7 +6,10 @@ from database.test.fixtures import RAW_ORDER, NEW_RAW_ORDER, get_new_raw_order
 from invoice.tusker_client import tusker_client
 from utils.constant import GURUGRUPA_CUSTOMER_ID
 from database.whitelist_service import whitelist_service
-
+from typing import Tuple
+import copy
+from database.whitelist_service import WhitelistService
+from utils.common import PurchaserInfo
 
 invoice_service = InvoiceService()
 
@@ -45,6 +48,21 @@ def invoices():
 
     reset_db()
 
+CUSTOMER_ID = "0001e776-c372-4ec5-8fa4-f30ab74ca631"
+p1 = PurchaserInfo(id='aa8b8369-be51-49a3-8419-3d1eb8c4146c', name='Mahantesh Medical', phone='+91-9449642927', city='Kundagol', location_id='e0f2c12d-9371-4863-a39a-0037cd6c711b')
+@pytest.fixture(scope="function")
+def whitelist_entry() -> Tuple[PurchaserInfo, str]:
+	reset_db(deleteWhitelist=True)
+	whitelist_service.insert_whitelist_entry(
+		supplier_id=CUSTOMER_ID,
+		purchaser=p1,
+		creditline_size=50000,
+		apr=0.1,
+		tenor_in_days=90
+	)
 
+	yield p1, CUSTOMER_ID
+
+	reset_db(deleteWhitelist=True)
 
 
