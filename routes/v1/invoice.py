@@ -1,4 +1,4 @@
-from database.exceptions import CreditLimitException, UnknownPurchaserException, WhitelistException
+from database.exceptions import CreditLimitException, DuplicateInvoiceException, UnknownPurchaserException, WhitelistException
 from typing import Dict, List, Tuple
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -36,22 +36,21 @@ def _get_order(order_reference_number: str, user_info: Tuple[str, str] = Depends
     # check against whitelist
     if raw_orders:
         raw_order = raw_orders[0]
-        try:
-            invoice_service.insert_new_invoice_from_raw_order(raw_order)
-        except UnknownPurchaserException as e:
-            raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="invalid receiver")
-        except WhitelistException as e:
-            raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Receiver not whitelisted")
-        return raw_order_to_invoice(raw_order)
+        supplier_id = raw_order.get('cust').get('id')
+        target_location_id = raw_order.get('rcvr').get('id')
+        if not whitelist_service.location_is_whitelisted(supplier_id, target_location_id):
+            raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Target not whitelisted for supplier")
+        else: 
+            return raw_order_to_invoice(raw_order)
     raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Unknown order id: Order not found")
 
 
-@invoice_app.get("/order", response_model=List[Invoice], tags=["orders"])
-def _get_orders(input: OrderRequest):
-    """ read raw order data from tusker for multiple orders"""
-    # TODO implement caching layer to not hit Tusker API  too often
-    raw_orders = tusker_client.track_orders(input.order_ids)
-    return [raw_order_to_invoice(order) for order in raw_orders]
+# @invoice_app.get("/order", response_model=List[Invoice], tags=["orders"])
+# def _get_orders(input: OrderRequest):
+#     """ read raw order data from tusker for multiple orders"""
+#     # TODO implement caching layer to not hit Tusker API  too often
+#     raw_orders = tusker_client.track_orders(input.order_ids)
+#     return [raw_order_to_invoice(order) for order in raw_orders]
 
 
 # @invoice_app.get("/invoice", response_model=List[InvoiceFrontendInfo], tags=["invoice"])
@@ -95,6 +94,8 @@ def add_new_invoice(order_reference_number: str):
         
     except CreditLimitException:
         raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Not enough credit")
+    except DuplicateInvoiceException:
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Invoice already exists")
     except WhitelistException:
             raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Reciever not whitelisted")
     except UnknownPurchaserException:

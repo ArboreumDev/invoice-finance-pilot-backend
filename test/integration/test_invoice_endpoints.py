@@ -1,4 +1,5 @@
 import os
+from typing import Tuple
 
 import pytest
 from starlette.status import (HTTP_200_OK, HTTP_400_BAD_REQUEST,
@@ -10,9 +11,10 @@ from database.test.conftest import reset_db
 from database.whitelist_service import whitelist_service
 from invoice.tusker_client import tusker_client
 from main import app
-from utils.common import InvoiceFrontendInfo
+from utils.common import InvoiceFrontendInfo, PurchaserInfo
 from utils.constant import GURUGRUPA_CUSTOMER_ID, LOC_ID4
 from database.test.fixtures import CUSTOMER_ID, OTHER_CUSTOMER_ID, p1, p2
+from database.test.conftest import whitelist_entry
 
 client = TestClient(app)
 
@@ -42,7 +44,7 @@ def whitelist_and_invoices():
         supplier_id=GURUGRUPA_CUSTOMER_ID, location_id=p2.location_id
     )
 
-    yield (inv_id1, order_ref1), (inv_id2, order_ref2)
+    yield (inv_id1, order_ref1), (inv_id2, order_ref2), GURUGRUPA_CUSTOMER_ID, p1
 
     reset_db(deleteWhitelist=True)
 
@@ -69,35 +71,43 @@ def test_invalid_credential():
 
 
 # TODO all negative endpoint results
-@pytest.mark.skip()
-def test_insert_existing_invoice_failure():
-    pass
+def test_insert_existing_invoice_failure(whitelist_and_invoices):
+    assert len(invoice_service.get_all_invoices()) == 0
+    # should add new invoice to db
+    _, order_ref1 = whitelist_and_invoices[0]
+    res = client.post(f"v1/invoice/{order_ref1}", headers=AUTH_HEADER)
+
+    assert res.status_code == HTTP_200_OK
+    assert len(invoice_service.get_all_invoices()) == 1
+
+    res = client.post(f"v1/invoice/{order_ref1}", headers=AUTH_HEADER)
+    assert res.status_code == HTTP_400_BAD_REQUEST
 
 
-def test_get_order(invoices):
-    response = client.get(f"v1/order/{invoices[0][1]}", headers=AUTH_HEADER)
+
+
+def test_get_order(whitelist_and_invoices):
+    _, (_, order_ref),_, _ = whitelist_and_invoices
+    response = client.get(f"v1/order/{order_ref}", headers=AUTH_HEADER)
     order = InvoiceFrontendInfo(**response.json())
     assert order.shipping_status == "PLACED_AND_VALID"
 
 
-def test_whitelist_failure():
+def test_whitelist_failure(whitelist_and_invoices):
     # create order for customer that is not whitelisted
-    _, order_ref, _ = tusker_client.create_test_order(customer_id=GURUGRUPA_CUSTOMER_ID, location_id=LOC_ID4)
+    _, _, supplier_id, purchaser = whitelist_and_invoices
+    assert LOC_ID4 != purchaser.id
+
+    _, order_ref, _ = tusker_client.create_test_order(supplier_id=supplier_id, location_id=LOC_ID4)
 
     # try querying order
     response = client.get(f"v1/order/{order_ref}", headers=AUTH_HEADER)
     assert response.status_code == 400
+    assert "whitelisted" in response.json()['detail']
 
 
-def test_whitelist_success():
-    # create order for customer that is whitelisted
-    whitelisted_receiver = whitelist_service.get_whitelisted_receivers(GURUGRUPA_CUSTOMER_ID)[0]
-    _, order_ref, _ = tusker_client.create_test_order(
-        customer_id=GURUGRUPA_CUSTOMER_ID, location_id=whitelisted_receiver.location_id
-    )
-
-    # try querying order
-    # order_ref = 10637833
+def test_whitelist_success(whitelist_and_invoices):
+    _, (inv_id, order_ref),supplier_id, purchaser = whitelist_and_invoices
     response = client.get(f"v1/order/{order_ref}", headers=AUTH_HEADER)
     assert response.status_code == 200
 
@@ -142,7 +152,7 @@ def test_add_new_invoice_failures(invoices):
 
 def test_get_invoices_from_db(whitelist_and_invoices):
     # add order to db
-    (inv_id1, order_ref1), _ = whitelist_and_invoices
+    inv_id1, order_ref1 = whitelist_and_invoices[0]
     client.post(f"v1/invoice/{order_ref1}", headers=AUTH_HEADER)
 
     res = client.get("v1/invoice/", headers=AUTH_HEADER)
@@ -177,12 +187,13 @@ def test_update_db(invoices):
     # TODO should trigger finance_status updates (send email) when shipment gets delivered
 
 
-def test_credit():
+@pytest.mark.xfail()
+def test_credit(whitelist_entry: Tuple[PurchaserInfo, str]):
+    purchaser, supplier_id = whitelist_entry
     response = client.get("v1/credit", headers=AUTH_HEADER)
 
     assert response.status_code == HTTP_200_OK
 
     credit_breakdown = response.json()
-    whitelist_ids = whitelist_service.get_whitelisted_locations_for_customer(GURUGRUPA_CUSTOMER_ID)
 
-    assert whitelist_ids[0] in credit_breakdown and whitelist_ids[1] in credit_breakdown
+    assert purchaser.id in credit_breakdown

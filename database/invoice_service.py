@@ -1,4 +1,4 @@
-from database.exceptions import CreditLimitException
+from database.exceptions import CreditLimitException, DuplicateInvoiceException
 from database.db import session
 import datetime as dt
 from database.models import Invoice
@@ -39,8 +39,7 @@ class InvoiceService():
         exists = self.session.query(Invoice.id).filter_by(id=raw_order.get('id')).first() is not None
         print('ex', exists)
         if exists:
-            # TODO graceful error handling
-            raise AssertionError("invoice already exists")
+            raise DuplicateInvoiceException("invoice already exists")
 
         new_invoice = Invoice(
             id=raw_order.get("id"),

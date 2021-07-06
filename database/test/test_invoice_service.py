@@ -4,6 +4,7 @@ import copy
 from database.invoice_service import InvoiceService, invoice_to_terms
 from database.whitelist_service import WhitelistService
 from database.models import Invoice
+from database.exceptions import DuplicateInvoiceException
 from database.test.fixtures import NEW_RAW_ORDER, RAW_ORDER, get_new_raw_order
 from database.db import metadata, engine, session
 from invoice.tusker_client import code_to_order_status, tusker_client
@@ -55,7 +56,7 @@ def test_internal_insert_invoice(invoice1):
 
 
 def test_insert_invoice_that_exists_fail(invoice1):
-    with pytest.raises(AssertionError):
+    with pytest.raises(DuplicateInvoiceException):
         invoice_service._insert_new_invoice_for_purchaser_x_supplier(
             raw_order = json.loads(invoice1.data),
             purchaser_id=invoice1.purchaser_id,
