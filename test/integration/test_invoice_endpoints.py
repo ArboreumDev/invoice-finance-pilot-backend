@@ -5,7 +5,7 @@ from starlette.status import (HTTP_200_OK, HTTP_400_BAD_REQUEST,
                               HTTP_404_NOT_FOUND)
 from starlette.testclient import TestClient
 
-from database.service import invoice_service
+from database.invoice_service import invoice_service
 from database.test.conftest import reset_db
 from database.whitelist_service import whitelist_service
 from invoice.tusker_client import tusker_client

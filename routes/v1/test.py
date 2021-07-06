@@ -3,7 +3,7 @@ from typing import Tuple
 from fastapi import APIRouter, Depends, HTTPException
 from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
 
-from database.service import invoice_service
+from database.invoice_service import invoice_service
 from invoice.tusker_client import tusker_client
 from utils.constant import USER_DB
 from utils.security import check_jwt_token_role

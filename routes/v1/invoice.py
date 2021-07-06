@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from starlette.status import (HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND,
                               HTTP_500_INTERNAL_SERVER_ERROR)
 
-from database.service import invoice_service
+from database.invoice_service import invoice_service
 from invoice.tusker_client import tusker_client
 from invoice.utils import db_invoice_to_frontend_info, raw_order_to_invoice
 from utils.common import (CamelModel, CreditLineInfo, Invoice,

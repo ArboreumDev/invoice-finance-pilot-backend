@@ -38,7 +38,8 @@ class InvoiceService():
         return self._insert_new_invoice_for_purchaser(raw_order, purchaser_id, supplier_id)
 
     def _insert_new_invoice_for_purchaser_x_supplier(self, raw_order: Dict, purchaser_id: str, supplier_id: str):
-        exists = self.session.query(Invoice.id).filter(Invoice.id==raw_order.get('id')).first() is not None
+        exists = self.session.query(Invoice.id).filter_by(id=raw_order.get('id')).first() is not None
+        print('ex', exists)
         if exists:
             # TODO graceful error handling
             raise AssertionError("invoice already exists")

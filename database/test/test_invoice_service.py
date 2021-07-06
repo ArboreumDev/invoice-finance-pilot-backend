@@ -1,7 +1,7 @@
 # %%
 import pytest
 import copy
-from database.service import InvoiceService, invoice_to_terms
+from database.invoice_service import InvoiceService, invoice_to_terms
 from database.whitelist_service import WhitelistService
 from database.models import Invoice
 from database.test.fixtures import NEW_RAW_ORDER, RAW_ORDER, get_new_raw_order

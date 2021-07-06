@@ -1,5 +1,5 @@
 import pytest
-from database.service import InvoiceService
+from database.invoice_service import InvoiceService
 from database.db import engine
 from database.models import Invoice, Base
 from database.test.fixtures import RAW_ORDER, NEW_RAW_ORDER, get_new_raw_order

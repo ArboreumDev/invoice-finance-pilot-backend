@@ -1,7 +1,7 @@
 import pytest
 from typing import Tuple
 import copy
-from database.service import InvoiceService, invoice_to_terms
+from database.invoice_service import InvoiceService, invoice_to_terms
 from database.whitelist_service import WhitelistService
 from utils.common import PurchaserInfo
 from database.test.conftest import reset_db
