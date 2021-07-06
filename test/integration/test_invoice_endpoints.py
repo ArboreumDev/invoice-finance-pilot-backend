@@ -18,7 +18,7 @@ client = TestClient(app)
 
 
 @pytest.fixture(scope="function")
-def invoices():
+def whitelist_and_invoices():
     reset_db(deleteWhitelist=True)
     whitelist_service.insert_whitelist_entry(
         supplier_id=GURUGRUPA_CUSTOMER_ID,
@@ -108,10 +108,10 @@ def test_get_order_invalid_order_id():
     assert "order id" in response.json()["detail"]
 
 
-def test_add_new_invoice_success(invoices):
+def test_add_new_invoice_success(whitelist_and_invoices):
     assert len(invoice_service.get_all_invoices()) == 0
     # should add new invoice to db
-    (_, order_ref1), _ = invoices
+    _, order_ref1 = whitelist_and_invoices[0]
     res = client.post(f"v1/invoice/{order_ref1}", headers=AUTH_HEADER)
     print(res)
 
@@ -140,9 +140,9 @@ def test_add_new_invoice_failures(invoices):
     assert res.status_code == HTTP_404_NOT_FOUND and "order id" in res.json()["detail"]
 
 
-def test_get_invoices_from_db(invoices):
+def test_get_invoices_from_db(whitelist_and_invoices):
     # add order to db
-    (inv_id1, order_ref1), _ = invoices
+    (inv_id1, order_ref1), _ = whitelist_and_invoices
     client.post(f"v1/invoice/{order_ref1}", headers=AUTH_HEADER)
 
     res = client.get("v1/invoice/", headers=AUTH_HEADER)

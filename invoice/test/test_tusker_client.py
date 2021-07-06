@@ -24,7 +24,7 @@ def test_create_test_order():
     test_id = "test_customer_id"
     # tusker_client.create_test_order(customer_id=test_id)
     inv_id, order_ref, shipment_status = tusker_client.create_test_order(
-        customer_id=GURUGRUPA_CUSTOMER_ID, location_id=LOC_ID1
+        supplier_id=GURUGRUPA_CUSTOMER_ID, location_id=LOC_ID1
     )
 
     raw_order = tusker_client.track_orders(reference_numbers=[order_ref], customer_id=test_id)[0]

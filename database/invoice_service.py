@@ -1,3 +1,4 @@
+from database.exceptions import CreditLimitException
 from database.db import session
 import datetime as dt
 from database.models import Invoice
@@ -169,32 +170,20 @@ class InvoiceService():
             raise AssertionError(f"Could not send email: {str(e)}") # TODO add custom exception
 
 
-    def is_whitelisted(self, raw_order: Dict, username: str):
-        receiver_id = raw_order.get('rcvr', {}).get('id', "") #  location_id of a purchaser
-        customer_id = USER_DB[username].get('customer_id')
-        whitelisted = whitelist_service.get_whitelisted_receivers(customer_id)
-        # target_ids = [x.purchaser_id for x in whitelisted] + [x.location_id for x in whitelisted]
-        target_ids = [x.location_id for x in whitelisted]
-        return receiver_id in target_ids
+    def check_credit_limit(self, raw_order):
+        target_location_id=raw_order.get('rcvr').get('id')
+        supplier_id=raw_order.get('cust').get('id')
+        purchaser_id = whitelist_service.get_whitelisted_purchaser_from_location_id(supplier_id, target_location_id)
 
-    def final_checks(self, raw_order):
-        receiver_id=raw_order.get('rcvr').get('id')
-        customer_id=raw_order.get('cust').get('id')
         value=raw_order_to_price(raw_order)
-        credit = self.get_credit_line_info(customer_id)
+        credit = self.get_credit_line_info(supplier_id)
 
-        # verify customer / recipient is whitelisted
-        if receiver_id not in credit:
-            print(credit.keys(), receiver_id)
-            print('receiverfail')
-            return False, "receiver not in whitelist"
+        if credit[purchaser_id].available < value:
+            raise CreditLimitException(
+                f"Not enough Credit available {credit[purchaser_id].available} to fund invoice of value {value}"
+            )
 
-        # verify doesnt cross credit limit
-        if credit[receiver_id].available < value:
-            print('credit fail')
-            return False, "Not enough credit"
-
-        return True, "Ok"
+        return True
 
     # TODO turn this into a view using
     # https://stackoverflow.com/questions/9766940/how-to-create-an-sql-view-with-sqlalchemy

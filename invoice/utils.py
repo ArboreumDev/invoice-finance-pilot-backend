@@ -52,7 +52,7 @@ def db_invoice_to_frontend_info(inv: Invoice):
         status=inv.finance_status,
         shipping_status=inv.shipment_status,
         receiver_info=PurchaserInfo(
-            id=inv.receiver_id,
+            id=inv.purchaser_id,
             name=data.get("rcvr", {}).get("cntct", {}).get("name", "not found"),
             city=data.get("rcvr", {}).get("addr", {}).get("city", "not found"),
             phone=data.get("rcvr", {}).get("cntct", {}).get("p_mob", "not found"),

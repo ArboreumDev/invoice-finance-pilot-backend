@@ -1,4 +1,4 @@
-from database.exceptions import UnknownPurchaserException, WhitelistException
+from database.exceptions import CreditLimitException, UnknownPurchaserException, WhitelistException
 from typing import Dict, List, Tuple
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -89,24 +89,22 @@ def add_new_invoice(order_reference_number: str):
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Unknown order id")
     raw_order = orders[0]
 
-    result, msg = invoice_service.final_checks(raw_order)
-    if not result:
-        if "credit" in msg:
-            raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Not enough credit")
-        elif "whitelist" in msg:
-            raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Invalid recipient")
-        elif "status" in msg:
-            raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Invalid order status")
-        else:
-            raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Unknown Failure, please inform us")
-
-    #  create a new entry in DB for the order with status INITIAL
     try:
-        invoice_service.insert_new_invoice(raw_order)
-        return {"status": "success"}
+        invoice_service.check_credit_limit(raw_order)
+        invoice_service.insert_new_invoice_from_raw_order(raw_order)
+        
+    except CreditLimitException:
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Not enough credit")
+    except WhitelistException:
+            raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Reciever not whitelisted")
+    except UnknownPurchaserException:
+            raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Invalid recipient")
     except Exception as e:
-        raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
-
+        print(e)
+        raise HTTPException(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Unknown Failure, please inform us:" + str(e)
+        )
     #  notify disbursal manager about the request
     # TODO
 

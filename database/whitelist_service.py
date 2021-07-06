@@ -27,6 +27,9 @@ class WhitelistService():
     #     receivers = self.session.query(Whitelist).filter(Whitelist.customer_id == customer_id).all()
     #     return [whitelist_entry_to_receiverInfo(r) for r in receivers ]
 
+    def location_to_purchaser_id(self, _location_id):
+        return self.session.query(Whitelist.purchaser_id).filter(location_id=_location_id).first()
+
 
     def get_whitelisted_purchaser_ids(self, supplier_id: str):
         res_tuples = self.session.query(Whitelist.purchaser_id).filter_by(supplier_id = supplier_id).all()

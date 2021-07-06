@@ -13,3 +13,7 @@ class UnknownPurchaserException(BaseException):
     pass
 
 
+class CreditLimitException(BaseException):
+    pass
+
+
