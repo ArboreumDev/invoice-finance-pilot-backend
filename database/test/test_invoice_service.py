@@ -90,10 +90,8 @@ def test_delete_invoice(invoice1):
     # reset_db()
 
 
-# @pytest.mark.skip()
 def test_get_all_invoices(invoices):
     [invoice1, invoice2] = invoices
-    print(invoices)
 
     _invoices = invoice_service.get_all_invoices()
 
