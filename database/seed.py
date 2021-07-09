@@ -9,9 +9,8 @@ import os
 from database.test.conftest import reset_db
 
 load_dotenv()
-
+reset_db(deleteWhitelist=True)
 GURUGRUPA_CUSTOMER_ID = os.getenv("GURUGRUPA_CUSTOMER_ID")
-
 GURUGRUPA_RECEIVERS = [
  PurchaserInfo(id='dd06ff1a-d9f2-4b2a-8182-d9d2e9522d8e', name='SHri verabhadreshwar medical store', phone='+91-9448186108', city='Laxmeshwar', location_id='030a0c98-d7e2-473c-afba-bed41feb2960'),
  PurchaserInfo(id='b7116c9a-583c-4d94-b4d3-57f177d3b2a9', name='Shri sai Medical Dhanguda Hospital', phone='+91-8971309257', city='Saundatti', location_id='0defef39-5123-45c2-90cf-0ddc5845cdaf'),
@@ -47,18 +46,6 @@ GURUGRUPA_RECEIVERS = [
  PurchaserInfo(id='d9abccd6-e4c7-445c-bc18-5db251c2865b', name='Sanjeevini medicals', phone='+91-9448139277', city='Haveri', location_id='f5824c53-c43b-4035-85df-9d8bdc7bd077')
 ]
 
-reset_db(deleteWhitelist=True)
-
-# insert whitelist seeds
-for purchaser in GURUGRUPA_RECEIVERS:
-	whitelist_service.insert_whitelist_entry(
-		supplier_id=GURUGRUPA_CUSTOMER_ID,
-		purchaser=purchaser,
-		creditline_size=MAX_CREDIT,
-		apr=MONTHLY_INTEREST,
-		tenor_in_days=DEFAULT_LOAN_TENOR
-	)
-
 # insert tusker as initial user
 tusker_user = User(
 	email = "tusker@mail.india",
@@ -66,25 +53,46 @@ tusker_user = User(
 	hashed_password = "$2b$12$8t8LDzm.Ag68n6kv8pZoI.Oqd1x1rczNfe8QUcZwp6wnX8.dse0Ni", # pw=tusker
 	role = "tusker",
 )
+whitelist_service.session.add(tusker_user)
 
 # insert gurugrupa and test customer into Supplier DB
-GURUGRUPA_CUSTOMER_ID = os.getenv("GURUGRUPA_CUSTOMER_ID")
 gurugrupa = Supplier(
 	supplier_id=GURUGRUPA_CUSTOMER_ID,
 	name='Gurugrupa',
-	creditline_size=MAX_CREDIT * len(GURUGRUPA_RECEIVERS),
+	creditline_size=MAX_CREDIT * (len(GURUGRUPA_RECEIVERS) + 3),
 	default_apr=MONTHLY_INTEREST,
 	default_tenor_in_days=DEFAULT_LOAN_TENOR
 )
+whitelist_service.session.add(gurugrupa)
+
 test_supplier = Supplier(
 	supplier_id=OTHER_CUSTOMER_ID,
 	name='TEST Supplier',
-	creditline_size=30000 * len(GURUGRUPA_RECEIVERS),
+	creditline_size=30000 * 5,
 	default_apr=0.1,
 	default_tenor_in_days=180
 )
+whitelist_service.session.add(test_supplier)
+whitelist_service.session.commit()
 
-# whitelist_service.session.add(tusker_user)
-# whitelist_service.session.add(gurugrupa)
-# whitelist_service.session.add(test_supplier)
-# whitelist_service.session.commit()
+
+# insert whitelist seeds
+for purchaser in GURUGRUPA_RECEIVERS:
+	whitelist_service.insert_whitelist_entry(
+		supplier_id=GURUGRUPA_CUSTOMER_ID,
+		purchaser=purchaser,
+		creditline_size=MAX_CREDIT,
+		apr=gurugrupa.default_apr,
+		tenor_in_days=gurugrupa.default_tenor_in_days
+	)
+
+for purchaser in GURUGRUPA_RECEIVERS[-2:]:
+    	whitelist_service.insert_whitelist_entry(
+		supplier_id=test_supplier.supplier_id,
+		purchaser=purchaser,
+		creditline_size=30000,
+		apr=test_supplier.default_apr,
+		tenor_in_days=test_supplier.default_tenor_in_days
+	)
+
+

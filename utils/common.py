@@ -47,6 +47,11 @@ class PurchaserInfo(CamelModel):
     location_id: str = ""
     terms: Terms = Terms()
 
+class SupplierInfo(CamelModel):
+    id: str = ""
+    name: str = ""
+    default_terms: Terms = Terms()
+ 
 
 class Invoice(BaseInvoice):
     order_id: str
@@ -69,6 +74,7 @@ class PaymentDetails(CamelModel):
 
 
 class InvoiceFrontendInfo(BaseInvoice):
+    supplier_id: str
     invoice_id: str
     order_id: str
     value: float = 1
@@ -122,6 +128,7 @@ class WhiteListEntry(BaseModel):
 
 class CreditLineInfo(BaseModel):
     info: PurchaserInfo
+    supplier_id: str
     available: float = 0
     used: float = 0
     total: float = 0

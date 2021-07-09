@@ -47,6 +47,7 @@ def db_invoice_to_frontend_info(inv: Invoice):
     payment_details = json.loads(inv.payment_details)
     return InvoiceFrontendInfo(
         invoice_id=inv.id,
+        supplier_id=inv.supplier_id,
         order_id=inv.order_ref,
         value=inv.value,
         status=inv.finance_status,

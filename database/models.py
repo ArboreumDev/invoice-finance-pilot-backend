@@ -51,7 +51,7 @@ class User(Base): #TUSKER
     """ used to look up usernames and their passwords and their associated customer id """
     __tablename__ = "user"
     user_id = Column(Integer, primary_key=True, autoincrement=True)
-    email = Column(String(50), primary_key=True)
+    email = Column(String(50), primary_key=True, unique=True)
     username = Column(String(50), nullable=False)
     hashed_password = Column(String(64), nullable=False)
     role = Column(String(50), nullable=False)

@@ -9,6 +9,7 @@ from database.exceptions import (CreditLimitException,
                                  UnknownPurchaserException, WhitelistException)
 from database.invoice_service import invoice_service
 from database.whitelist_service import whitelist_service
+from database.models import Supplier
 from invoice.tusker_client import tusker_client
 from invoice.utils import db_invoice_to_frontend_info, raw_order_to_invoice
 from utils.common import CamelModel, CreditLineInfo, InvoiceFrontendInfo
@@ -82,7 +83,7 @@ def _update_invoice_db():
 
 
 @invoice_app.post("/invoice/{order_reference_number}", response_model=Dict, tags=["invoice"])
-def add_new_invoice(order_reference_number: str):
+def _add_new_invoice(order_reference_number: str):
     # get raw order
     orders = tusker_client.track_orders([order_reference_number])
     if not orders:
@@ -113,10 +114,13 @@ def add_new_invoice(order_reference_number: str):
     # invoice_service.update_invoice_shipment_status(order_id, "AWAITING_DELIVERY")
 
 
-@invoice_app.get("/credit", response_model=Dict[str, CreditLineInfo])
-def get_credit_lines(user_info: Tuple[str, str] = Depends(check_jwt_token_role)):
-    username, role = user_info
-    print(f"{username} with role {role} wants to know their credit line info")
-    if role == "provider":
-        return invoice_service.get_provider_summary(provider=username)
-    return invoice_service.get_credit_line_info(supplier_id=USER_DB.get(username).get("customer_id"))
+@invoice_app.get("/credit", response_model=Dict[str, Dict[str, CreditLineInfo]])
+def _get_creditSummary(user_info: Tuple[str, str] = Depends(check_jwt_token_role)):
+    res = {
+    "tusker": invoice_service.get_provider_summary(provider='tusker')
+    }
+    suppliers = whitelist_service.session.query(Supplier).all()
+    for s in suppliers:
+        res[s.supplier_id] = invoice_service.get_credit_line_info(supplier_id=s.supplier_id)
+    print('res', res)
+    return res

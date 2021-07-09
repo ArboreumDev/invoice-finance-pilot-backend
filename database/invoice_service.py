@@ -197,6 +197,7 @@ class InvoiceService():
             n_of_invoices = len(invoices)
 
             credit_line_breakdown[w_entry.purchaser_id] = CreditLineInfo(**{
+                "supplier_id": supplier_id,
                 "info": whitelist_entry_to_receiverInfo(w_entry),
                 "total": credit_line_size,
                 "available": credit_line_size - to_be_repaid - requested, #invoince.value for invoice in to_be_repaid)
@@ -207,7 +208,7 @@ class InvoiceService():
         return credit_line_breakdown
 
     def get_credit_line_summary(self, supplier_id: str, supplier_name: str):
-        summary = CreditLineInfo(info=PurchaserInfo(name=supplier_name))
+        summary = CreditLineInfo(info=PurchaserInfo(name=supplier_name), supplier_id="tusker")
         credit_line_breakdown = self.get_credit_line_info(supplier_id)
         for c in credit_line_breakdown.values():
             summary.total += c.total

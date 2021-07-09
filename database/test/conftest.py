@@ -15,7 +15,9 @@ invoice_service = InvoiceService()
 
 
 def reset_db(deleteWhitelist = False):
+    # invoice_service.session.connection().execute("delete from user")
     invoice_service.session.connection().execute("delete from invoice")
+    invoice_service.session.connection().execute("delete from supplier")
     if deleteWhitelist:
         invoice_service.session.connection().execute("delete from whitelist")
     invoice_service.session.commit()
