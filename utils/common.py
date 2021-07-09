@@ -32,6 +32,7 @@ class CamelModel(BaseModel):
 class BaseInvoice(CamelModel):
     invoice_id: str = ""
 
+
 class Terms(CamelModel):
     apr: float = 0.1
     tenor_in_days: int = 90

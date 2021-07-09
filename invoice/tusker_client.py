@@ -141,18 +141,22 @@ class TuskerClient:
         users = data.get("pl").get("users")
         # TODO if #results > 10  or pages > 1 return error
         if len(users) > 10:
-            return {"results": [], 'status': "too many matches"}
+            return {"results": [], "status": "too many matches"}
         found = []
         for user in users:
             city = user.get("loc").get("addr").get("city")
             phone = user.get("cntct").get("p_mob")
             loc_id = user.get("loc").get("id")
             rr = PurchaserInfo(
-                id=user.get("id"), name=user.get("cntct").get("name"), phone=phone, city=city, location_id=loc_id,
+                id=user.get("id"),
+                name=user.get("cntct").get("name"),
+                phone=phone,
+                city=city,
+                location_id=loc_id,
             )
             found.append(rr)
 
-        return {"results": found, 'status': "OK"}
+        return {"results": found, "status": "OK"}
 
 
 # %%
