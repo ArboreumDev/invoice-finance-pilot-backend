@@ -6,6 +6,7 @@ from database.whitelist_service import WhitelistService
 from utils.common import PurchaserInfo
 from database.test.conftest import reset_db
 from database.test.fixtures import CUSTOMER_ID, p1, OTHER_CUSTOMER_ID, OTHER_PURCHASER_ID, OTHER_LOCATION_ID
+from database.exceptions import DuplicateWhitelistEntryException
 
 whitelist_service = WhitelistService()
 
@@ -33,7 +34,7 @@ def test_optional_parameter_entry():
 
 def test_insert_duplicate_whitelist_entry_fails(whitelist_entry: Tuple[PurchaserInfo, str]):
     _p1, _customer_id = whitelist_entry
-    with pytest.raises(AssertionError):
+    with pytest.raises(DuplicateWhitelistEntryException):
         whitelist_service.insert_whitelist_entry(
             supplier_id=_customer_id,
             purchaser=_p1,
