@@ -32,6 +32,11 @@ class CamelModel(BaseModel):
 class BaseInvoice(CamelModel):
     invoice_id: str = ""
 
+class Terms(CamelModel):
+    apr: float = 0.1
+    tenor_in_days: int = 90
+    creditline_size: int = 0
+
 
 class PurchaserInfo(CamelModel):
     id: str = ""
@@ -39,6 +44,7 @@ class PurchaserInfo(CamelModel):
     phone: str = ""
     city: str = ""
     location_id: str = ""
+    terms: Terms = Terms()
 
 
 class Invoice(BaseInvoice):

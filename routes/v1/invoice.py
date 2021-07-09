@@ -119,4 +119,4 @@ def get_credit_lines(user_info: Tuple[str, str] = Depends(check_jwt_token_role))
     print(f"{username} with role {role} wants to know their credit line info")
     if role == "provider":
         return invoice_service.get_provider_summary(provider=username)
-    return invoice_service.get_credit_line_info(customer_id=USER_DB.get(username).get("customer_id"))
+    return invoice_service.get_credit_line_info(supplier_id=USER_DB.get(username).get("customer_id"))

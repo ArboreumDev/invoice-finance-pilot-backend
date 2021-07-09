@@ -24,6 +24,10 @@ def test_insert_whitelist_entry():
 
 	whitelisted = whitelist_service.get_whitelisted_locations_for_supplier(CUSTOMER_ID)
 	assert len(whitelisted) == 1
+
+@pytest.mark.skip()
+def test_optional_parameter_entry():
+    pass
 	
 
 
@@ -43,12 +47,6 @@ def test_whitelist_okay(whitelist_entry: Tuple[PurchaserInfo, str]):
     assert whitelist_service.purchaser_is_whitelisted(_supplier_id, _p1.id)
     assert whitelist_service.location_is_whitelisted(_supplier_id, _p1.location_id)
 
-# def test_whitelist_failure():
-#     test_customer = USER_DB.get("gurugrupa").get('customer_id')
-#     #set order receiver to something not in whitelist
-#     order = copy.deepcopy(RAW_ORDER)
-#     unknown_order_receiver = "0xdeadbeef"
-#     order['rcvr']['id'] = unknown_order_receiver
 def test_whitelist_failure(whitelist_entry: Tuple[PurchaserInfo, str]):
     _p1, _supplier_id = whitelist_entry
 

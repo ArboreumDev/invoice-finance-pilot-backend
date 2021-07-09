@@ -57,7 +57,6 @@ def check_jwt_token_role(token: str = Depends(oauth_schema)):
         username = jwt_payload.get("sub")
         expiration = jwt_payload.get("exp")
         role = jwt_payload.get("role")
-        print("r", role)
         if time.time() < expiration:
             if username in USERS:
                 return username, role

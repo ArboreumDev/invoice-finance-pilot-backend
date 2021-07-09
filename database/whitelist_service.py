@@ -1,10 +1,10 @@
 from os import name
-from utils.common import PurchaserInfo, WhiteListEntry
+from utils.common import PurchaserInfo, WhiteListEntry, Terms
 from typing import Dict, List
 from database.exceptions import (DuplicateWhitelistEntryException, UnknownPurchaserException, WhitelistException)
 
 from database.db import session
-from database.models import Whitelist
+from database.models import Whitelist, Supplier
 
 def whitelist_entry_to_receiverInfo(entry: Whitelist):
     return PurchaserInfo(
@@ -12,11 +12,17 @@ def whitelist_entry_to_receiverInfo(entry: Whitelist):
         name=entry.name,
         phone=entry.phone,
         city=entry.city,
-        location_id=entry.location_id
+        location_id=entry.location_id,
+        terms=Terms(
+            apr=entry.apr,
+            tenor_in_days=entry.tenor_in_days,
+            creditline_size=entry.creditline_size
+        )
     )
 
 
 class WhitelistService():
+
     def __init__(self):
         self.session = session
     
@@ -37,6 +43,11 @@ class WhitelistService():
 
     def get_whitelist(self, supplier_id: str):
         return self.session.query(Whitelist).filter(Whitelist.supplier_id == supplier_id).all()
+
+    def get_whitelist_entry(self, supplier_id: str, purchaser_id: str):
+        return self.session.query(Whitelist).filter(Whitelist.supplier_id == supplier_id, Whitelist.purchaser_id == purchaser_id).first()
+
+
 
     def purchaser_is_whitelisted(self, _supplier_id: str, _purchaser_id: str):
         exists = self.session.query(Whitelist).filter_by(
@@ -82,6 +93,12 @@ class WhitelistService():
         if exists:
             raise DuplicateWhitelistEntryException("Whitelist entry already exists")
 
+        # get default args from supplier-table
+        supplier = self.session.query(Supplier).filter(Supplier.supplier_id == supplier_id).first()
+        _creditline_size = creditline_size if creditline_size else supplier.creditline_size
+        _apr = apr if apr else supplier.apr
+        _tenor_in_days = tenor_in_days if tenor_in_days else supplier.tenor_in_days
+
         new_whitelist_entry = Whitelist(
             supplier_id=supplier_id,
             purchaser_id=purchaser.id,
@@ -89,12 +106,37 @@ class WhitelistService():
             name=purchaser.name,
             phone=purchaser.phone,
             city=purchaser.city,
-            creditline_size=creditline_size,
-            apr=apr,
-            tenor_in_days=tenor_in_days
+            creditline_size=_creditline_size,
+            apr=_apr,
+            tenor_in_days=_tenor_in_days
         )
         self.session.add(new_whitelist_entry)
         self.session.commit()
         return new_whitelist_entry.purchaser_id
+
+
+    def update_whitelist_entry(
+        self,
+        supplier_id: str,
+        purchaser_id: str,
+        creditline_size: int,
+        apr: float,
+        tenor_in_days: int
+        ):
+        whitelist_entry = self.session.query(Whitelist).filter_by(
+            supplier_id = supplier_id).filter_by(purchaser_id = purchaser_id).first()
+        if not whitelist_entry:
+            raise WhitelistException("Whitelist entry doesnt exist")
+
+        if not apr == None:
+            whitelist_entry.apr = apr
+        if not creditline_size == None:
+            whitelist_entry.creditline_size = creditline_size
+        if not tenor_in_days == None:
+            whitelist_entry.tenor_in_days = tenor_in_days
+       
+        self.session.commit()
+
+
 
 whitelist_service = WhitelistService()

@@ -50,16 +50,21 @@ class Whitelist(Base):
 class User(Base): #TUSKER
     """ used to look up usernames and their passwords and their associated customer id """
     __tablename__ = "user"
-    # TODO user_id = Column(String(50), primary_key=True) autoincrement
+    user_id = Column(Integer, primary_key=True, autoincrement=True)
     email = Column(String(50), primary_key=True)
-    password = Column(String(50), nullable=False)
+    username = Column(String(50), nullable=False)
+    hashed_password = Column(String(64), nullable=False)
+    role = Column(String(50), nullable=False)
 
 
-class Suppliers(Base):
-    __tablename__ = "suppliers"
+class Supplier(Base):
+    __tablename__ = "supplier"
     supplier_id = Column(String(50), primary_key=True) # matches customer_id in tuskers system 
     name = Column(String(50), nullable=False)
     creditline_size = Column(Integer, nullable=False)
+    default_apr = Column(Float, nullable=True)
+    default_tenor_in_days=Column(Integer, nullable=True)
+
 
 
  
