@@ -43,6 +43,7 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     """ create a token with role set to whatever is in our database """
     jwt_user_dict = {"username": form_data.username, "password": form_data.password}
     jwt_user = JWTUser(**jwt_user_dict)
+    print('got', jwt_user)
 
     role = authenticate_user(jwt_user)
     if not role:

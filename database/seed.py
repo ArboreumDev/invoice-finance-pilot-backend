@@ -46,6 +46,7 @@ GURUGRUPA_RECEIVERS = [
  PurchaserInfo(id='d9abccd6-e4c7-445c-bc18-5db251c2865b', name='Sanjeevini medicals', phone='+91-9448139277', city='Haveri', location_id='f5824c53-c43b-4035-85df-9d8bdc7bd077')
 ]
 
+# get pw: "test_user": get_hashed_password("test_password"),
 # insert tusker as initial user
 tusker_user = User(
 	email = "tusker@mail.india",

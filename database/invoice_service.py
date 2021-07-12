@@ -7,7 +7,7 @@ from invoice.tusker_client import code_to_order_status, tusker_client
 from utils.email import EmailClient, terms_to_email_body
 import json
 from utils.common import LoanTerms, CreditLineInfo, PaymentDetails, PurchaserInfo
-from utils.constant import DISBURSAL_EMAIL, MAX_CREDIT, USER_DB, ARBOREUM_DISBURSAL_EMAIL
+from utils.constant import DISBURSAL_EMAIL, ARBOREUM_DISBURSAL_EMAIL
 from invoice.utils import raw_order_to_price
 import uuid
 from database.whitelist_service import  whitelist_service, whitelist_entry_to_receiverInfo
@@ -220,9 +220,8 @@ class InvoiceService():
     def get_provider_summary(self, provider: str):
         """ create a credit line summary for all customers whose role is user """
         credit = {}
-        for name, data in USER_DB.items():
-            if name != provider:
-                credit[name] = invoice_service.get_credit_line_summary(supplier_id=data["customer_id"], supplier_name=name)
+        for supplier in self.session.query(Supplier).all():
+            credit[supplier.name] = invoice_service.get_credit_line_summary(supplier_id=supplier.supplier_id, supplier_name=supplier.name)
         return credit
 
 

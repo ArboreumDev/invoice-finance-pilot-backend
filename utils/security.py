@@ -6,10 +6,12 @@ from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
 from starlette.status import HTTP_401_UNAUTHORIZED
+from database.models import User
 
 from utils.common import JWTUser
 from utils.constant import (JWT_ALGORITHM, JWT_EXPIRATION_TIME_MINUTES,
-                            JWT_SECRET_KEY, USER_DB, USERS)
+                            JWT_SECRET_KEY)
+from database.whitelist_service import whitelist_service
 
 oauth_schema = OAuth2PasswordBearer(tokenUrl="/token")
 pwd_context = CryptContext(schemes=["bcrypt"])
@@ -28,14 +30,14 @@ def verify_password(plain_password: str, hashed_password: str):
 
 
 # Authenticate username and password to give JWT token
-def authenticate_user(user: JWTUser):
+def authenticate_user(jwt_user: JWTUser):
     """
     checks whether user is in DB, the given password is correct
     returns role of the user
     """
-    if user.username in USERS:
-        if verify_password(plain_password=user.password, hashed_password=USER_DB[user.username]["hashed_password"]):
-            return USER_DB[user.username]["role"]
+    db_user = whitelist_service.session.query(User).filter(User.username == jwt_user.username).first()
+    if db_user and verify_password(plain_password=jwt_user.password, hashed_password=db_user.hashed_password):
+        return db_user.role
     # TODO throw different errors for unknown username / password (or maybe not?)
     return False
 
@@ -45,7 +47,6 @@ def create_jwt_token(user: JWTUser):
     expiration = datetime.utcnow() + timedelta(minutes=JWT_EXPIRATION_TIME_MINUTES)
     jwt_payload = {"sub": user.username, "exp": expiration, "role": user.role}
     jwt_token = jwt.encode(jwt_payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
-
     return jwt_token
 
 
@@ -58,7 +59,7 @@ def check_jwt_token_role(token: str = Depends(oauth_schema)):
         expiration = jwt_payload.get("exp")
         role = jwt_payload.get("role")
         if time.time() < expiration:
-            if username in USERS:
+            if whitelist_service.session.query(User).filter(User.username == username).first() is not None:
                 return username, role
                 # return final_checks(role, auth_level)
             else:

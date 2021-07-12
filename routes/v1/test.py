@@ -7,7 +7,6 @@ from database.exceptions import UnknownPurchaserException
 from database.invoice_service import invoice_service
 from database.whitelist_service import whitelist_service
 from invoice.tusker_client import tusker_client
-from utils.constant import USER_DB
 from utils.security import check_jwt_token_role
 
 # ===================== routes ==========================
@@ -55,6 +54,7 @@ def create_new_test_order(purchaser_id: str, value: float, user_info: Tuple[str,
     try:
         target_id = whitelist_service.purchaser_id_to_location(purchaser_id)
         res = tusker_client.create_test_order(
+            # TODO
             supplier_id=USER_DB.get(username).get("customer_id"), location_id=target_id, value=value
         )
         invoice_id, ref_no, _ = res
