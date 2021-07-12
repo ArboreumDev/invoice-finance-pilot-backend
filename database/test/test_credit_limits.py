@@ -1,4 +1,5 @@
 import pytest
+import math
 import copy
 from database.invoice_service import InvoiceService, invoice_to_terms
 from database.whitelist_service import WhitelistService
@@ -38,8 +39,8 @@ def test_credit_line_breakdown(whitelisted_invoices):
     # # verify consistency
     c = after[in1.purchaser_id]
     c2 = before[in1.purchaser_id]
-    assert c.available + c.used + c.requested== c.total
-    assert c2.available + c2.used + c2.requested == c2.total
+    assert math.isclose(c.available + c.used + c.requested, c.total)
+    assert math.isclose(c2.available + c2.used + c2.requested, c2.total)
 
     # do the same for the DISBURSAL_REQUESTED status => iniital & disbursed are currently both shwon as requested
     # in2 = invoices[1]

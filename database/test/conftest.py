@@ -25,6 +25,7 @@ def reset_db(deleteWhitelist = False):
 
 @pytest.fixture(scope="function")
 def invoice1():
+    """ will only insert into invoices table, there will be no connected entries"""
     reset_db()
     invoice_id = invoice_service._insert_new_invoice_for_purchaser_x_supplier(RAW_ORDER, "testP", "testS")
     invoice = invoice_service.session.query(Invoice).filter(Invoice.id==invoice_id).first()

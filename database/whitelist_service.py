@@ -22,20 +22,25 @@ def whitelist_entry_to_receiverInfo(entry: Whitelist):
 
 
 class WhitelistService():
-
     def __init__(self):
         self.session = session
     
     def get_whitelisted_locations_for_supplier(self, supplier_id: str) -> List[str]:
         return self.session.query(Whitelist.location_id).filter(Whitelist.supplier_id == supplier_id).all()
 
-    # def get_whitelist_info_for_customer(self, customer_id: str): # -> List[WhiteListEntry]:
-    #     receivers = self.session.query(Whitelist).filter(Whitelist.customer_id == customer_id).all()
-    #     return [whitelist_entry_to_receiverInfo(r) for r in receivers ]
-
     def location_to_purchaser_id(self, _location_id):
-        return self.session.query(Whitelist.purchaser_id).filter(location_id=_location_id).first()
+        p =  self.session.query(Whitelist.purchaser_id).filter_by(location_id=_location_id).first()
+        if p: 
+            return p[0]
+        else: 
+            raise UnknownPurchaserException("unknown location id")
 
+    def purchaser_id_to_location(self, _purchaser_id):
+        l =  self.session.query(Whitelist.location_id).filter_by(purchaser_id=_purchaser_id).first()
+        if l: 
+            return l[0]
+        else: 
+            raise UnknownPurchaserException("unkwown purchaser id")
 
     def get_whitelisted_purchaser_ids(self, supplier_id: str):
         res_tuples = self.session.query(Whitelist.purchaser_id).filter_by(supplier_id = supplier_id).all()
@@ -46,8 +51,6 @@ class WhitelistService():
 
     def get_whitelist_entry(self, supplier_id: str, purchaser_id: str):
         return self.session.query(Whitelist).filter(Whitelist.supplier_id == supplier_id, Whitelist.purchaser_id == purchaser_id).first()
-
-
 
     def purchaser_is_whitelisted(self, _supplier_id: str, _purchaser_id: str):
         exists = self.session.query(Whitelist).filter_by(
@@ -136,7 +139,6 @@ class WhitelistService():
             whitelist_entry.tenor_in_days = tenor_in_days
        
         self.session.commit()
-
 
 
 whitelist_service = WhitelistService()

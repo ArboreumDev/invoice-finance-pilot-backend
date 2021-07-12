@@ -1,4 +1,5 @@
 from test.integration.conftest import get_auth_header
+import os
 from typing import Tuple
 
 import pytest

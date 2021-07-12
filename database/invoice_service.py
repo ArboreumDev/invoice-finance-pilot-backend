@@ -1,7 +1,7 @@
 from database.exceptions import CreditLimitException, DuplicateInvoiceException
 from database.db import session
 import datetime as dt
-from database.models import Invoice
+from database.models import Invoice, User, Supplier
 from typing import Dict
 from invoice.tusker_client import code_to_order_status, tusker_client
 from utils.email import EmailClient, terms_to_email_body
@@ -37,7 +37,6 @@ class InvoiceService():
 
     def _insert_new_invoice_for_purchaser_x_supplier(self, raw_order: Dict, purchaser_id: str, supplier_id: str):
         exists = self.session.query(Invoice.id).filter_by(id=raw_order.get('id')).first() is not None
-        print('ex', exists)
         if exists:
             raise DuplicateInvoiceException("invoice already exists")
 
@@ -48,8 +47,7 @@ class InvoiceService():
             finance_status="INITIAL",
             purchaser_id=purchaser_id,
             value=raw_order_to_price(raw_order),
-            supplier_id=raw_order.get('cust').get('id'),
-            # TODO maybe use pickle here? how are booleans preserved?
+            supplier_id=supplier_id,
             data=json.dumps(raw_order),
             payment_details=json.dumps(PaymentDetails(
                 requestId=str(uuid.uuid4()),
@@ -155,7 +153,8 @@ class InvoiceService():
         start_date = dt.datetime.utcnow()
         terms = invoice_to_terms(invoice.id, invoice.order_ref, invoice.value, start_date)
         self.update_invoice_with_loan_terms(invoice, terms)
-        msg = terms_to_email_body(terms)
+        supplier = self.session.query(Supplier).filter(Supplier.supplier_id==invoice.supplier_id).first()
+        msg = terms_to_email_body(terms, supplier.name if supplier else "TODO")
 
         # ================= send email to Tusker with FundRequest
         try:

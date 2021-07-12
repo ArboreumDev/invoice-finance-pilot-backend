@@ -27,10 +27,10 @@ class EmailClient:
         self.server.sendmail(self.sender, targets, msg.as_string())
 
 
-def terms_to_email_body(terms: LoanTerms):
+def terms_to_email_body(terms: LoanTerms, supplier_name: str):
     msg = f"""
     Hello Tusker,\n
-    Gurugrupa has request to finance invoice {terms.invoice_id} from the
+    {supplier_name} has request to finance invoice {terms.invoice_id} from the
     order with reference number: {terms.order_id} \n
     to the following terms: \n
     {MONTHLY_INTEREST} percent monthly interest

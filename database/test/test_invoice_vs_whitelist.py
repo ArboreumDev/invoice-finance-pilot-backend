@@ -12,6 +12,7 @@ whitelist_service = WhitelistService()
 
 
 def test_insert_whitelisted_invoice_success(whitelist_entry: Tuple[PurchaserInfo, str]):
+    before = len(invoice_service.get_all_invoices())
     _p1, _supplier_id = whitelist_entry
     invoice_service.insert_new_invoice_from_raw_order(
         raw_order=get_new_raw_order(
@@ -20,6 +21,8 @@ def test_insert_whitelisted_invoice_success(whitelist_entry: Tuple[PurchaserInfo
             supplier_id=_supplier_id
         )
     )
+    after = len(invoice_service.get_all_invoices())
+    assert after == before + 1
 
 def test_insert_whitelisted_fail_unknown_purchaser(whitelist_entry: Tuple[PurchaserInfo, str]):
     _p1, _supplier_id = whitelist_entry

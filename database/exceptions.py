@@ -22,3 +22,4 @@ class DuplicateInvoiceException(BaseException):
 class DuplicateWhitelistEntryException(BaseException):
     pass
 
+
