@@ -1,8 +1,20 @@
 from datetime import datetime
 from sqlalchemy import (Column, DateTime, Float, ForeignKey, Integer, String,
                         Table, Text)
+from sqlalchemy.sql import func                    
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import  create_engine
+
+from sqlalchemy.sql import expression
+from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.types import DateTime
+
+class utcnow(expression.FunctionElement):
+    type = DateTime()
+
+@compiles(utcnow, 'postgresql')
+def pg_utcnow(element, compiler, **kw):
+    return "TIMEZONE('utc', CURRENT_TIMESTAMP)"
 
 
 Base = declarative_base()
@@ -18,7 +30,7 @@ class Invoice(Base):
     shipment_status = Column(String(50), nullable=True)
     finance_status = Column(String(50), nullable=True)
 
-    financed_on = Column(DateTime, nullable=True)
+    # delivered_on = Column(DateTime, nullable=True)
     apr = Column(Float, nullable=True)
     # repaid = Column(Float, nullable=True)
     tenor_in_days=Column(Integer, nullable=True)
@@ -30,8 +42,10 @@ class Invoice(Base):
 
     # delivery_date = Column(DateTime)
 
+    financed_on = Column(DateTime, nullable=True)
+    # these should be different: one should be only on the beginning, the other every time
+    updated_on = Column(DateTime, nullable=True, onupdate=func.utcnow())
     created_on = Column(DateTime, default=datetime.now())
-    # updated_on = Column(DateTime)
 
 class Whitelist(Base):
     """ keeps track of the receivers whose invoices can be financed for each customer """
