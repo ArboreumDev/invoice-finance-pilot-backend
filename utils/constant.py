@@ -3,8 +3,7 @@ import os
 
 from dotenv import load_dotenv
 
-from database.whitelist_mock_db import PROD_WHITELIST_DB
-from utils.common import PurchaserInfo, WhiteListEntry
+from utils.common import PurchaserInfo
 
 load_dotenv()
 

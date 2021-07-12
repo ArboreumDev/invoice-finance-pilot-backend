@@ -6,12 +6,12 @@ from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
 from starlette.status import HTTP_401_UNAUTHORIZED
-from database.models import User
 
+from database.models import User
+from database.whitelist_service import whitelist_service
 from utils.common import JWTUser
 from utils.constant import (JWT_ALGORITHM, JWT_EXPIRATION_TIME_MINUTES,
                             JWT_SECRET_KEY)
-from database.whitelist_service import whitelist_service
 
 oauth_schema = OAuth2PasswordBearer(tokenUrl="/token")
 pwd_context = CryptContext(schemes=["bcrypt"])
