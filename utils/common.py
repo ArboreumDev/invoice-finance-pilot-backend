@@ -73,7 +73,7 @@ class PaymentDetails(CamelModel):
     start_date: dt.datetime = None
 
 
-class InvoiceFrontendInfo(BaseInvoice):
+class InvoiceFrontendInfo(CamelModel):
     supplier_id: str
     invoice_id: str
     order_id: str
