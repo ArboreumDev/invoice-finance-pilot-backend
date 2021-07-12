@@ -1,13 +1,32 @@
 from utils.constant import RECEIVER_ID1, receiver1, receiver2
-from utils.common import ReceiverInfo
+from utils.common import PurchaserInfo
 import copy
 import uuid
 
-def get_new_raw_order(receiver: ReceiverInfo):
+
+CUSTOMER_ID = "0001e776-c372-4ec5-8fa4-f30ab74ca631"
+OTHER_CUSTOMER_ID = "3551e776-c372-4ec5-8fa4-f30ab74ca631"
+PURCHASER_ID = "5551e776-c372-4ec5-8fa4-f30ab74ca631"
+OTHER_PURCHASER_ID = "4551e776-c372-4ec5-8fa4-f30ab74ca631"
+LOCATION_ID = "1551e776-c372-4ec5-8fa4-f30ab74ca631"
+OTHER_LOCATION_ID = "0551e776-c372-4ec5-8fa4-f30ab74ca631"
+
+p1 = PurchaserInfo(id='aa8b8369-be51-49a3-8419-3d1eb8c4146c', name='Mahantesh Medical', phone='+91-9449642927', city='Kundagol', location_id='e0f2c12d-9371-4863-a39a-0037cd6c711b')
+p2 = PurchaserInfo(id='bda26d12-aee7-45e0-9686-1b173b839004', name='New Shri manjunath medical & General Store', phone='+91-9632885549', city='Haliyal', location_id='e611c64d-4dc4-4fce-b99c-93ea88b8951e')
+
+
+def get_new_raw_order(
+    purchaser_name: str,
+    purchaser_location_id: str,
+    supplier_id: str = ""
+    ):
+    """ create a new order as it would be returned by the tusker create order api"""
     order = copy.deepcopy(RAW_ORDER)
-    order['rcvr']['id'] = receiver.location_id
-    order['rcvr']['name'] = receiver.name
+    order['rcvr']['id'] = purchaser_location_id
+    order['rcvr']['cntct']['name'] = purchaser_name
     order['id'] = str(uuid.uuid4())
+    if supplier_id:
+        order['cust']['id'] = supplier_id
     return order
 
 RAW_ORDER = {

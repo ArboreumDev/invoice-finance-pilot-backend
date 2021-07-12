@@ -1,9 +1,11 @@
+from database.exceptions import UnknownPurchaserException
 from typing import Tuple
 
 from fastapi import APIRouter, Depends, HTTPException
-from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
+from starlette.status import HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR
 
-from database.service import invoice_service
+from database.invoice_service import invoice_service
+from database.whitelist_service import whitelist_service
 from invoice.tusker_client import tusker_client
 from utils.constant import USER_DB
 from utils.security import check_jwt_token_role
@@ -47,14 +49,18 @@ def mark_as_delivered(invoiceId: str):
         raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, str(e))
 
 
-@test_app.post("/new/order/{receiverId}/{value}")
-def create_new_test_order(receiverId: str, value: float, user_info: Tuple[str, str] = Depends(check_jwt_token_role)):
+@test_app.post("/new/order/{purchaser_id}/{value}")
+def create_new_test_order(purchaser_id: str, value: float, user_info: Tuple[str, str] = Depends(check_jwt_token_role)):
     username, _ = user_info
     try:
+        target_id = whitelist_service.purchaser_id_to_location(purchaser_id)
         res = tusker_client.create_test_order(
-            customer_id=USER_DB.get(username).get("customer_id"), receiver_id=receiverId, value=value
+            supplier_id=USER_DB.get(username).get("customer_id"), location_id=target_id, value=value
         )
         invoice_id, ref_no, _ = res
         return {"status": "OK", "invoiceId": invoice_id, "orderRef": ref_no}
+    except UnknownPurchaserException:
+        raise HTTPException(HTTP_404_NOT_FOUND, f"couldnt find location id for purchaser id {purchaser_id}")
     except Exception as e:
+        print(e)
         raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, str(e))

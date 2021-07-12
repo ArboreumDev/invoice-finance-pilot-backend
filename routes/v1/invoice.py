@@ -4,11 +4,14 @@ from fastapi import APIRouter, Depends, HTTPException
 from starlette.status import (HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND,
                               HTTP_500_INTERNAL_SERVER_ERROR)
 
-from database.service import invoice_service
+from database.exceptions import (CreditLimitException,
+                                 DuplicateInvoiceException,
+                                 UnknownPurchaserException, WhitelistException)
+from database.invoice_service import invoice_service
+from database.whitelist_service import whitelist_service
 from invoice.tusker_client import tusker_client
 from invoice.utils import db_invoice_to_frontend_info, raw_order_to_invoice
-from utils.common import (CamelModel, CreditLineInfo, Invoice,
-                          InvoiceFrontendInfo)
+from utils.common import CamelModel, CreditLineInfo, InvoiceFrontendInfo
 from utils.constant import USER_DB
 from utils.security import check_jwt_token_role
 
@@ -34,18 +37,21 @@ def _get_order(order_reference_number: str, user_info: Tuple[str, str] = Depends
     # check against whitelist
     if raw_orders:
         raw_order = raw_orders[0]
-        if not invoice_service.is_whitelisted(raw_order, username):
-            raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Invalid order id: invalid receiver")
-        return raw_order_to_invoice(raw_order)
+        supplier_id = raw_order.get("cust").get("id")
+        target_location_id = raw_order.get("rcvr").get("id")
+        if not whitelist_service.location_is_whitelisted(supplier_id, target_location_id):
+            raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Target not whitelisted for supplier")
+        else:
+            return raw_order_to_invoice(raw_order)
     raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Unknown order id: Order not found")
 
 
-@invoice_app.get("/order", response_model=List[Invoice], tags=["orders"])
-def _get_orders(input: OrderRequest):
-    """ read raw order data from tusker for multiple orders"""
-    # TODO implement caching layer to not hit Tusker API  too often
-    raw_orders = tusker_client.track_orders(input.order_ids)
-    return [raw_order_to_invoice(order) for order in raw_orders]
+# @invoice_app.get("/order", response_model=List[Invoice], tags=["orders"])
+# def _get_orders(input: OrderRequest):
+#     """ read raw order data from tusker for multiple orders"""
+#     # TODO implement caching layer to not hit Tusker API  too often
+#     raw_orders = tusker_client.track_orders(input.order_ids)
+#     return [raw_order_to_invoice(order) for order in raw_orders]
 
 
 # @invoice_app.get("/invoice", response_model=List[InvoiceFrontendInfo], tags=["invoice"])
@@ -83,24 +89,23 @@ def add_new_invoice(order_reference_number: str):
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Unknown order id")
     raw_order = orders[0]
 
-    result, msg = invoice_service.final_checks(raw_order)
-    if not result:
-        if "credit" in msg:
-            raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Not enough credit")
-        elif "whitelist" in msg:
-            raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Invalid recipient")
-        elif "status" in msg:
-            raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Invalid order status")
-        else:
-            raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Unknown Failure, please inform us")
-
-    #  create a new entry in DB for the order with status INITIAL
     try:
-        invoice_service.insert_new_invoice(raw_order)
-        return {"status": "success"}
-    except Exception as e:
-        raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        invoice_service.check_credit_limit(raw_order)
+        invoice_service.insert_new_invoice_from_raw_order(raw_order)
 
+    except CreditLimitException:
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Not enough credit")
+    except DuplicateInvoiceException:
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Invoice already exists")
+    except WhitelistException:
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Reciever not whitelisted")
+    except UnknownPurchaserException:
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Invalid recipient")
+    except Exception as e:
+        print(e)
+        raise HTTPException(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Unknown Failure, please inform us:" + str(e)
+        )
     #  notify disbursal manager about the request
     # TODO
 
@@ -114,30 +119,4 @@ def get_credit_lines(user_info: Tuple[str, str] = Depends(check_jwt_token_role))
     print(f"{username} with role {role} wants to know their credit line info")
     if role == "provider":
         return invoice_service.get_provider_summary(provider=username)
-    return invoice_service.get_credit_line_info(customer_id=USER_DB.get(username).get("customer_id"))
-
-
-
-
-# deprecated
-# @invoice_app.post("/fund", tags=["invoice"])
-# def fund_invoice(input: BaseInvoice, str=Depends(check_jwt_token)):
-# ========== BASIC CHECKS ==================
-# # get invoiceInfo
-# if input.id not in invoices:
-#     raise HTTPException(HTTP_404_NOT_FOUND, "unknown invoice id")
-# invoice = invoices[input.id]
-# if invoice.status != FinanceStatus.NONE:
-#     raise HTTPException(HTTP_400_BAD_REQUEST, "Invoice not ready to be financed")
-# # TODO verify that invoice has been uploaded
-
-# # ========== change status of invoice in DB ==================
-# invoice.status = FinanceStatus.FINANCED
-# return {"status": "Request has been sent"}
-
-
-# OPEN ?
-# /repayment endoint
-#  - ??? get banking info reference id to put on repayment?
-# filterLogic:
-# takes invoices and filters them (for starters, just return all of them)
+    return invoice_service.get_credit_line_info(supplier_id=USER_DB.get(username).get("customer_id"))
