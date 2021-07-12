@@ -27,7 +27,7 @@ def raw_order_to_invoice(raw_order: Dict):
     return InvoiceFrontendInfo(
         **{
             "invoice_id": raw_order.get("id"),
-            "supplier_id": raw_order.get("cust").get('id'),
+            "supplier_id": raw_order.get("cust").get("id"),
             "order_id": raw_order.get("ref_no"),
             "value": raw_order_to_price(raw_order),
             "status": "NONE",

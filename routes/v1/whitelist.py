@@ -1,11 +1,11 @@
-from typing import Dict, Optional, Tuple, List
+from typing import Dict, List, Optional, Tuple
 
 from fastapi import APIRouter, Body, Depends, HTTPException
-from pydantic import BaseModel
 from starlette.status import HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND
-from database.models import Supplier
 
-from database.exceptions import DuplicateWhitelistEntryException, WhitelistException
+from database.exceptions import (DuplicateWhitelistEntryException,
+                                 WhitelistException)
+from database.models import Supplier
 from database.whitelist_service import whitelist_service
 from invoice.tusker_client import tusker_client
 from utils.common import CamelModel, PurchaserInfo, SupplierInfo
@@ -82,13 +82,13 @@ def _search_purchaser(searchString: str, user_info: Tuple[str, str] = Depends(ch
 @whitelist_app.get("/supplier", response_model=List[SupplierInfo])
 def _get_suppliers(user_info: Tuple[str, str] = Depends(check_jwt_token_role)):
     suppliers = whitelist_service.session.query(Supplier).all()
-    return [SupplierInfo(**{
-            'name': s.name, 
-            'id': s.supplier_id,
-            "default_terms": {
-                "apr": s.default_apr,
-                "tenor_in_days": s.default_tenor_in_days,
-                "creditline_size": 0
-                }
-        }).dict() for s in suppliers]
-
+    return [
+        SupplierInfo(
+            **{
+                "name": s.name,
+                "id": s.supplier_id,
+                "default_terms": {"apr": s.default_apr, "tenor_in_days": s.default_tenor_in_days, "creditline_size": 0},
+            }
+        ).dict()
+        for s in suppliers
+    ]

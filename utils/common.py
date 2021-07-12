@@ -47,11 +47,12 @@ class PurchaserInfo(CamelModel):
     location_id: str = ""
     terms: Terms = Terms()
 
+
 class SupplierInfo(CamelModel):
     id: str = ""
     name: str = ""
     default_terms: Terms = Terms()
- 
+
 
 class Invoice(BaseInvoice):
     order_id: str

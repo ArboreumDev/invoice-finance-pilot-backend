@@ -8,12 +8,11 @@ from database.exceptions import (CreditLimitException,
                                  DuplicateInvoiceException,
                                  UnknownPurchaserException, WhitelistException)
 from database.invoice_service import invoice_service
-from database.whitelist_service import whitelist_service
 from database.models import Supplier
+from database.whitelist_service import whitelist_service
 from invoice.tusker_client import tusker_client
 from invoice.utils import db_invoice_to_frontend_info, raw_order_to_invoice
 from utils.common import CamelModel, CreditLineInfo, InvoiceFrontendInfo
-from utils.constant import USER_DB
 from utils.security import check_jwt_token_role
 
 # ===================== routes ==========================
@@ -116,11 +115,9 @@ def _add_new_invoice(order_reference_number: str):
 
 @invoice_app.get("/credit", response_model=Dict[str, Dict[str, CreditLineInfo]])
 def _get_creditSummary(user_info: Tuple[str, str] = Depends(check_jwt_token_role)):
-    res = {
-    "tusker": invoice_service.get_provider_summary(provider='tusker')
-    }
+    res = {"tusker": invoice_service.get_provider_summary(provider="tusker")}
     suppliers = whitelist_service.session.query(Supplier).all()
     for s in suppliers:
         res[s.supplier_id] = invoice_service.get_credit_line_info(supplier_id=s.supplier_id)
-    print('res', res)
+    print("res", res)
     return res
