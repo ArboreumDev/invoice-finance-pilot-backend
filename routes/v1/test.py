@@ -48,14 +48,14 @@ def mark_as_delivered(invoiceId: str):
         raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, str(e))
 
 
-@test_app.post("/new/order/{purchaser_id}/{value}")
-def create_new_test_order(purchaser_id: str, value: float, user_info: Tuple[str, str] = Depends(check_jwt_token_role)):
+@test_app.post("/new/order/{supplier_id}/{purchaser_id}/{value}")
+def create_new_test_order(supplier_id: str, purchaser_id: str, value: float, user_info: Tuple[str, str] = Depends(check_jwt_token_role)):
     username, _ = user_info
     try:
         target_id = whitelist_service.purchaser_id_to_location(purchaser_id)
         res = tusker_client.create_test_order(
             # TODO
-            supplier_id=USER_DB.get(username).get("customer_id"), location_id=target_id, value=value
+            supplier_id=supplier_id, location_id=target_id, value=value
         )
         invoice_id, ref_no, _ = res
         return {"status": "OK", "invoiceId": invoice_id, "orderRef": ref_no}

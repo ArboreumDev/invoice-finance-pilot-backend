@@ -119,5 +119,4 @@ def _get_creditSummary(user_info: Tuple[str, str] = Depends(check_jwt_token_role
     suppliers = whitelist_service.session.query(Supplier).all()
     for s in suppliers:
         res[s.supplier_id] = invoice_service.get_credit_line_info(supplier_id=s.supplier_id)
-    print("res", res)
     return res
