@@ -3,8 +3,7 @@ import os
 
 from dotenv import load_dotenv
 
-from database.whitelist_mock_db import PROD_WHITELIST_DB
-from utils.common import PurchaserInfo, WhiteListEntry
+from utils.common import PurchaserInfo
 
 load_dotenv()
 
@@ -77,59 +76,6 @@ receiver1 = PurchaserInfo(id=RECEIVER_ID1, location_id=LOC_ID1, name="A B C Kira
 receiver2 = PurchaserInfo(id=RECEIVER_ID2, location_id=LOC_ID2, name="Dharwad Surgical")
 receiver3 = PurchaserInfo(id=RECEIVER_ID3, location_id=LOC_ID3, name="Other amde up store")
 receiver4 = PurchaserInfo(id=RECEIVER_ID4, location_id=LOC_ID4, name="new jeewan medicale")
-
-# DUMMY DB
-# constructed by doing:
-# "test_user": get_hashed_password("test_password"),
-# "rc": get_hashed_password("test_rc"),
-# "admin": get_hashed_password("admin_password")
-# TODO use actual DB
-USER_DB = {
-    "gurugrupa": {
-        # "hashed_password": "$2b$12$p3W5at39PORCphT4T5Kbx.TDvGNchgQ2mee8AdEDOcvZ8ZfafG0ZK",
-        "hashed_password": "$2b$12$oxnGYBLZ2x73IaDHjd4ccuFayzCDoVfJHRqZQnjwM01Du8V8DNDS.",
-        "role": "user",
-        "customer_id": GURUGRUPA_CUSTOMER_ID,
-    },
-    # "admin": {
-    #     "hashed_password": "$2b$12$EkTEXspTZJGjidCV4W3D5.YyUPU1UhC9JDAjxCHRl5a8POttPEcEq",
-    #     "role": "admin",
-    #     "customer_id": OTHER_CUSTOMER_ID,
-    # },
-    # hashed pw is "test"
-    "test": {
-        "hashed_password": "$2b$12$PhkBvaqPTISDzfsQAiWjQeExcRtSwRCIP5wW2HkmcwtOM0pk7nDXK",
-        "role": "test",
-        "customer_id": OTHER_CUSTOMER_ID,
-    },
-    "tusker": {
-        # hash(tusker)
-        "hashed_password": "$2b$12$8t8LDzm.Ag68n6kv8pZoI.Oqd1x1rczNfe8QUcZwp6wnX8.dse0Ni",
-        "role": "provider",
-        "customer_id": "",
-    },
-}
-
-
-# dummy db to be replaced
-TEST_WHITELIST_DB = {
-    GURUGRUPA_CUSTOMER_ID: {
-        LOC_ID1: WhiteListEntry(receiver_info=receiver1, credit_line_size=50000),
-        LOC_ID2: WhiteListEntry(receiver_info=receiver2, credit_line_size=50000),
-    },
-    OTHER_CUSTOMER_ID: {
-        LOC_ID3: WhiteListEntry(receiver_info=receiver3, credit_line_size=50000),
-        LOC_ID4: WhiteListEntry(receiver_info=receiver4, credit_line_size=50000),
-    },
-    ANOTHER_CUSTOMER_ID: {
-        LOC_ID3: WhiteListEntry(receiver_info=receiver3, credit_line_size=50000),
-        LOC_ID4: WhiteListEntry(receiver_info=receiver4, credit_line_size=50000),
-    },
-}
-
-WHITELIST_DB = PROD_WHITELIST_DB  # if os.getenv("ENVIRONMENT") == "PRODUCTION" else TEST_WHITELIST_DB
-
-USERS = list(USER_DB.keys())
 
 DISBURSAL_EMAIL = os.getenv("DISBURSAL_EMAIL")
 ARBOREUM_DISBURSAL_EMAIL = os.getenv("ARBOREUM_DISBURSAL_EMAIL")

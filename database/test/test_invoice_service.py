@@ -1,5 +1,6 @@
 # %%
 import pytest
+import time
 import copy
 from database.invoice_service import InvoiceService, invoice_to_terms
 from database.whitelist_service import WhitelistService
@@ -10,7 +11,7 @@ from database.db import metadata, engine, session
 from invoice.tusker_client import code_to_order_status, tusker_client
 import contextlib
 import json
-from utils.constant import MAX_CREDIT, USER_DB, RECEIVER_ID1, GURUGRUPA_CUSTOMER_ID
+from utils.constant import MAX_CREDIT, RECEIVER_ID1, GURUGRUPA_CUSTOMER_ID
 from database.test.conftest import reset_db
 import datetime as dt
 
@@ -104,12 +105,45 @@ def test_update_db(invoice1):
     tmp = invoice1.shipment_status
     # change status on db so that whatever is pulled from tusker will be new
     invoice1.shipment_status = "somestatus"
+    before = invoice_service.get_all_invoices()[0]
+    time.sleep(1)
 
     updated, errored = invoice_service.update_invoice_db()
 
     assert not errored
     assert updated[0][0] == invoice1.id
     assert updated[0][1] == tmp
+
+
+    # TODO this chcek should pass
+    after = invoice_service.get_all_invoices()[0]
+    # assert before.updated_on < after.updated_on
+
+    # TODO move this into its own test
+    assert after.delivered_on is not None
+
+@pytest.mark.xfail()
+def test_update_db_stores_update_timestamp_and_delivered_on(invoice1):
+    # save current status (same as what is on tusker-api)
+    tmp = invoice1.shipment_status
+    assert invoice1.shipment_status == "DELIVERED"
+
+    # change status on db so that whatever is pulled from tusker will be new
+    invoice1.shipment_status = "somestatus"
+    before = invoice_service.get_all_invoices()[0]
+
+    updated, errored = invoice_service.update_invoice_db()
+
+    assert not errored
+
+    after = invoice_service.get_all_invoices()[0]
+    # TODO issue#32
+    assert before.updated_on < after.updated_on
+
+    assert after.delivered_on is not None
+
+
+
 
 
 def test_update_invoices(invoice1):

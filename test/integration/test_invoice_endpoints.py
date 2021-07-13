@@ -1,4 +1,4 @@
-import os
+from test.integration.conftest import get_auth_header
 from typing import Tuple
 
 import pytest
@@ -7,7 +7,7 @@ from starlette.status import (HTTP_200_OK, HTTP_400_BAD_REQUEST,
 from starlette.testclient import TestClient
 
 from database.invoice_service import invoice_service
-from database.test.conftest import reset_db
+from database.test.conftest import insert_base_user, reset_db
 from database.test.fixtures import p1, p2
 from database.whitelist_service import whitelist_service
 from invoice.tusker_client import tusker_client
@@ -16,11 +16,14 @@ from utils.common import InvoiceFrontendInfo, PurchaserInfo
 from utils.constant import GURUGRUPA_CUSTOMER_ID, LOC_ID4
 
 client = TestClient(app)
+insert_base_user()
+AUTH_HEADER = get_auth_header()
 
 
 @pytest.fixture(scope="function")
 def whitelist_and_invoices():
     reset_db(deleteWhitelist=True)
+    insert_base_user()
     whitelist_service.insert_whitelist_entry(
         supplier_id=GURUGRUPA_CUSTOMER_ID, purchaser=p1, creditline_size=50000, apr=0.1, tenor_in_days=90
     )
@@ -39,15 +42,6 @@ def whitelist_and_invoices():
 
     reset_db(deleteWhitelist=True)
 
-
-def get_auth_header():
-    response = client.post("/token", dict(username="gurugrupa", password=os.getenv("GURUGRUPA_PW")))
-    jwt_token = response.json()["access_token"]
-    auth_header = {"Authorization": f"Bearer {jwt_token}"}
-    return auth_header
-
-
-AUTH_HEADER = get_auth_header()
 
 # TODO add jwt-token to all requests / modify client to have a valid header by default
 

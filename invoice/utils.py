@@ -27,6 +27,7 @@ def raw_order_to_invoice(raw_order: Dict):
     return InvoiceFrontendInfo(
         **{
             "invoice_id": raw_order.get("id"),
+            "supplier_id": raw_order.get("cust").get("id"),
             "order_id": raw_order.get("ref_no"),
             "value": raw_order_to_price(raw_order),
             "status": "NONE",
@@ -47,6 +48,7 @@ def db_invoice_to_frontend_info(inv: Invoice):
     payment_details = json.loads(inv.payment_details)
     return InvoiceFrontendInfo(
         invoice_id=inv.id,
+        supplier_id=inv.supplier_id,
         order_id=inv.order_ref,
         value=inv.value,
         status=inv.finance_status,

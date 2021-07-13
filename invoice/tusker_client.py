@@ -133,33 +133,30 @@ class TuskerClient:
             # TODO implement custom exception class
             raise NotImplementedError(str(response.json()))
 
-    def customer_to_receiver_info(self, search_string: str, _city: str = "", _phone=""):
+    def customer_to_receiver_info(self, search_string: str):
         _input = {"pl": {"type": 4, "p_txt": search_string, "stts": [0], "s_by": "name", "s_dir": 1}}
         response = requests.post(f"{self.base_url}/search/users/suggestions", json=_input, headers=self.headers)
         data = response.json()
         assert response.status_code == 200, "some error"
         users = data.get("pl").get("users")
-        # assert users, "no user found"
-        selected = ""
+        # TODO if #results > 10  or pages > 1 return error
+        if len(users) > 10:
+            return {"results": [], "status": "too many matches"}
         found = []
         for user in users:
             city = user.get("loc").get("addr").get("city")
             phone = user.get("cntct").get("p_mob")
             loc_id = user.get("loc").get("id")
             rr = PurchaserInfo(
-                id=user.get("id"), name=user.get("cntct").get("name"), phone=phone, city=city, location_id=loc_id
+                id=user.get("id"),
+                name=user.get("cntct").get("name"),
+                phone=phone,
+                city=city,
+                location_id=loc_id,
             )
             found.append(rr)
-            # print(rr)
-            if _city in city:
-                # print('found one',rr)
-                if selected:
-                    pass
-                    # print('oho, double entry for', _city)
-                else:
-                    selected = rr
 
-        return {"results": found, "match": selected}
+        return {"results": found, "status": "OK"}
 
 
 # %%

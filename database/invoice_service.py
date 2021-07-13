@@ -1,13 +1,13 @@
 from database.exceptions import CreditLimitException, DuplicateInvoiceException
 from database.db import session
 import datetime as dt
-from database.models import Invoice, User
+from database.models import Invoice, User, Supplier
 from typing import Dict
 from invoice.tusker_client import code_to_order_status, tusker_client
 from utils.email import EmailClient, terms_to_email_body
 import json
 from utils.common import LoanTerms, CreditLineInfo, PaymentDetails, PurchaserInfo
-from utils.constant import DISBURSAL_EMAIL, MAX_CREDIT, USER_DB, ARBOREUM_DISBURSAL_EMAIL
+from utils.constant import DISBURSAL_EMAIL, ARBOREUM_DISBURSAL_EMAIL
 from invoice.utils import raw_order_to_price
 import uuid
 from database.whitelist_service import  whitelist_service, whitelist_entry_to_receiverInfo
@@ -47,7 +47,7 @@ class InvoiceService():
             finance_status="INITIAL",
             purchaser_id=purchaser_id,
             value=raw_order_to_price(raw_order),
-            supplier_id=raw_order.get('cust').get('id'),
+            supplier_id=supplier_id,
             data=json.dumps(raw_order),
             payment_details=json.dumps(PaymentDetails(
                 requestId=str(uuid.uuid4()),
@@ -61,6 +61,7 @@ class InvoiceService():
     def update_invoice_shipment_status(self, invoice_id: str, new_status: str):
         invoice = self.session.query(Invoice).filter(Invoice.id == invoice_id).first()
         invoice.shipment_status = new_status
+        invoice.updated_on = dt.datetime.utcnow()
         self.session.commit()
 
     def update_invoice_value(self, invoice_id: str, new_value: int):
@@ -72,8 +73,11 @@ class InvoiceService():
         invoice = self.session.query(Invoice).filter(Invoice.id == invoice_id).first()
         if (new_status == "FINANCED"):
             self.trigger_disbursal(invoice)
+            invoice.financed_on = dt.datetime.utcnow()
+        invoice.updated_on = dt.datetime.utcnow()
         invoice.finance_status = new_status
         self.session.commit()
+        return invoice
 
     def update_invoice_with_loan_terms(self, invoice: Invoice, terms: LoanTerms):
         payment_details = json.loads(invoice.payment_details)
@@ -120,6 +124,9 @@ class InvoiceService():
                 try:
                     self.handle_update(invoice, new_shipment_status)
                     invoice.shipment_status = new_shipment_status
+                    if new_shipment_status == "DELIVERED":
+                        invoice.delivered_on = dt.datetime.utcnow()
+                    invoice.updated_on = dt.datetime.utcnow()
                     self.session.commit()
                     updated.append((invoice.id, new_shipment_status))
                 except Exception as e:
@@ -153,8 +160,8 @@ class InvoiceService():
         start_date = dt.datetime.utcnow()
         terms = invoice_to_terms(invoice.id, invoice.order_ref, invoice.value, start_date)
         self.update_invoice_with_loan_terms(invoice, terms)
-        supplier = self.session(User).filter(User.supplier_id==invoice.supplier_id).first()
-        msg = terms_to_email_body(terms, supplier.name)
+        supplier = self.session.query(Supplier).filter(Supplier.supplier_id==invoice.supplier_id).first()
+        msg = terms_to_email_body(terms, supplier.name if supplier else "TODO")
 
         # ================= send email to Tusker with FundRequest
         try:
@@ -196,6 +203,7 @@ class InvoiceService():
             n_of_invoices = len(invoices)
 
             credit_line_breakdown[w_entry.purchaser_id] = CreditLineInfo(**{
+                "supplier_id": supplier_id,
                 "info": whitelist_entry_to_receiverInfo(w_entry),
                 "total": credit_line_size,
                 "available": credit_line_size - to_be_repaid - requested, #invoince.value for invoice in to_be_repaid)
@@ -206,7 +214,7 @@ class InvoiceService():
         return credit_line_breakdown
 
     def get_credit_line_summary(self, supplier_id: str, supplier_name: str):
-        summary = CreditLineInfo(info=PurchaserInfo(name=supplier_name))
+        summary = CreditLineInfo(info=PurchaserInfo(name=supplier_name), supplier_id="tusker")
         credit_line_breakdown = self.get_credit_line_info(supplier_id)
         for c in credit_line_breakdown.values():
             summary.total += c.total
@@ -219,9 +227,8 @@ class InvoiceService():
     def get_provider_summary(self, provider: str):
         """ create a credit line summary for all customers whose role is user """
         credit = {}
-        for name, data in USER_DB.items():
-            if name != provider:
-                credit[name] = invoice_service.get_credit_line_summary(supplier_id=data["customer_id"], supplier_name=name)
+        for supplier in self.session.query(Supplier).all():
+            credit[supplier.name] = invoice_service.get_credit_line_summary(supplier_id=supplier.supplier_id, supplier_name=supplier.name)
         return credit
 
 

@@ -3,13 +3,6 @@ import math
 import copy
 from database.invoice_service import InvoiceService, invoice_to_terms
 from database.whitelist_service import WhitelistService
-from utils.constant import MAX_CREDIT, USER_DB, RECEIVER_ID1, GURUGRUPA_CUSTOMER_ID, OTHER_CUSTOMER_ID
-from database.test.fixtures import NEW_RAW_ORDER, RAW_ORDER, get_new_raw_order
-from database.db import metadata, engine, session
-from invoice.tusker_client import code_to_order_status, tusker_client
-import contextlib
-import json
-from utils.constant import MAX_CREDIT, USER_DB, RECEIVER_ID1, GURUGRUPA_CUSTOMER_ID
 from database.test.conftest import reset_db
 import datetime as dt
 

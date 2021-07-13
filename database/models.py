@@ -18,7 +18,6 @@ class Invoice(Base):
     shipment_status = Column(String(50), nullable=True)
     finance_status = Column(String(50), nullable=True)
 
-    financed_on = Column(DateTime, nullable=True)
     apr = Column(Float, nullable=True)
     # repaid = Column(Float, nullable=True)
     tenor_in_days=Column(Integer, nullable=True)
@@ -30,8 +29,12 @@ class Invoice(Base):
 
     # delivery_date = Column(DateTime)
 
+    delivered_on = Column(DateTime, nullable=True)
+    financed_on = Column(DateTime, nullable=True)
+    # these should be different: one should be only on the beginning, the other every time
+    # updated_on = Column(DateTime, nullable=True, onupdate=func.utcnow())
+    updated_on = Column(DateTime, nullable=True)
     created_on = Column(DateTime, default=datetime.now())
-    # updated_on = Column(DateTime)
 
 class Whitelist(Base):
     """ keeps track of the receivers whose invoices can be financed for each customer """
@@ -49,17 +52,22 @@ class Whitelist(Base):
 
 class User(Base): #TUSKER
     """ used to look up usernames and their passwords and their associated customer id """
-    __tablename__ = "user"
-    # TODO user_id = Column(String(50), primary_key=True) autoincrement
-    email = Column(String(50), primary_key=True)
-    password = Column(String(50), nullable=False)
+    __tablename__ = "users"
+    user_id = Column(Integer, primary_key=True, autoincrement=True)
+    email = Column(String(50), primary_key=True, unique=True)
+    username = Column(String(50), nullable=False, unique=True)
+    hashed_password = Column(String(64), nullable=False)
+    role = Column(String(50), nullable=False)
 
 
-class Suppliers(Base):
-    __tablename__ = "suppliers"
+class Supplier(Base):
+    __tablename__ = "supplier"
     supplier_id = Column(String(50), primary_key=True) # matches customer_id in tuskers system 
     name = Column(String(50), nullable=False)
     creditline_size = Column(Integer, nullable=False)
+    default_apr = Column(Float, nullable=True)
+    default_tenor_in_days=Column(Integer, nullable=True)
+
 
 
  

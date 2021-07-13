@@ -33,12 +33,25 @@ class BaseInvoice(CamelModel):
     invoice_id: str = ""
 
 
+class Terms(CamelModel):
+    apr: float = 0.1
+    tenor_in_days: int = 90
+    creditline_size: int = 0
+
+
 class PurchaserInfo(CamelModel):
     id: str = ""
     name: str = ""
     phone: str = ""
     city: str = ""
     location_id: str = ""
+    terms: Terms = Terms()
+
+
+class SupplierInfo(CamelModel):
+    id: str = ""
+    name: str = ""
+    default_terms: Terms = Terms()
 
 
 class Invoice(BaseInvoice):
@@ -61,7 +74,8 @@ class PaymentDetails(CamelModel):
     start_date: dt.datetime = None
 
 
-class InvoiceFrontendInfo(BaseInvoice):
+class InvoiceFrontendInfo(CamelModel):
+    supplier_id: str
     invoice_id: str
     order_id: str
     value: float = 1
@@ -115,6 +129,7 @@ class WhiteListEntry(BaseModel):
 
 class CreditLineInfo(BaseModel):
     info: PurchaserInfo
+    supplier_id: str
     available: float = 0
     used: float = 0
     total: float = 0
