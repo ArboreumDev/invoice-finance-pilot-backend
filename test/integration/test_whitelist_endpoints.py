@@ -4,13 +4,14 @@ import pytest
 from starlette.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
 from starlette.testclient import TestClient
 
-from database.test.conftest import reset_db
+from database.test.conftest import reset_db, insert_base_user
 from database.whitelist_service import whitelist_service
 from main import app
 from routes.v1.whitelist import WhitelistInput, WhitelistUpdateInput
 from utils.common import PurchaserInfo, Terms
 
 client = TestClient(app)
+insert_base_user()
 AUTH_HEADER = get_auth_header()
 
 new_whitelist_entry = WhitelistInput(
@@ -29,6 +30,7 @@ new_whitelist_entry = WhitelistInput(
 @pytest.fixture(scope="function")
 def clean_db():
     reset_db(deleteWhitelist=True)
+    insert_base_user()
     yield
     reset_db(deleteWhitelist=True)
 

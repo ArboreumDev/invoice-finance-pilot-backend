@@ -7,7 +7,7 @@ from starlette.status import (HTTP_200_OK, HTTP_400_BAD_REQUEST,
 from starlette.testclient import TestClient
 
 from database.invoice_service import invoice_service
-from database.test.conftest import reset_db
+from database.test.conftest import reset_db, insert_base_user
 from database.test.fixtures import p1, p2
 from database.whitelist_service import whitelist_service
 from invoice.tusker_client import tusker_client
@@ -16,12 +16,14 @@ from utils.common import InvoiceFrontendInfo, PurchaserInfo
 from utils.constant import GURUGRUPA_CUSTOMER_ID, LOC_ID4
 
 client = TestClient(app)
+insert_base_user()
 AUTH_HEADER = get_auth_header()
 
 
 @pytest.fixture(scope="function")
 def whitelist_and_invoices():
     reset_db(deleteWhitelist=True)
+    insert_base_user()
     whitelist_service.insert_whitelist_entry(
         supplier_id=GURUGRUPA_CUSTOMER_ID, purchaser=p1, creditline_size=50000, apr=0.1, tenor_in_days=90
     )

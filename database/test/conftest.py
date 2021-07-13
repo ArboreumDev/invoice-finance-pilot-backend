@@ -1,7 +1,7 @@
 import pytest
 from database.invoice_service import InvoiceService
 from database.db import engine
-from database.models import Invoice, Base
+from database.models import Invoice, Base, User
 from database.test.fixtures import OTHER_CUSTOMER_ID, RAW_ORDER, NEW_RAW_ORDER, get_new_raw_order, p2, p1
 from invoice.tusker_client import tusker_client
 from utils.constant import GURUGRUPA_CUSTOMER_ID
@@ -13,6 +13,16 @@ from utils.common import PurchaserInfo
 
 invoice_service = InvoiceService()
 
+
+def insert_base_user():
+    tusker_user = User(
+        email = "tusker@mail.india",
+        username = "tusker",
+        hashed_password = "$2b$12$8t8LDzm.Ag68n6kv8pZoI.Oqd1x1rczNfe8QUcZwp6wnX8.dse0Ni", # pw=tusker
+        role = "tusker",
+    )
+    whitelist_service.session.add(tusker_user)
+    whitelist_service.session.commit()
 
 def reset_db(deleteWhitelist = False):
     invoice_service.session.connection().execute("delete from invoice")
@@ -39,6 +49,7 @@ def invoice1():
 def invoices():
 
     reset_db()
+    insert_base_user()
     invoice_service._insert_new_invoice_for_purchaser_x_supplier(
         get_new_raw_order(purchaser_name='p1', purchaser_location_id='l1'), 'p1', 's1'
     )
@@ -54,6 +65,8 @@ def invoices():
 @pytest.fixture(scope="function")
 def whitelisted_invoices():
     reset_db(deleteWhitelist=True)
+    insert_base_user()
+
 
     # create two whitelist entry for supplier
     _supplier_id=CUSTOMER_ID
@@ -104,6 +117,7 @@ p1 = PurchaserInfo(id='aa8b8369-be51-49a3-8419-3d1eb8c4146c', name='Mahantesh Me
 @pytest.fixture(scope="function")
 def whitelist_entry() -> Tuple[PurchaserInfo, str]:
     reset_db(deleteWhitelist=True)
+    insert_base_user()
     whitelist_service.insert_whitelist_entry(
         supplier_id=CUSTOMER_ID,
         purchaser=p1,

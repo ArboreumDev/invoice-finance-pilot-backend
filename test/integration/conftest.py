@@ -10,6 +10,3 @@ def get_auth_header():
     jwt_token = response.json()["access_token"]
     auth_header = {"Authorization": f"Bearer {jwt_token}"}
     return auth_header
-
-
-AUTH_HEADER = get_auth_header()
