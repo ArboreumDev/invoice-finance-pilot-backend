@@ -127,7 +127,7 @@ class WhiteListEntry(BaseModel):
     credit_line_size: float
 
 
-class CreditLineInfo(BaseModel):
+class CreditLineInfo(CamelModel):
     info: PurchaserInfo
     supplier_id: str
     available: float = 0
