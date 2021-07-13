@@ -4,7 +4,7 @@ import pytest
 from starlette.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
 from starlette.testclient import TestClient
 
-from database.test.conftest import reset_db, insert_base_user
+from database.test.conftest import insert_base_user, reset_db
 from database.whitelist_service import whitelist_service
 from main import app
 from routes.v1.whitelist import WhitelistInput, WhitelistUpdateInput
