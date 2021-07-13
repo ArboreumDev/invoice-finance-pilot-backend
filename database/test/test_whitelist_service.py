@@ -48,7 +48,6 @@ def test_whitelist_okay(whitelist_entry: Tuple[PurchaserInfo, str]):
     assert whitelist_service.purchaser_is_whitelisted(_supplier_id, _p1.id)
     assert whitelist_service.location_is_whitelisted(_supplier_id, _p1.location_id)
 
-
 def test_whitelist_failure(whitelist_entry: Tuple[PurchaserInfo, str]):
     _p1, _supplier_id = whitelist_entry
 

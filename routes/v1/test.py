@@ -1,3 +1,4 @@
+from database.exceptions import UnknownPurchaserException
 from typing import Tuple
 
 from fastapi import APIRouter, Depends, HTTPException
