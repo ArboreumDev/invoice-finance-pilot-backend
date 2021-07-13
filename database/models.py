@@ -18,7 +18,6 @@ class Invoice(Base):
     shipment_status = Column(String(50), nullable=True)
     finance_status = Column(String(50), nullable=True)
 
-    financed_on = Column(DateTime, nullable=True)
     apr = Column(Float, nullable=True)
     # repaid = Column(Float, nullable=True)
     tenor_in_days=Column(Integer, nullable=True)
@@ -30,8 +29,12 @@ class Invoice(Base):
 
     # delivery_date = Column(DateTime)
 
+    delivered_on = Column(DateTime, nullable=True)
+    financed_on = Column(DateTime, nullable=True)
+    # these should be different: one should be only on the beginning, the other every time
+    # updated_on = Column(DateTime, nullable=True, onupdate=func.utcnow())
+    updated_on = Column(DateTime, nullable=True)
     created_on = Column(DateTime, default=datetime.now())
-    # updated_on = Column(DateTime)
 
 class Whitelist(Base):
     """ keeps track of the receivers whose invoices can be financed for each customer """

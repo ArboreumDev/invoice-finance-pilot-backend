@@ -1,5 +1,6 @@
 # %%
 import pytest
+import time
 import copy
 from database.invoice_service import InvoiceService, invoice_to_terms
 from database.whitelist_service import WhitelistService
@@ -104,12 +105,17 @@ def test_update_db(invoice1):
     tmp = invoice1.shipment_status
     # change status on db so that whatever is pulled from tusker will be new
     invoice1.shipment_status = "somestatus"
+    before = invoice_service.get_all_invoices()[0]
+    time.sleep(1)
 
     updated, errored = invoice_service.update_invoice_db()
 
     assert not errored
     assert updated[0][0] == invoice1.id
     assert updated[0][1] == tmp
+
+    after = invoice_service.get_all_invoices()[0]
+    assert before.updated_on < after.updated_on
 
 
 def test_update_invoices(invoice1):

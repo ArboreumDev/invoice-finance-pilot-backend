@@ -61,6 +61,7 @@ class InvoiceService():
     def update_invoice_shipment_status(self, invoice_id: str, new_status: str):
         invoice = self.session.query(Invoice).filter(Invoice.id == invoice_id).first()
         invoice.shipment_status = new_status
+        invoice.updated_on = dt.datetime.utcnow()
         self.session.commit()
 
     def update_invoice_value(self, invoice_id: str, new_value: int):
@@ -72,8 +73,11 @@ class InvoiceService():
         invoice = self.session.query(Invoice).filter(Invoice.id == invoice_id).first()
         if (new_status == "FINANCED"):
             self.trigger_disbursal(invoice)
+            invoice.financed_on = dt.datetime.utcnow()
+        invoice.updated_on = dt.datetime.utcnow()
         invoice.finance_status = new_status
         self.session.commit()
+        return invoice
 
     def update_invoice_with_loan_terms(self, invoice: Invoice, terms: LoanTerms):
         payment_details = json.loads(invoice.payment_details)
@@ -120,6 +124,9 @@ class InvoiceService():
                 try:
                     self.handle_update(invoice, new_shipment_status)
                     invoice.shipment_status = new_shipment_status
+                    if new_shipment_status == "DELIVERED":
+                        invoice.delivered_on = dt.datetime.utcnow()
+                    invoice.updated_on = dt.datetime.utcnow()
                     self.session.commit()
                     updated.append((invoice.id, new_shipment_status))
                 except Exception as e:
