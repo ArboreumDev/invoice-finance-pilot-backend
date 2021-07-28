@@ -20,12 +20,15 @@ class WhitelistInput(CamelModel):
     purchaser: PurchaserInfo
 
 
-class WhitelistUpdateInput(CamelModel):
+class SupplierUpdate(CamelModel):
     supplier_id: str
-    purchaser_id: str
     creditline_size: Optional[int]
     apr: Optional[float]
     tenor_in_days: Optional[int]
+
+
+class WhitelistUpdateInput(SupplierUpdate):
+    purchaser_id: str
 
 
 # class WhitelistInput(CamelModel):
@@ -34,7 +37,7 @@ class WhitelistUpdateInput(CamelModel):
 
 @whitelist_app.post("/whitelist/new", response_model=Dict, tags=["invoice"])
 def _insert_new_whitelist_entry(
-    input: WhitelistInput = Body(..., embed=True), user_info: Tuple[str, str] = Depends(check_jwt_token_role)
+        input: WhitelistInput = Body(..., embed=True), user_info: Tuple[str, str] = Depends(check_jwt_token_role)
 ):
     try:
         # print('try adding ', input) # LOG
@@ -51,7 +54,7 @@ def _insert_new_whitelist_entry(
 
 @whitelist_app.post("/whitelist/update", response_model=Dict, tags=["invoice"])
 def _update_whitelist_entry(
-    update: WhitelistUpdateInput = Body(..., embed=True), user_info: Tuple[str, str] = Depends(check_jwt_token_role)
+        update: WhitelistUpdateInput = Body(..., embed=True), user_info: Tuple[str, str] = Depends(check_jwt_token_role)
 ):
     # TODO  check if I can use different way to use Depends
     print("sf", update)
@@ -87,8 +90,39 @@ def _get_suppliers(user_info: Tuple[str, str] = Depends(check_jwt_token_role)):
             **{
                 "name": s.name,
                 "id": s.supplier_id,
-                "default_terms": {"apr": s.default_apr, "tenor_in_days": s.default_tenor_in_days, "creditline_size": 0},
+                "default_terms": {"apr": s.default_apr, "tenor_in_days": s.default_tenor_in_days,
+                                  "creditline_size": s.creditline_size},
             }
         ).dict()
         for s in suppliers
     ]
+
+
+@whitelist_app.post("/supplier/update", response_model=Dict)
+def _update_supplier(
+        update: SupplierUpdate = Body(..., embed=True), user_info: Tuple[str, str] = Depends(check_jwt_token_role)):
+    s = whitelist_service.session.query(Supplier).filter_by(supplier_id=update.supplier_id).first()
+    if not s:
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="supplier already added")
+    if update.apr:
+        s.default_apr = update.apr
+    if update.tenor_in_days:
+        s.default_tenor_in_days = update.tenor_in_days
+    if update.creditline_size:
+        s.creditline_size = update.creditline_size
+    whitelist_service.session.commit()
+
+
+@whitelist_app.post("/supplier/new", response_model=Dict)
+def _add_supplier(
+        supplier: SupplierInfo = Body(..., embed=True), user_info: Tuple[str, str] = Depends(check_jwt_token_role)):
+    exists = whitelist_service.session.query(Supplier).filter_by(supplier_id=supplier.id).first() is not None
+    if not exists:
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="supplier does not exist")
+    s = Supplier(supplier_id=supplier.id,
+                 name=supplier.name,
+                 creditline_size=supplier.default_terms.creditline_size,
+                 default_apr=supplier.default_terms.apr,
+                 default_tenor_in_days=supplier.default_terms.tenor_in_days)
+    whitelist_service.session.add(s)
+    whitelist_service.session.commit()
