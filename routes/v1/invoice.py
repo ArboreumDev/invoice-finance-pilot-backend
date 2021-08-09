@@ -7,7 +7,7 @@ from starlette.status import (HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND,
 from database.exceptions import (CreditLimitException,
                                  DuplicateInvoiceException,
                                  UnknownPurchaserException, WhitelistException)
-from database.invoice_service import invoice_service
+from database import crud
 from database.models import Supplier
 from database.whitelist_service import whitelist_service
 from invoice.tusker_client import tusker_client
@@ -18,6 +18,7 @@ from database.db import SessionLocal
 
 # ===================== routes ==========================
 invoice_app = APIRouter()
+invoice_service = crud.invoice
 
 
 class OrderRequest(CamelModel):

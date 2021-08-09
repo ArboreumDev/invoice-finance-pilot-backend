@@ -1,1 +1,1 @@
-from .crud_invoice import invoice
+from .invoice_service import invoice

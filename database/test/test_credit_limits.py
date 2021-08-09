@@ -1,14 +1,16 @@
 import pytest
 import math
 import copy
-from database.invoice_service import InvoiceService, invoice_to_terms
+from database import crud
+from database.crud.invoice_service import InvoiceService, invoice_to_terms
 from database.whitelist_service import WhitelistService
 from database.test.conftest import reset_db
 from database.models import Invoice
 import datetime as dt
 
 
-invoice_service = InvoiceService(Invoice)
+invoice_service: InvoiceService = crud.invoice
+# invoice_service = InvoiceService(Invoice)
 whitelist_service = WhitelistService()
 
 

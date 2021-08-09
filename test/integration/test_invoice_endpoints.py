@@ -6,7 +6,7 @@ from starlette.status import (HTTP_200_OK, HTTP_400_BAD_REQUEST,
                               HTTP_404_NOT_FOUND)
 from starlette.testclient import TestClient
 
-from database.invoice_service import invoice_service
+from database.crud.invoice_service import invoice as invoice_service
 from database.test.conftest import insert_base_user, reset_db
 from database.test.fixtures import p1, p2
 from database.whitelist_service import whitelist_service

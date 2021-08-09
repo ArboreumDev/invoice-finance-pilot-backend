@@ -1,5 +1,6 @@
+from database.schemas import InvoiceCreate
 import pytest
-from database.invoice_service import InvoiceService
+from database import crud
 from database.db import SessionLocal, engine
 from database.models import Invoice, Base, User
 from database.test.fixtures import OTHER_CUSTOMER_ID, RAW_ORDER, NEW_RAW_ORDER, get_new_raw_order, p2, p1
@@ -12,7 +13,7 @@ from database.whitelist_service import WhitelistService
 from utils.common import PurchaserInfo
 from sqlalchemy.orm import Session
 
-invoice_service = InvoiceService(Invoice)
+invoice_service = crud.invoice
 db: Session = SessionLocal()
 
 

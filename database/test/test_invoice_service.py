@@ -2,7 +2,8 @@
 import pytest
 import time
 import copy
-from database.invoice_service import InvoiceService, invoice_to_terms
+from database import crud
+from database.crud.invoice_service import invoice_to_terms
 from database.whitelist_service import WhitelistService
 from database.models import Invoice
 from database.exceptions import DuplicateInvoiceException
@@ -15,7 +16,7 @@ from utils.constant import MAX_CREDIT, RECEIVER_ID1, GURUGRUPA_CUSTOMER_ID
 from database.test.conftest import reset_db
 import datetime as dt
 
-invoice_service = InvoiceService(Invoice)
+invoice_service = crud.invoice
 whitelist_service = WhitelistService()
 db = SessionLocal()
 

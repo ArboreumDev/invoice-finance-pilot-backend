@@ -242,6 +242,6 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
 
 
 
-invoice_service = InvoiceService(Invoice)
+invoice = InvoiceService(Invoice)
 
 
