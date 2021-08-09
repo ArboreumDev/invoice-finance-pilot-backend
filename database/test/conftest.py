@@ -1,6 +1,6 @@
 import pytest
 from database.invoice_service import InvoiceService
-from database.db import engine
+from database.db import SessionLocal, engine
 from database.models import Invoice, Base, User
 from database.test.fixtures import OTHER_CUSTOMER_ID, RAW_ORDER, NEW_RAW_ORDER, get_new_raw_order, p2, p1
 from invoice.tusker_client import tusker_client
@@ -10,8 +10,10 @@ from typing import Tuple
 import copy
 from database.whitelist_service import WhitelistService
 from utils.common import PurchaserInfo
+from sqlalchemy.orm import Session
 
-invoice_service = InvoiceService()
+invoice_service = InvoiceService(Invoice)
+db: Session = SessionLocal()
 
 
 def insert_base_user():
@@ -25,20 +27,32 @@ def insert_base_user():
     whitelist_service.session.commit()
 
 def reset_db(deleteWhitelist = False):
-    invoice_service.session.connection().execute("delete from invoice")
-    invoice_service.session.connection().execute("delete from users")
-    invoice_service.session.connection().execute("delete from supplier")
+    db.connection().execute("delete from invoice")
+    db.connection().execute("delete from invoice")
+    db.connection().execute("delete from users")
+    db.connection().execute("delete from supplier")
     if deleteWhitelist:
-        invoice_service.session.connection().execute("delete from whitelist")
-    invoice_service.session.commit()
+        db.connection().execute("delete from whitelist")
+    db.commit()
+
+
+@pytest.fixture(scope="function")
+def db_session():
+    _db = SessionLocal()
+    try:
+        yield _db
+    finally:
+        _db.close()
+
+
 
 
 @pytest.fixture(scope="function")
 def invoice1():
     """ will only insert into invoices table, there will be no connected entries"""
     reset_db()
-    invoice_id = invoice_service._insert_new_invoice_for_purchaser_x_supplier(RAW_ORDER, "testP", "testS")
-    invoice = invoice_service.session.query(Invoice).filter(Invoice.id==invoice_id).first()
+    invoice_id = invoice_service._insert_new_invoice_for_purchaser_x_supplier(RAW_ORDER, "testP", "testS", db)
+    invoice = invoice_service.get(db, id=invoice_id)
 
     yield invoice
 
@@ -51,10 +65,10 @@ def invoices():
     reset_db()
     insert_base_user()
     invoice_service._insert_new_invoice_for_purchaser_x_supplier(
-        get_new_raw_order(purchaser_name='p1', purchaser_location_id='l1'), 'p1', 's1'
+        get_new_raw_order(purchaser_name='p1', purchaser_location_id='l1'), 'p1', 's1', db
     )
     invoice_service._insert_new_invoice_for_purchaser_x_supplier(
-        get_new_raw_order(purchaser_name='p2', purchaser_location_id='l2'), 'p1', 's1'
+        get_new_raw_order(purchaser_name='p2', purchaser_location_id='l2'), 'p1', 's1', db
     )
     invoices = invoice_service.session.query(Invoice).all()
 

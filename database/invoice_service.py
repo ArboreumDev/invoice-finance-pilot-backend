@@ -1,16 +1,24 @@
+from database.schemas import InvoiceCreate
 from database.exceptions import CreditLimitException, DuplicateInvoiceException
-from database.db import session
+from database.db import SessionLocal, session
 import datetime as dt
 from database.models import Invoice, User, Supplier
 from typing import Dict
 from invoice.tusker_client import code_to_order_status, tusker_client
 from utils.email import EmailClient, terms_to_email_body
+from sqlalchemy.orm import Session
 import json
 from utils.common import LoanTerms, CreditLineInfo, PaymentDetails, PurchaserInfo
 from utils.constant import DISBURSAL_EMAIL, ARBOREUM_DISBURSAL_EMAIL
 from invoice.utils import raw_order_to_price
 import uuid
 from database.whitelist_service import  whitelist_service, whitelist_entry_to_receiverInfo
+from database import crud
+from database.crud.base import CRUDBase
+from database.models import Invoice
+from database.schemas import InvoiceCreate, InvoiceUpdate
+
+
 
 
 def invoice_to_terms(id: str, order_id: str, amount: float, start_date: dt.datetime):
@@ -24,39 +32,39 @@ def invoice_to_terms(id: str, order_id: str, amount: float, start_date: dt.datet
     )
 
 
-class InvoiceService():
-    def __init__(self):
-        self.session = session
-
-    def insert_new_invoice_from_raw_order(self, raw_order: Dict):
+class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
+    def insert_new_invoice_from_raw_order(self, raw_order: Dict, db: Session):
         # verify the customer of the order has the purchaser whitelisted
         supplier_id=raw_order.get('cust').get('id')
         location_id = raw_order.get('rcvr').get('id')
         purchaser_id = whitelist_service.get_whitelisted_purchaser_from_location_id(supplier_id, location_id)
-        return self._insert_new_invoice_for_purchaser_x_supplier(raw_order, purchaser_id, supplier_id)
+        return self._insert_new_invoice_for_purchaser_x_supplier(raw_order, purchaser_id, supplier_id, db)
 
-    def _insert_new_invoice_for_purchaser_x_supplier(self, raw_order: Dict, purchaser_id: str, supplier_id: str):
-        exists = self.session.query(Invoice.id).filter_by(id=raw_order.get('id')).first() is not None
+    def _insert_new_invoice_for_purchaser_x_supplier(self, raw_order: Dict, purchaser_id: str, supplier_id: str, db: Session):
+        exists = self.get(db, id=raw_order.get('id')) is not None
+
         if exists:
             raise DuplicateInvoiceException("invoice already exists")
 
-        new_invoice = Invoice(
+        new_invoice = InvoiceCreate(
             id=raw_order.get("id"),
             order_ref=raw_order.get('ref_no'),
+            supplier_id=supplier_id,
+            purchaser_id=purchaser_id,
             shipment_status=code_to_order_status(raw_order.get('status')),
             finance_status="INITIAL",
-            purchaser_id=purchaser_id,
+            # TODO add default apr & tenor from whitelist-entry
+            apr=0.42,
+            tenor_in_days=42,
             value=raw_order_to_price(raw_order),
-            supplier_id=supplier_id,
             data=json.dumps(raw_order),
             payment_details=json.dumps(PaymentDetails(
                 requestId=str(uuid.uuid4()),
                 repaymentId=str(uuid.uuid4()),
             ).dict())
         )
-        self.session.add(new_invoice)
-        self.session.commit()
-        return new_invoice.id
+        invoice = self.create(db, obj_in=new_invoice)
+        return invoice.id
 
     def update_invoice_shipment_status(self, invoice_id: str, new_status: str):
         invoice = self.session.query(Invoice).filter(Invoice.id == invoice_id).first()
@@ -92,8 +100,9 @@ class InvoiceService():
         self.session.delete(invoice)
         self.session.commit()
 
-    def get_all_invoices(self):
-        return self.session.query(Invoice).all()
+    def get_all_invoices(self, db: Session):
+        # return self.get_multi(db)
+        return db.query(Invoice).all()
 
     def update_invoice_db(self):
         """ get latest data for all invoices in db from tusker, compare shipment status,
@@ -233,6 +242,6 @@ class InvoiceService():
 
 
 
-invoice_service = InvoiceService()
+invoice_service = InvoiceService(Invoice)
 
 

@@ -3,11 +3,12 @@ import copy
 from database.invoice_service import InvoiceService, invoice_to_terms
 from database.whitelist_service import WhitelistService
 from database.exceptions import UnknownPurchaserException, WhitelistException
+from database.models import Invoice
 from utils.common import PurchaserInfo
 from typing import Tuple
 from database.test.fixtures import get_new_raw_order, OTHER_CUSTOMER_ID, OTHER_PURCHASER_ID
 
-invoice_service = InvoiceService()
+invoice_service = InvoiceService(Invoice)
 whitelist_service = WhitelistService()
 
 

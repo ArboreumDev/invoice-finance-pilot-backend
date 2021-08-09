@@ -3,16 +3,18 @@ from sqlalchemy import (Column, DateTime, Float, ForeignKey, Integer, String,
                         Table, Text)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import  create_engine
+from sqlalchemy.orm import  relationship
+from database.db import Base
 
-
-Base = declarative_base()
 
 class Invoice(Base):
     __tablename__ = "invoice"
 
     id = Column(String(50), primary_key=True)
     order_ref = Column(String(50), nullable=False)
+    # TODO add ForeignKey("users.user_id")
     supplier_id = Column(String(50), nullable=False) # on the order its called customer_id
+    # TODO add ForeignKey("whitelist.purchaser_id")
     purchaser_id = Column(String(50), nullable=False)
 
     shipment_status = Column(String(50), nullable=True)
@@ -33,8 +35,11 @@ class Invoice(Base):
     financed_on = Column(DateTime, nullable=True)
     # these should be different: one should be only on the beginning, the other every time
     # updated_on = Column(DateTime, nullable=True, onupdate=func.utcnow())
-    updated_on = Column(DateTime, nullable=True)
+    updated_on = Column(DateTime, nullable=True, default=datetime.now())
     created_on = Column(DateTime, default=datetime.now())
+
+    # TODO (maybe) add relationships
+    # supplier = relationship("Supplier", back_populates="invoices")
 
 class Whitelist(Base):
     """ keeps track of the receivers whose invoices can be financed for each customer """
@@ -51,7 +56,7 @@ class Whitelist(Base):
 
 
 class User(Base): #TUSKER
-    """ used to look up usernames and their passwords and their associated customer id """
+    """ used to look up usernames and their passwords """
     __tablename__ = "users"
     user_id = Column(Integer, primary_key=True, autoincrement=True)
     email = Column(String(50), primary_key=True, unique=True)
@@ -67,6 +72,10 @@ class Supplier(Base):
     creditline_size = Column(Integer, nullable=False)
     default_apr = Column(Float, nullable=True)
     default_tenor_in_days=Column(Integer, nullable=True)
+
+    # TODO add relatioship to invoices
+    # invoices = relationship("Invoice", back_populates="supplier")
+    
 
 
 

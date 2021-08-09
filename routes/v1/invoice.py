@@ -14,6 +14,7 @@ from invoice.tusker_client import tusker_client
 from invoice.utils import db_invoice_to_frontend_info, raw_order_to_invoice
 from utils.common import CamelModel, CreditLineInfo, InvoiceFrontendInfo
 from utils.security import check_jwt_token_role
+from database.db import SessionLocal
 
 # ===================== routes ==========================
 invoice_app = APIRouter()
@@ -22,6 +23,14 @@ invoice_app = APIRouter()
 class OrderRequest(CamelModel):
     order_ids: List[str]
 
+
+# # Dependency
+# def get_db():
+#     db = SessionLocal()
+#     try:
+#         yield db
+#     finally:
+#         db.close()
 
 @invoice_app.get("/")
 def _health():

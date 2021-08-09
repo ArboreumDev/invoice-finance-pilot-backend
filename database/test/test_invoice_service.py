@@ -7,7 +7,7 @@ from database.whitelist_service import WhitelistService
 from database.models import Invoice
 from database.exceptions import DuplicateInvoiceException
 from database.test.fixtures import NEW_RAW_ORDER, RAW_ORDER, get_new_raw_order
-from database.db import metadata, engine, session
+from database.db import SessionLocal, metadata, engine, session
 from invoice.tusker_client import code_to_order_status, tusker_client
 import contextlib
 import json
@@ -15,30 +15,32 @@ from utils.constant import MAX_CREDIT, RECEIVER_ID1, GURUGRUPA_CUSTOMER_ID
 from database.test.conftest import reset_db
 import datetime as dt
 
-invoice_service = InvoiceService()
+invoice_service = InvoiceService(Invoice)
 whitelist_service = WhitelistService()
+db = SessionLocal()
 
 
 # %%
 # @pytest.mark.skip()
 def test_reset_db():
     reset_db()
-    invoice_service._insert_new_invoice_for_purchaser_x_supplier(NEW_RAW_ORDER, "p", "s")
+    invoice_service._insert_new_invoice_for_purchaser_x_supplier(NEW_RAW_ORDER, "p", "s", db)
     reset_db()
     after = invoice_service.get_all_invoices()
     assert len(after) == 0
 
 
-def test_internal_insert_invoice(invoice1):
-    before = invoice_service.get_all_invoices()
+def test_internal_insert_invoice(db_session, invoice1):
+    before = invoice_service.get_all_invoices(db_session)
 
     invoice_id = invoice_service._insert_new_invoice_for_purchaser_x_supplier(
         NEW_RAW_ORDER,
         purchaser_id="testP",
-        supplier_id="testS"
+        supplier_id="testS",
+        db=db_session
     )
 
-    after = invoice_service.get_all_invoices()
+    after = invoice_service.get_all_invoices(db_session)
 
     # verify there is an extra invoice and its the one newly added
     assert len(after) == len(before) + 1
