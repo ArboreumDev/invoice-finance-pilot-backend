@@ -19,6 +19,11 @@ class CreditLimitException(BaseException):
 class DuplicateInvoiceException(BaseException):
     pass
 
+
+class UnknownInvoiceException(BaseException):
+    pass
+
+
 class DuplicateWhitelistEntryException(BaseException):
     pass
 

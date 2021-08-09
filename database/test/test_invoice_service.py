@@ -68,9 +68,10 @@ def test_insert_invoice_that_exists_fail(invoice1):
         )
 
 
-def test_update_invoice_status(invoice1):
-    invoice_service.update_invoice_shipment_status(invoice1.id, "NEW_STATUS")
-    assert invoice1.shipment_status == "NEW_STATUS"
+def test_update_invoice_shipment_status(db_session, invoice1):
+    invoice_service.update_invoice_shipment_status(invoice1.id, "NEW_STATUS", db_session)
+    after = invoice_service.get(db_session, invoice1.id)
+    assert  after.shipment_status == "NEW_STATUS"
     reset_db()
 
 

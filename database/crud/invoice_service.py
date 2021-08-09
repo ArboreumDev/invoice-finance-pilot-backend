@@ -1,5 +1,5 @@
 from database.schemas import InvoiceCreate
-from database.exceptions import CreditLimitException, DuplicateInvoiceException
+from database.exceptions import CreditLimitException, DuplicateInvoiceException, UnknownInvoiceException
 from database.db import SessionLocal, session
 import datetime as dt
 from database.models import Invoice, User, Supplier
@@ -66,43 +66,41 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         invoice = self.create(db, obj_in=new_invoice)
         return invoice.id
 
-    def update_invoice_shipment_status(self, invoice_id: str, new_status: str):
-        invoice = self.session.query(Invoice).filter(Invoice.id == invoice_id).first()
-        invoice.shipment_status = new_status
-        invoice.updated_on = dt.datetime.utcnow()
-        self.session.commit()
+    def update_invoice_shipment_status(self, invoice_id: str, new_status: str, db: Session):
+        invoice = self.get(db, invoice_id)
+        self.update_and_log(db, invoice, { "shipment_status": new_status })
 
-    def update_invoice_value(self, invoice_id: str, new_value: int):
-        invoice = self.session.query(Invoice).filter(Invoice.id == invoice_id).first()
-        invoice.value = new_value
-        self.session.commit()
+    def update_and_log(self, db: Session, db_object, new_data):
+        if db_object:
+            return self.update(db, db_obj=db_object, obj_in={**new_data, 'updated_on': dt.datetime.utcnow()})
+        else:
+            raise UnknownInvoiceException
 
-    def update_invoice_payment_status(self, invoice_id: str, new_status: str):
-        invoice = self.session.query(Invoice).filter(Invoice.id == invoice_id).first()
+    def update_invoice_value(self, invoice_id: str, new_value: int, db: Session):
+        invoice = self.get(db, invoice_id)
+        self.update_and_log(db, invoice, { "value": new_value })
+
+    def update_invoice_payment_status(self, invoice_id: str, new_status: str, db: Session):
+        invoice = self.get(db, invoice_id)
+        update = InvoiceUpdate()
         if (new_status == "FINANCED"):
             self.trigger_disbursal(invoice)
-            invoice.financed_on = dt.datetime.utcnow()
-        invoice.updated_on = dt.datetime.utcnow()
-        invoice.finance_status = new_status
-        self.session.commit()
-        return invoice
+            update.financed_on = dt.datetime.utcnow()
+        update.finance_status = new_status
+        return self.update_and_log(db, invoice, update)
 
-    def update_invoice_with_loan_terms(self, invoice: Invoice, terms: LoanTerms):
+    def update_invoice_with_loan_terms(self, invoice: Invoice, terms: LoanTerms, db: Session):
         payment_details = json.loads(invoice.payment_details)
+        # TODO use pydantic json helpers
         payment_details['start_date'] = str(terms.start_date)
         payment_details['collection_date'] = str(terms.collection_date)
         payment_details['interest'] = terms.interest
-        invoice.payment_details = json.dumps(payment_details)
-        self.session.commit()
-
-    def delete_invoice(self, invoice_id: str):
-        invoice = self.session.query(Invoice).filter(Invoice.id == invoice_id).first()
-        self.session.delete(invoice)
-        self.session.commit()
+        self.update_and_log(db, invoice, {'payment_details': json.dumps(payment_details)})
 
     def get_all_invoices(self, db: Session):
-        # return self.get_multi(db)
-        return db.query(Invoice).all()
+        # TODO use skip & limit for pagination
+        return self.get_multi(db)
+        # return db.query(Invoice).all()
 
     def update_invoice_db(self):
         """ get latest data for all invoices in db from tusker, compare shipment status,
