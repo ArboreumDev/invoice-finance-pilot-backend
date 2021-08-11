@@ -57,6 +57,8 @@ class InvoiceUpdate(InvoiceBase):
     value: Optional[float] = None
     delivered_on: Optional[datetime] = None
     financed_on: Optional[datetime] = None
+    payment_details: Optional[str]
+    updated_on: datetime
 
 
 # Properties to return to client

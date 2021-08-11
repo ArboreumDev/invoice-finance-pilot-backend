@@ -52,7 +52,7 @@ class Whitelist(Base):
     city = Column(String(50), nullable=False)
     creditline_size = Column(Integer, nullable=False)
     apr = Column(Float, nullable=True)
-    tenor_in_days=Column(Integer, nullable=True)
+    tenor_in_days = Column(Integer, nullable=True)
 
 
 class User(Base): #TUSKER

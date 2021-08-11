@@ -8,7 +8,7 @@ from passlib.context import CryptContext
 from starlette.status import HTTP_401_UNAUTHORIZED
 
 from database.models import User
-from database.whitelist_service import whitelist_service
+from database.crud.whitelist_service import whitelist as whitelist_service
 from utils.common import JWTUser
 from utils.constant import (JWT_ALGORITHM, JWT_EXPIRATION_TIME_MINUTES,
                             JWT_SECRET_KEY)

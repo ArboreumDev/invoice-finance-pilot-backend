@@ -9,7 +9,6 @@ from database.exceptions import (CreditLimitException,
                                  UnknownPurchaserException, WhitelistException)
 from database import crud
 from database.models import Supplier
-from database.whitelist_service import whitelist_service
 from invoice.tusker_client import tusker_client
 from invoice.utils import db_invoice_to_frontend_info, raw_order_to_invoice
 from utils.common import CamelModel, CreditLineInfo, InvoiceFrontendInfo
@@ -19,6 +18,7 @@ from database.db import SessionLocal
 # ===================== routes ==========================
 invoice_app = APIRouter()
 invoice_service = crud.invoice
+whitelist_service = crud.whitelist
 
 
 class OrderRequest(CamelModel):

@@ -6,7 +6,7 @@ from starlette.status import HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND
 from database.exceptions import (DuplicateWhitelistEntryException,
                                  WhitelistException)
 from database.models import Supplier
-from database.whitelist_service import whitelist_service
+from database.crud import whitelist as whitelist_service
 from invoice.tusker_client import tusker_client
 from utils.common import CamelModel, PurchaserInfo, SupplierInfo
 from utils.security import check_jwt_token_role
