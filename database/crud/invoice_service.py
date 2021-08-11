@@ -37,7 +37,7 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         # verify the customer of the order has the purchaser whitelisted
         supplier_id=raw_order.get('cust').get('id')
         location_id = raw_order.get('rcvr').get('id')
-        purchaser_id = crud.whitelist.get_whitelisted_purchaser_from_location_id(supplier_id, location_id)
+        purchaser_id = crud.whitelist.get_whitelisted_purchaser_from_location_id(db, supplier_id, location_id)
         return self._insert_new_invoice_for_purchaser_x_supplier(raw_order, purchaser_id, supplier_id, db)
 
     def _insert_new_invoice_for_purchaser_x_supplier(self, raw_order: Dict, purchaser_id: str, supplier_id: str, db: Session):
@@ -85,7 +85,7 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         invoice = self.get(db, invoice_id)
         update = {}
         if (new_status == "FINANCED"):
-            self.trigger_disbursal(invoice)
+            self.trigger_disbursal(invoice, db)
             update['financed_on'] = dt.datetime.utcnow()
         update['finance_status'] = new_status
         return self.update_and_log(db, invoice, update)
@@ -168,8 +168,7 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         start_date = dt.datetime.utcnow()
         terms = invoice_to_terms(invoice.id, invoice.order_ref, invoice.value, start_date)
         self.update_invoice_with_loan_terms(invoice, terms, db)
-        # TODO use crud
-        supplier = db.query(Supplier).filter(Supplier.supplier_id==invoice.supplier_id).first()
+        supplier = crud.supplier.get(db, invoice.supplier_id)
         msg = terms_to_email_body(terms, supplier.name if supplier else "TODO")
 
         # ================= send email to Tusker with FundRequest
@@ -199,12 +198,12 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
 
     # TODO turn this into a view using
     # https://stackoverflow.com/questions/9766940/how-to-create-an-sql-view-with-sqlalchemy
-    def get_credit_line_info(self, supplier_id: str):
+    def get_credit_line_info(self, supplier_id: str, db: Session):
         credit_line_breakdown = {}
-        for w_entry in crud.whitelist.get_whitelist(supplier_id):
+        for w_entry in crud.whitelist.get_whitelist(db, supplier_id):
             credit_line_size  = w_entry.creditline_size if w_entry.creditline_size != 0 else 0
 
-            invoices = self.session.query(Invoice).filter(Invoice.purchaser_id == w_entry.purchaser_id).all()
+            invoices = db.query(Invoice).filter(Invoice.purchaser_id == w_entry.purchaser_id).all()
             to_be_repaid = sum(i.value for i in invoices if i.finance_status == "FINANCED")
             requested = sum(i.value for i in invoices if i.finance_status in ["DISBURSAL_REQUESTED", "INITIAL"])
             n_of_invoices = len(invoices)
@@ -220,9 +219,9 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
             })
         return credit_line_breakdown
 
-    def get_credit_line_summary(self, supplier_id: str, supplier_name: str):
+    def get_credit_line_summary(self, supplier_id: str, supplier_name: str, db: Session):
         summary = CreditLineInfo(info=PurchaserInfo(name=supplier_name), supplier_id="tusker")
-        credit_line_breakdown = self.get_credit_line_info(supplier_id)
+        credit_line_breakdown = self.get_credit_line_info(supplier_id, db)
         for c in credit_line_breakdown.values():
             summary.total += c.total
             summary.available += c.available
@@ -231,11 +230,11 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
             summary.invoices += c.invoices
         return summary
 
-    def get_provider_summary(self, provider: str):
+    def get_provider_summary(self, provider: str, db: Session):
         """ create a credit line summary for all customers whose role is user """
         credit = {}
-        for supplier in self.session.query(Supplier).all():
-            credit[supplier.name] = invoice_service.get_credit_line_summary(supplier_id=supplier.supplier_id, supplier_name=supplier.name)
+        for supplier in crud.supplier.get_all_suppliers():
+            credit[supplier.name] = crud.invoice.get_credit_line_summary(supplier_id=supplier.supplier_id, supplier_name=supplier.name, db=db)
         return credit
 
 

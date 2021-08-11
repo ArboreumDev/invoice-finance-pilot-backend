@@ -16,7 +16,7 @@ invoice_service = crud.invoice
 db: Session = SessionLocal()
 
 
-def insert_base_user():
+def insert_base_user(db: Session):
     tusker_user = User(
         email = "tusker@mail.india",
         username = "tusker",
@@ -76,9 +76,9 @@ def invoices(db_session: Session) -> Tuple[List[Invoice], Session]:
     reset_db()
 
 @pytest.fixture(scope="function")
-def whitelisted_invoices():
+def whitelisted_invoices(db_session: Session):
     reset_db(deleteWhitelist=True)
-    insert_base_user()
+    insert_base_user(db_session)
 
 
     # create two whitelist entry for supplier
@@ -86,7 +86,7 @@ def whitelisted_invoices():
     _purchaser=p1
 
     whitelist_service.insert_whitelist_entry(
-        db,
+        db_session,
         supplier_id=_supplier_id,
         purchaser=_purchaser,
         creditline_size=50000,
@@ -95,7 +95,7 @@ def whitelisted_invoices():
     )
 
     whitelist_service.insert_whitelist_entry(
-        db,
+        db_session,
         supplier_id=_supplier_id,
         purchaser=p2,
         creditline_size=40000,
@@ -105,24 +105,24 @@ def whitelisted_invoices():
 
     # create two invoices for the first entry
     invoice_service.insert_new_invoice_from_raw_order(
-        db,
         get_new_raw_order(
             purchaser_name=_purchaser.name,
             purchaser_location_id=_purchaser.location_id,
             supplier_id=_supplier_id
-        )
+        ),
+        db_session
     )
     invoice_service.insert_new_invoice_from_raw_order(
-        db,
         get_new_raw_order(
             purchaser_name=_purchaser.name,
             purchaser_location_id=_purchaser.location_id,
             supplier_id=_supplier_id
-        )
+        ),
+        db_session
     )
-    invoices = invoice_service.session.query(Invoice).all()
+    invoices = db_session.query(Invoice).all()
 
-    yield invoices
+    yield invoices, db_session
 
     reset_db(deleteWhitelist=True)
 

@@ -4,8 +4,8 @@ from typing import Dict, List
 from database.exceptions import (DuplicateWhitelistEntryException, UnknownPurchaserException, WhitelistException)
 
 from sqlalchemy.orm import Session
-from database.db import session
-from database.models import Whitelist, Supplier
+from database import crud
+from database.models import Whitelist
 from database.crud.base import CRUDBase
 from database.schemas import WhitelistCreate, WhitelistUpdate
 
@@ -101,7 +101,7 @@ class WhitelistService(CRUDBase[Whitelist, WhitelistCreate, WhitelistUpdate]):
             raise DuplicateWhitelistEntryException("Whitelist entry already exists")
 
         # get default args from supplier-table
-        supplier = db.query(Supplier).filter(Supplier.supplier_id == supplier_id).first()
+        supplier = crud.supplier.get(db, supplier_id)
         _creditline_size = creditline_size if creditline_size else supplier.creditline_size
         _apr = apr if apr else supplier.apr
         _tenor_in_days = tenor_in_days if tenor_in_days else supplier.tenor_in_days

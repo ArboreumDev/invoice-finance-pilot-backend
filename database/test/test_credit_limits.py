@@ -2,29 +2,30 @@ import pytest
 import math
 import copy
 from database import crud
+from sqlalchemy.orm import Session
 from database.crud.invoice_service import InvoiceService, invoice_to_terms
-from database.whitelist_service import WhitelistService
+from database.crud.whitelist_service import WhitelistService
 from database.test.conftest import reset_db
 from database.models import Invoice
 import datetime as dt
 
 
 invoice_service: InvoiceService = crud.invoice
-# invoice_service = InvoiceService(Invoice)
-whitelist_service = WhitelistService()
+whitelist_service: InvoiceService = crud.whitelist
 
 
 def test_credit_line_breakdown(whitelisted_invoices):
-    in1 = whitelisted_invoices[0]
+    invoices, db = whitelisted_invoices
+    in1 = invoices[0]
     supplier_id = in1.supplier_id
-    whitelist_ids = whitelist_service.get_whitelisted_purchaser_ids(supplier_id)
+    whitelist_ids = whitelist_service.get_whitelisted_purchaser_ids(db, supplier_id)
 
-    before = copy.deepcopy(invoice_service.get_credit_line_info(supplier_id))
+    before = copy.deepcopy(invoice_service.get_credit_line_info(supplier_id, db))
 
-    invoice_service.update_invoice_payment_status(in1.id, "FINANCED")
+    invoice_service.update_invoice_payment_status(in1.id, "FINANCED", db)
 
     # verify invoices with disbursed status are deducted from available credit
-    after =  invoice_service.get_credit_line_info(supplier_id)
+    after =  invoice_service.get_credit_line_info(supplier_id, db)
 
     assert after[in1.purchaser_id].used  == before[in1.purchaser_id].used + in1.value
 
@@ -44,8 +45,8 @@ def test_credit_line_breakdown(whitelisted_invoices):
     # after = invoice_service.get_credit_line_info(GURUGRUPA_CUSTOMER_ID)
     # assert after[gurugrupa_receiver1].used == before[gurugrupa_receiver1].used + in1.value + in2.value
 
-def test_credit_line_breakdown_invalid_customer_id():
-    assert invoice_service.get_credit_line_info("deadbeef") == {}
+def test_credit_line_breakdown_invalid_customer_id(db_session: Session):
+    assert invoice_service.get_credit_line_info("deadbeef", db_session) == {}
 
 
 @pytest.mark.skip()
