@@ -1,4 +1,5 @@
 from database.schemas import InvoiceCreate
+from test.integration.conftest import get_auth_header
 import pytest
 from database import crud
 from database.db import SessionLocal, engine
@@ -63,15 +64,16 @@ def invoices(db_session: Session) -> Tuple[List[Invoice], Session]:
 
     reset_db()
     insert_base_user(db_session)
+    auth_header = get_auth_header()
     invoice_service._insert_new_invoice_for_purchaser_x_supplier(
-        get_new_raw_order(purchaser_name='p1', purchaser_location_id='l1'), 'p1', 's1', db
+        get_new_raw_order(purchaser_name='p1', purchaser_location_id='l1'), 'p1', 's1', db_session
     )
     invoice_service._insert_new_invoice_for_purchaser_x_supplier(
-        get_new_raw_order(purchaser_name='p2', purchaser_location_id='l2'), 'p1', 's1', db
+        get_new_raw_order(purchaser_name='p2', purchaser_location_id='l2'), 'p1', 's1', db_session
     )
-    invoices = db.query(Invoice).all()
+    invoices = db_session.query(Invoice).all()
 
-    yield invoices, db
+    yield invoices, db_session, auth_header
 
     reset_db()
 
@@ -135,6 +137,7 @@ p1 = PurchaserInfo(id='aa8b8369-be51-49a3-8419-3d1eb8c4146c', name='Mahantesh Me
 def whitelist_entry(db_session: Session) -> Tuple[PurchaserInfo, str, Session]:
     reset_db(deleteWhitelist=True)
     insert_base_user(db_session)
+    auth_header = get_auth_header()
     whitelist_service.insert_whitelist_entry(
         db_session,
         supplier_id=CUSTOMER_ID,
@@ -144,7 +147,7 @@ def whitelist_entry(db_session: Session) -> Tuple[PurchaserInfo, str, Session]:
         tenor_in_days=90
     )
 
-    yield p1, CUSTOMER_ID, db_session
+    yield p1, CUSTOMER_ID, db_session, auth_header
 
     reset_db(deleteWhitelist=True)
 

@@ -233,7 +233,7 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
     def get_provider_summary(self, provider: str, db: Session):
         """ create a credit line summary for all customers whose role is user """
         credit = {}
-        for supplier in crud.supplier.get_all_suppliers():
+        for supplier in crud.supplier.get_all_suppliers(db):
             credit[supplier.name] = crud.invoice.get_credit_line_summary(supplier_id=supplier.supplier_id, supplier_name=supplier.name, db=db)
         return credit
 
