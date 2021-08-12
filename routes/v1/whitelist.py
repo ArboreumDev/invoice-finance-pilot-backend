@@ -1,17 +1,17 @@
-from routes.dependencies import get_db
 from typing import Dict, List, Optional, Tuple
 
 from fastapi import APIRouter, Body, Depends, HTTPException
+from sqlalchemy.orm import Session
 from starlette.status import HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND
 
+from database.crud import whitelist as whitelist_service
 from database.exceptions import (DuplicateWhitelistEntryException,
                                  WhitelistException)
 from database.models import Supplier
-from database.crud import whitelist as whitelist_service
 from invoice.tusker_client import tusker_client
+from routes.dependencies import get_db
 from utils.common import CamelModel, PurchaserInfo, SupplierInfo
 from utils.security import check_jwt_token_role
-from sqlalchemy.orm import Session
 
 # ===================== routes ==========================
 whitelist_app = APIRouter()
@@ -36,8 +36,9 @@ class WhitelistUpdateInput(CamelModel):
 
 @whitelist_app.post("/whitelist/new", response_model=Dict, tags=["invoice"])
 def _insert_new_whitelist_entry(
-    input: WhitelistInput = Body(..., embed=True), user_info: Tuple[str, str] = Depends(check_jwt_token_role),
-    db: Session = Depends(get_db)
+    input: WhitelistInput = Body(..., embed=True),
+    user_info: Tuple[str, str] = Depends(check_jwt_token_role),
+    db: Session = Depends(get_db),
 ):
     try:
         # print('try adding ', input) # LOG
@@ -55,8 +56,9 @@ def _insert_new_whitelist_entry(
 
 @whitelist_app.post("/whitelist/update", response_model=Dict, tags=["invoice"])
 def _update_whitelist_entry(
-    update: WhitelistUpdateInput = Body(..., embed=True), user_info: Tuple[str, str] = Depends(check_jwt_token_role),
-    db: Session = Depends(get_db)
+    update: WhitelistUpdateInput = Body(..., embed=True),
+    user_info: Tuple[str, str] = Depends(check_jwt_token_role),
+    db: Session = Depends(get_db),
 ):
     # TODO  check if I can use different way to use Depends
     try:

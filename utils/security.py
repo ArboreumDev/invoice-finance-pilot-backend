@@ -5,15 +5,14 @@ import jwt
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
+from sqlalchemy.orm import Session
 from starlette.status import HTTP_401_UNAUTHORIZED
 
 from database.models import User
-from database.crud.whitelist_service import whitelist as whitelist_service
+from routes.dependencies import get_db
 from utils.common import JWTUser
 from utils.constant import (JWT_ALGORITHM, JWT_EXPIRATION_TIME_MINUTES,
                             JWT_SECRET_KEY)
-from sqlalchemy.orm import Session
-from routes.dependencies import get_db
 
 oauth_schema = OAuth2PasswordBearer(tokenUrl="/token")
 pwd_context = CryptContext(schemes=["bcrypt"])

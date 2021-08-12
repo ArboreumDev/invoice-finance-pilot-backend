@@ -1,23 +1,19 @@
 from typing import Dict, List, Tuple
 
-from requests.api import get
-from routes.dependencies import get_db
-
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
 from starlette.status import (HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND,
                               HTTP_500_INTERNAL_SERVER_ERROR)
 
+from database import crud
 from database.exceptions import (CreditLimitException,
                                  DuplicateInvoiceException,
                                  UnknownPurchaserException, WhitelistException)
-from database import crud
-from database.models import Supplier
 from invoice.tusker_client import tusker_client
 from invoice.utils import db_invoice_to_frontend_info, raw_order_to_invoice
+from routes.dependencies import get_db
 from utils.common import CamelModel, CreditLineInfo, InvoiceFrontendInfo
 from utils.security import check_jwt_token_role
-from database.db import SessionLocal
-from sqlalchemy.orm import Session
 
 # ===================== routes ==========================
 invoice_app = APIRouter()
@@ -37,6 +33,7 @@ class OrderRequest(CamelModel):
 #     finally:
 #         db.close()
 
+
 @invoice_app.get("/")
 def _health():
     return {"Ok"}
@@ -44,10 +41,10 @@ def _health():
 
 @invoice_app.get("/order/{order_reference_number}", response_model=InvoiceFrontendInfo, tags=["orders"])
 def _get_order(
-        order_reference_number: str,
-        user_info: Tuple[str, str] = Depends(check_jwt_token_role),
-        db: Session = Depends(get_db)
-    ):
+    order_reference_number: str,
+    user_info: Tuple[str, str] = Depends(check_jwt_token_role),
+    db: Session = Depends(get_db),
+):
     """ read raw order data from tusker """
     username, role = user_info
     print(f"{username} with role {role} wants to know about order {order_reference_number}")
@@ -74,7 +71,7 @@ def _get_order(
 
 # @invoice_app.get("/invoice", response_model=List[InvoiceFrontendInfo], tags=["invoice"])
 @invoice_app.get("/invoice", tags=["invoice"])
-def _get_invoices_from_db( db: Session = Depends(get_db)):
+def _get_invoices_from_db(db: Session = Depends(get_db)):
     """
     return all invoices that we are currently tracking as they are in our db
     """
