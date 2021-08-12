@@ -1,8 +1,44 @@
 from starlette.testclient import TestClient
+import pytest
+from database import crud
+from database.models import User
+from database.schemas.supplier import SupplierCreate
+from sqlalchemy.orm import Session
+from database.db import SessionLocal
 
 from main import app
 
 client = TestClient(app)
+CUSTOMER_ID = "0001e776-c372-4ec5-8fa4-f30ab74ca631"
+
+@pytest.fixture(scope="function")
+def db_session():
+    _db = SessionLocal()
+    try:
+        yield _db
+    finally:
+        _db.close()
+
+def reset_db(db: Session, deleteWhitelist = False):
+    db.connection().execute("delete from invoice")
+    db.connection().execute("delete from invoice")
+    db.connection().execute("delete from users")
+    db.connection().execute("delete from supplier")
+    if deleteWhitelist:
+        db.connection().execute("delete from whitelist")
+    db.commit()
+
+
+def insert_base_user(db: Session):
+    tusker_user = User(
+        email = "tusker@mail.india",
+        username = "tusker",
+        hashed_password = "$2b$12$8t8LDzm.Ag68n6kv8pZoI.Oqd1x1rczNfe8QUcZwp6wnX8.dse0Ni", # pw=tusker
+        role = "tusker",
+    )
+    # TODO use crudUser
+    db.add(tusker_user)
+    db.commit()
 
 
 def get_auth_header():
@@ -12,3 +48,39 @@ def get_auth_header():
     jwt_token = response.json()["access_token"]
     auth_header = {"Authorization": f"Bearer {jwt_token}"}
     return auth_header
+
+@pytest.fixture(scope="function")
+def auth_user(db_session):
+    """ empty db, except one user registered """
+    db_session.connection().execute("delete from users")
+
+    insert_base_user(db_session)
+    auth_header = get_auth_header()
+
+    yield auth_header
+
+    db_session.connection().execute("delete from users")
+
+
+
+@pytest.fixture(scope="function")
+def supplier_x_auth_user(db_session, auth_user):
+    """ one user and one supplier registered """
+
+    crud.supplier.remove_if_there(db_session, CUSTOMER_ID)
+
+    supplier_in_db = crud.supplier.create(
+        db=db_session,
+        obj_in=SupplierCreate(
+            supplier_id=CUSTOMER_ID,
+            name="TestSupplier",
+            creditline_size=400000000,
+            default_apr=0.142,
+            default_tenor_in_days=90,
+        ),
+    )
+    yield supplier_in_db, auth_user, db_session
+
+    crud.supplier.remove_if_there(db_session, CUSTOMER_ID)
+    reset_db(db_session)
+

@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 # from routes.v1.mapping import mapping_app
 from routes.v1.invoice import invoice_app
 from routes.v1.whitelist import whitelist_app
+from routes.v1.supplier import supplier_app
 from routes.v1.test import test_app
 from starlette.status import HTTP_401_UNAUTHORIZED
 from utils.common import JWTUser
@@ -22,6 +23,7 @@ app = FastAPI()
 
 app.include_router(invoice_app, prefix="/v1", dependencies=[Depends(check_jwt_token_role)])
 app.include_router(whitelist_app, prefix="/v1", dependencies=[Depends(check_jwt_token_role)])
+app.include_router(supplier_app, prefix="/v1", dependencies=[Depends(check_jwt_token_role)])
 app.include_router(test_app, prefix="/v1/test", dependencies=[])
 
 app.add_middleware(

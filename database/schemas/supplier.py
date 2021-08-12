@@ -17,12 +17,10 @@ class SupplierCreate(SupplierBase):
     pass
 
     
-class SupplierUpdate():
-    supplier_id: Optional[str]
-    name: Optional[str]
-    creditline_size: Optional[int]
-    default_apr: Optional[float]
-    default_tenor_in_days: Optional[int]
+class SupplierUpdate(BaseModel):
+    creditline_size: Optional[int] = None
+    default_apr: Optional[float] = None
+    default_tenor_in_days: Optional[int] = None
 
 class SupplierInDB(SupplierBase):
     pass

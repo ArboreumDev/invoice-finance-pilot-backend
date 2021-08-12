@@ -30,10 +30,6 @@ class WhitelistUpdateInput(CamelModel):
     tenor_in_days: Optional[int]
 
 
-# class WhitelistInput(CamelModel):
-#     input: WhitelistInput2
-
-
 @whitelist_app.post("/whitelist/new", response_model=Dict, tags=["invoice"])
 def _insert_new_whitelist_entry(
     input: WhitelistInput = Body(..., embed=True),
@@ -77,25 +73,9 @@ def _update_whitelist_entry(
 
 
 @whitelist_app.post("/whitelist/search/{searchString}", response_model=Dict, tags=["invoice"])
-def _search_purchaser(searchString: str, user_info: Tuple[str, str] = Depends(check_jwt_token_role)):
+def _search_tusker_user(searchString: str, user_info: Tuple[str, str] = Depends(check_jwt_token_role)):
     try:
         return tusker_client.customer_to_receiver_info(search_string=searchString)
     except Exception as e:
         print(e)
         raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail=str(e))
-
-
-# TODO properly do this
-@whitelist_app.get("/supplier", response_model=List[SupplierInfo])
-def _get_suppliers(user_info: Tuple[str, str] = Depends(check_jwt_token_role), db: Session = Depends(get_db)):
-    suppliers = supplier_service.get_all_suppliers(db)
-    return [
-        SupplierInfo(
-            **{
-                "name": s.name,
-                "id": s.supplier_id,
-                "default_terms": {"apr": s.default_apr, "tenor_in_days": s.default_tenor_in_days, "creditline_size": 0},
-            }
-        ).dict()
-        for s in suppliers
-    ]

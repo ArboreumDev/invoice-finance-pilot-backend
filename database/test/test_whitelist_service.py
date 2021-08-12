@@ -35,7 +35,7 @@ def test_optional_parameter_entry():
 
 
 def test_insert_duplicate_whitelist_entry_fails(whitelist_entry: Tuple[PurchaserInfo, str]):
-    _p1, _customer_id = whitelist_entry
+    _p1, _customer_id, db = whitelist_entry
     with pytest.raises(DuplicateWhitelistEntryException):
         whitelist_service.insert_whitelist_entry(
             db,
@@ -47,12 +47,12 @@ def test_insert_duplicate_whitelist_entry_fails(whitelist_entry: Tuple[Purchaser
         )
 
 def test_whitelist_okay(whitelist_entry: Tuple[PurchaserInfo, str]):
-    _p1, _supplier_id = whitelist_entry
+    _p1, _supplier_id, db = whitelist_entry
     assert whitelist_service.purchaser_is_whitelisted(db, _supplier_id, _p1.id)
     assert whitelist_service.location_is_whitelisted(db, _supplier_id, _p1.location_id)
 
 def test_whitelist_failure(whitelist_entry: Tuple[PurchaserInfo, str]):
-    _p1, _supplier_id = whitelist_entry
+    _p1, _supplier_id, db = whitelist_entry
 
     # verify with existing Purchaser/location
     assert not whitelist_service.purchaser_is_whitelisted(db, _supplier_id, OTHER_PURCHASER_ID)

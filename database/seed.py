@@ -65,6 +65,7 @@ gurugrupa = SupplierCreate(
 	name='Gurugrupa',
 	creditline_size=MAX_CREDIT * (len(GURUGRUPA_RECEIVERS) + 3),
 	default_apr=MONTHLY_INTEREST,
+	# default_apr=.3,
 	default_tenor_in_days=DEFAULT_LOAN_TENOR
 )
 crud.supplier.create(db_session, obj_in=gurugrupa)

@@ -60,7 +60,7 @@ def test_whitelist_update(auth_user, db_session):
     # new_tenor = 90
 
     w_before = whitelist_service.get_whitelist_entry(db_session, supplier_id, purchaser_id)
-    assert w_before.apr != new_creditline_size
+    assert w_before.creditline_size != new_creditline_size
     assert w_before.apr != new_apr
     # assert w_before.tenor_in_days != new_tenor
 

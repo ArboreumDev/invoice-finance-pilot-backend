@@ -1,3 +1,5 @@
+from routes.v1.supplier import SupplierUpdateInput
+from database.exceptions import UnknownSupplierException
 from os import name
 from typing import Dict, List
 from sqlalchemy.orm import Session
@@ -18,5 +20,21 @@ class SupplierService(CRUDBase[Supplier, SupplierCreate, SupplierUpdate]):
         obj = self.get(db, supplier_id)
         db.delete(obj)
         db.commit()
+    
+    def remove_if_there(self, db: Session, supplier_id: str):
+        if self.get(db, supplier_id):
+            self.remove(db, supplier_id)
+
+    def update( self, db: Session, update: SupplierUpdateInput):
+        supplier_entry = self.get(db, supplier_id=update.supplier_id)
+        if not supplier_entry:
+            raise UnknownSupplierException("Supplier entry doesnt exist")
+
+        return super().update(
+            db=db,
+            db_obj=supplier_entry,
+            obj_in=SupplierUpdate(**update.dict())
+        )
+
  
 supplier = SupplierService(Supplier)

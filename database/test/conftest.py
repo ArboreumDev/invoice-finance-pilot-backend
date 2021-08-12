@@ -3,7 +3,8 @@ from test.integration.conftest import get_auth_header
 import pytest
 from database import crud
 from database.db import SessionLocal, engine
-from database.models import Invoice, Base, User
+from database.models import Invoice, Base, User, Supplier
+from database.schemas.supplier import SupplierCreate
 from database.test.fixtures import OTHER_CUSTOMER_ID, RAW_ORDER, NEW_RAW_ORDER, get_new_raw_order, p2, p1
 from invoice.tusker_client import tusker_client
 from utils.constant import GURUGRUPA_CUSTOMER_ID
@@ -73,7 +74,7 @@ def invoices(db_session: Session) -> Tuple[List[Invoice], Session]:
     )
     invoices = db_session.query(Invoice).all()
 
-    yield invoices, db_session, auth_header
+    yield invoices, db_session
 
     reset_db()
 
@@ -147,8 +148,26 @@ def whitelist_entry(db_session: Session) -> Tuple[PurchaserInfo, str, Session]:
         tenor_in_days=90
     )
 
-    yield p1, CUSTOMER_ID, db_session, auth_header
+    yield p1, CUSTOMER_ID, db_session
 
     reset_db(deleteWhitelist=True)
 
+
+@pytest.fixture(scope="function")
+def supplier_entry(db_session) -> Tuple[Supplier, Session]:
+    crud.supplier.remove_if_there(db, CUSTOMER_ID)
+
+    supplier_in_db = crud.supplier.create(
+        db=db_session,
+        obj_in=SupplierCreate(
+            supplier_id=CUSTOMER_ID,
+            name="TestSupplier",
+            creditline_size=400000000,
+            default_apr=0.142,
+            default_tenor_in_days=90,
+        ),
+    )
+    yield supplier_in_db, db_session
+
+    crud.supplier.remove_if_there(db, CUSTOMER_ID)
 
