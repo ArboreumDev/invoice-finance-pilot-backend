@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from starlette.status import HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND
 
 from database.crud import whitelist as whitelist_service
+from database.crud import supplier as supplier_service
 from database.exceptions import (DuplicateWhitelistEntryException,
                                  WhitelistException)
 from database.models import Supplier
@@ -87,8 +88,8 @@ def _search_purchaser(searchString: str, user_info: Tuple[str, str] = Depends(ch
 
 # TODO properly do this
 @whitelist_app.get("/supplier", response_model=List[SupplierInfo])
-def _get_suppliers(user_info: Tuple[str, str] = Depends(check_jwt_token_role)):
-    suppliers = whitelist_service.session.query(Supplier).all()
+def _get_suppliers(user_info: Tuple[str, str] = Depends(check_jwt_token_role), db: Session = Depends(get_db)):
+    suppliers = supplier_service.get_all_suppliers(db)
     return [
         SupplierInfo(
             **{
