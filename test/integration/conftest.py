@@ -4,6 +4,7 @@ from main import app
 
 client = TestClient(app)
 
+
 def get_auth_header():
     response = client.post("/token", dict(username="tusker", password="tusker"))
     if response.status_code != 200:

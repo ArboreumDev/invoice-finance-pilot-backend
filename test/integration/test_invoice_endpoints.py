@@ -1,4 +1,3 @@
-from database.schemas.supplier import SupplierCreate
 from test.integration.conftest import get_auth_header
 from typing import Dict, Tuple
 
@@ -9,9 +8,10 @@ from starlette.status import (HTTP_200_OK, HTTP_400_BAD_REQUEST,
 from starlette.testclient import TestClient
 
 from database.crud.invoice_service import invoice as invoice_service
-from database.crud.whitelist_service import whitelist as whitelist_service
 from database.crud.supplier_service import supplier as supplier_service
-from database.test.conftest import insert_base_user, reset_db, invoices, whitelist_entry, db_session
+from database.crud.whitelist_service import whitelist as whitelist_service
+from database.schemas.supplier import SupplierCreate
+from database.test.conftest import insert_base_user, reset_db
 from database.test.fixtures import p1, p2
 from invoice.tusker_client import tusker_client
 from main import app
@@ -19,6 +19,8 @@ from utils.common import InvoiceFrontendInfo, PurchaserInfo
 from utils.constant import GURUGRUPA_CUSTOMER_ID, LOC_ID4
 
 client = TestClient(app)
+CUSTOMER_ID = "0001e776-c372-4ec5-8fa4-f30ab74ca631"
+
 
 # TODO figure out why these fixtures can not be imported from the other conftest file
 @pytest.fixture(scope="function")
@@ -45,37 +47,28 @@ def whitelist_and_invoices(db_session) -> Tuple[Tuple, Tuple, str, PurchaserInfo
     reset_db(deleteWhitelist=True)
 
 
-CUSTOMER_ID = "0001e776-c372-4ec5-8fa4-f30ab74ca631"
-p1 = PurchaserInfo(id='aa8b8369-be51-49a3-8419-3d1eb8c4146c', name='Mahantesh Medical', phone='+91-9449642927', city='Kundagol', location_id='e0f2c12d-9371-4863-a39a-0037cd6c711b')
 @pytest.fixture(scope="function")
 def whitelist_entry(db_session: Session) -> Tuple[PurchaserInfo, str, Session]:
     reset_db(deleteWhitelist=True)
     insert_base_user(db_session)
     auth_header = get_auth_header()
     whitelist_service.insert_whitelist_entry(
-        db_session,
-        supplier_id=CUSTOMER_ID,
-        purchaser=p1,
-        creditline_size=50000,
-        apr=0.1,
-        tenor_in_days=90
+        db_session, supplier_id=CUSTOMER_ID, purchaser=p1, creditline_size=50000, apr=0.1, tenor_in_days=90
     )
     supplier_service.create(
         db=db_session,
         obj_in=SupplierCreate(
             supplier_id=CUSTOMER_ID,
             name="TestSupplier",
-            creditline_size = 400000000,
+            creditline_size=400000000,
             default_apr=0.142,
-            default_tenor_in_days=90
-        )
+            default_tenor_in_days=90,
+        ),
     )
 
     yield p1, CUSTOMER_ID, db_session, auth_header
 
     reset_db(deleteWhitelist=True)
-
-
 
 
 # TODO add jwt-token to all requests / modify client to have a valid header by default
