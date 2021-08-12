@@ -1,16 +1,15 @@
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
 from starlette.status import HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND
 
-from database.crud import supplier as supplier_service
 from database.crud import whitelist as whitelist_service
 from database.exceptions import (DuplicateWhitelistEntryException,
                                  WhitelistException)
 from invoice.tusker_client import tusker_client
 from routes.dependencies import get_db
-from utils.common import CamelModel, PurchaserInfo, SupplierInfo
+from utils.common import CamelModel, PurchaserInfo
 from utils.security import check_jwt_token_role
 
 # ===================== routes ==========================

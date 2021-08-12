@@ -11,7 +11,8 @@ from database.crud.invoice_service import invoice as invoice_service
 from database.crud.supplier_service import supplier as supplier_service
 from database.crud.whitelist_service import whitelist as whitelist_service
 from database.schemas.supplier import SupplierCreate
-from database.test.conftest import insert_base_user, reset_db, db_session  # noqa: 401
+from database.test.conftest import (db_session, insert_base_user,  # noqa: 401
+                                    reset_db)
 from database.test.fixtures import p1, p2
 from invoice.tusker_client import tusker_client
 from main import app

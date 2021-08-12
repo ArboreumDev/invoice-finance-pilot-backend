@@ -1,15 +1,16 @@
-from starlette.testclient import TestClient
 import pytest
+from sqlalchemy.orm import Session
+from starlette.testclient import TestClient
+
 from database import crud
+from database.db import SessionLocal
 from database.models import User
 from database.schemas.supplier import SupplierCreate
-from sqlalchemy.orm import Session
-from database.db import SessionLocal
-
 from main import app
 
 client = TestClient(app)
 CUSTOMER_ID = "0001e776-c372-4ec5-8fa4-f30ab74ca631"
+
 
 @pytest.fixture(scope="function")
 def db_session():
@@ -19,7 +20,8 @@ def db_session():
     finally:
         _db.close()
 
-def reset_db(db: Session, deleteWhitelist = False):
+
+def reset_db(db: Session, deleteWhitelist=False):
     db.connection().execute("delete from invoice")
     db.connection().execute("delete from invoice")
     db.connection().execute("delete from users")
@@ -31,10 +33,10 @@ def reset_db(db: Session, deleteWhitelist = False):
 
 def insert_base_user(db: Session):
     tusker_user = User(
-        email = "tusker@mail.india",
-        username = "tusker",
-        hashed_password = "$2b$12$8t8LDzm.Ag68n6kv8pZoI.Oqd1x1rczNfe8QUcZwp6wnX8.dse0Ni", # pw=tusker
-        role = "tusker",
+        email="tusker@mail.india",
+        username="tusker",
+        hashed_password="$2b$12$8t8LDzm.Ag68n6kv8pZoI.Oqd1x1rczNfe8QUcZwp6wnX8.dse0Ni",  # pw=tusker
+        role="tusker",
     )
     # TODO use crudUser
     db.add(tusker_user)
@@ -49,6 +51,7 @@ def get_auth_header():
     auth_header = {"Authorization": f"Bearer {jwt_token}"}
     return auth_header
 
+
 @pytest.fixture(scope="function")
 def auth_user(db_session):
     """ empty db, except one user registered """
@@ -60,7 +63,6 @@ def auth_user(db_session):
     yield auth_header
 
     db_session.connection().execute("delete from users")
-
 
 
 @pytest.fixture(scope="function")
@@ -83,4 +85,3 @@ def supplier_x_auth_user(db_session, auth_user):
 
     crud.supplier.remove_if_there(db_session, CUSTOMER_ID)
     reset_db(db_session)
-

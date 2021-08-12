@@ -1,23 +1,16 @@
-from test.integration.conftest import get_auth_header
 
 import pytest
 from starlette.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
 from starlette.testclient import TestClient
 
 from database.crud.supplier_service import supplier as supplier_service
-from database.test.conftest import insert_base_user, reset_db
 from main import app
-from routes.v1.supplier import SupplierUpdateInput, SupplierCreate
-from utils.common import PurchaserInfo, Terms
+from routes.v1.supplier import SupplierCreate, SupplierUpdateInput
 
 client = TestClient(app)
 
 new_supplier_entry = SupplierCreate(
-    supplier_id="s1",
-    name="supplierName",
-    creditline_size=50000, 
-    default_apr=0.1,
-    default_tenor_in_days=90
+    supplier_id="s1", name="supplierName", creditline_size=50000, default_apr=0.1, default_tenor_in_days=90
 ).dict()
 
 
