@@ -1,13 +1,14 @@
 from typing import Tuple
 
 from fastapi import APIRouter, Depends, HTTPException
-from starlette.status import HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR
 from sqlalchemy.orm import Session
-from routes.dependencies import get_db
+from starlette.status import HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR
+
 from database.crud import whitelist as whitelist_service
 from database.crud.invoice_service import invoice as invoice_service
 from database.exceptions import UnknownPurchaserException
 from invoice.tusker_client import tusker_client
+from routes.dependencies import get_db
 from utils.security import check_jwt_token_role
 
 # ===================== routes ==========================
@@ -51,8 +52,11 @@ def mark_as_delivered(invoiceId: str):
 
 @test_app.post("/new/order/{supplier_id}/{purchaser_id}/{value}")
 def create_new_test_order(
-    supplier_id: str, purchaser_id: str, value: float, user_info: Tuple[str, str] = Depends(check_jwt_token_role),
-    db: Session = Depends(get_db)
+    supplier_id: str,
+    purchaser_id: str,
+    value: float,
+    user_info: Tuple[str, str] = Depends(check_jwt_token_role),
+    db: Session = Depends(get_db),
 ):
     username, _ = user_info
     try:

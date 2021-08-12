@@ -11,7 +11,7 @@ from database.crud.invoice_service import invoice as invoice_service
 from database.crud.supplier_service import supplier as supplier_service
 from database.crud.whitelist_service import whitelist as whitelist_service
 from database.schemas.supplier import SupplierCreate
-from database.test.conftest import insert_base_user, reset_db, db_session
+from database.test.conftest import insert_base_user, reset_db, db_session  # noqa: 401
 from database.test.fixtures import p1, p2
 from invoice.tusker_client import tusker_client
 from main import app
@@ -24,7 +24,7 @@ CUSTOMER_ID = "0001e776-c372-4ec5-8fa4-f30ab74ca631"
 
 # TODO figure out why these fixtures can not be imported from the other conftest file
 @pytest.fixture(scope="function")
-def whitelist_and_invoices(db_session) -> Tuple[Tuple, Tuple, str, PurchaserInfo, Session, Dict]:
+def whitelist_and_invoices(db_session) -> Tuple[Tuple, Tuple, str, PurchaserInfo, Session, Dict]:  # noqa: F811
     reset_db(deleteWhitelist=True)
     insert_base_user(db_session)
     auth_header = get_auth_header()
@@ -48,7 +48,7 @@ def whitelist_and_invoices(db_session) -> Tuple[Tuple, Tuple, str, PurchaserInfo
 
 
 @pytest.fixture(scope="function")
-def whitelist_entry(db_session: Session) -> Tuple[PurchaserInfo, str, Session]:
+def whitelist_entry(db_session: Session) -> Tuple[PurchaserInfo, str, Session]:  # noqa: F811
     reset_db(deleteWhitelist=True)
     insert_base_user(db_session)
     auth_header = get_auth_header()
@@ -86,14 +86,14 @@ def test_invalid_credential():
 # TODO all negative endpoint results
 def test_insert_existing_invoice_failure(whitelist_and_invoices):
     _, order_ref1 = whitelist_and_invoices[0]
-    db_session, auth_header = whitelist_and_invoices[4], whitelist_and_invoices[5]
+    db, auth_header = whitelist_and_invoices[4], whitelist_and_invoices[5]
 
-    assert len(invoice_service.get_all_invoices(db_session)) == 0
+    assert len(invoice_service.get_all_invoices(db)) == 0
     # should add new invoice to db
     res = client.post(f"v1/invoice/{order_ref1}", headers=auth_header)
 
     assert res.status_code == HTTP_200_OK
-    assert len(invoice_service.get_all_invoices(db_session)) == 1
+    assert len(invoice_service.get_all_invoices(db)) == 1
 
     res = client.post(f"v1/invoice/{order_ref1}", headers=auth_header)
     assert res.status_code == HTTP_400_BAD_REQUEST
