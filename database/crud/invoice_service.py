@@ -181,13 +181,13 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
             raise AssertionError(f"Could not send email: {str(e)}") # TODO add custom exception
 
 
-    def check_credit_limit(self, raw_order):
+    def check_credit_limit(self, raw_order, db: Session):
         target_location_id=raw_order.get('rcvr').get('id')
         supplier_id=raw_order.get('cust').get('id')
-        purchaser_id = crud.whitelist.get_whitelisted_purchaser_from_location_id(supplier_id, target_location_id)
+        purchaser_id = crud.whitelist.get_whitelisted_purchaser_from_location_id(db, supplier_id, target_location_id)
 
         value=raw_order_to_price(raw_order)
-        credit = self.get_credit_line_info(supplier_id)
+        credit = self.get_credit_line_info(supplier_id, db)
 
         if credit[purchaser_id].available < value:
             raise CreditLimitException(

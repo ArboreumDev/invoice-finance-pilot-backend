@@ -21,7 +21,7 @@ class WhitelistBase(BaseModel):
 class WhitelistCreate(WhitelistBase):
     pass
     
-class WhitelistUpdate():
+class WhitelistUpdate(BaseModel):
     supplier_id: Optional[str]
     purchaser_id: Optional[str]
     location_id: Optional[str]

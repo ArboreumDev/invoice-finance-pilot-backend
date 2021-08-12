@@ -62,7 +62,7 @@ def invoice1(db_session: Session) -> Tuple[Invoice, Session]:
 def invoices(db_session: Session) -> Tuple[List[Invoice], Session]:
 
     reset_db()
-    insert_base_user()
+    insert_base_user(db_session)
     invoice_service._insert_new_invoice_for_purchaser_x_supplier(
         get_new_raw_order(purchaser_name='p1', purchaser_location_id='l1'), 'p1', 's1', db
     )
@@ -132,11 +132,11 @@ def whitelisted_invoices(db_session: Session):
 CUSTOMER_ID = "0001e776-c372-4ec5-8fa4-f30ab74ca631"
 p1 = PurchaserInfo(id='aa8b8369-be51-49a3-8419-3d1eb8c4146c', name='Mahantesh Medical', phone='+91-9449642927', city='Kundagol', location_id='e0f2c12d-9371-4863-a39a-0037cd6c711b')
 @pytest.fixture(scope="function")
-def whitelist_entry() -> Tuple[PurchaserInfo, str]:
+def whitelist_entry(db_session: Session) -> Tuple[PurchaserInfo, str, Session]:
     reset_db(deleteWhitelist=True)
-    insert_base_user()
+    insert_base_user(db_session)
     whitelist_service.insert_whitelist_entry(
-        db,
+        db_session,
         supplier_id=CUSTOMER_ID,
         purchaser=p1,
         creditline_size=50000,
@@ -144,7 +144,7 @@ def whitelist_entry() -> Tuple[PurchaserInfo, str]:
         tenor_in_days=90
     )
 
-    yield p1, CUSTOMER_ID
+    yield p1, CUSTOMER_ID, db_session
 
     reset_db(deleteWhitelist=True)
 

@@ -1,12 +1,16 @@
 
 from utils.common import PurchaserInfo, WhiteListEntry
 from utils.constant import MAX_CREDIT, DEFAULT_LOAN_TENOR, MONTHLY_INTEREST , OTHER_CUSTOMER_ID
-from database.whitelist_service import whitelist_service
 from database.models import User, Supplier
+from database.schemas.supplier import SupplierCreate
 from dotenv import load_dotenv
 import os
 
 from database.test.conftest import reset_db
+from database.db import SessionLocal
+from database import crud
+
+db_session = SessionLocal()
 
 load_dotenv()
 reset_db(deleteWhitelist=True)
@@ -46,7 +50,6 @@ GURUGRUPA_RECEIVERS = [
  PurchaserInfo(id='d9abccd6-e4c7-445c-bc18-5db251c2865b', name='Sanjeevini medicals', phone='+91-9448139277', city='Haveri', location_id='f5824c53-c43b-4035-85df-9d8bdc7bd077')
 ]
 
-# get pw: "test_user": get_hashed_password("test_password"),
 # insert tusker as initial user
 tusker_user = User(
 	email = "tusker@mail.india",
@@ -54,32 +57,32 @@ tusker_user = User(
 	hashed_password = "$2b$12$8t8LDzm.Ag68n6kv8pZoI.Oqd1x1rczNfe8QUcZwp6wnX8.dse0Ni", # pw=tusker
 	role = "tusker",
 )
-whitelist_service.session.add(tusker_user)
+db_session.add(tusker_user)
 
 # insert gurugrupa and test customer into Supplier DB
-gurugrupa = Supplier(
+gurugrupa = SupplierCreate(
 	supplier_id=GURUGRUPA_CUSTOMER_ID,
 	name='Gurugrupa',
 	creditline_size=MAX_CREDIT * (len(GURUGRUPA_RECEIVERS) + 3),
 	default_apr=MONTHLY_INTEREST,
 	default_tenor_in_days=DEFAULT_LOAN_TENOR
 )
-whitelist_service.session.add(gurugrupa)
+crud.supplier.create(db_session, obj_in=gurugrupa)
 
-test_supplier = Supplier(
+test_supplier = SupplierCreate(
 	supplier_id=OTHER_CUSTOMER_ID,
 	name='TEST Supplier',
 	creditline_size=30000 * 5,
 	default_apr=0.1,
 	default_tenor_in_days=180
 )
-whitelist_service.session.add(test_supplier)
-whitelist_service.session.commit()
+crud.supplier.create(db_session, obj_in=test_supplier)
 
 
 # insert whitelist seeds
 for purchaser in GURUGRUPA_RECEIVERS:
-	whitelist_service.insert_whitelist_entry(
+	crud.whitelist.insert_whitelist_entry(
+		db=db_session,
 		supplier_id=GURUGRUPA_CUSTOMER_ID,
 		purchaser=purchaser,
 		creditline_size=MAX_CREDIT,
@@ -88,7 +91,8 @@ for purchaser in GURUGRUPA_RECEIVERS:
 	)
 
 for purchaser in GURUGRUPA_RECEIVERS[-2:]:
-    	whitelist_service.insert_whitelist_entry(
+    	crud.whitelist.insert_whitelist_entry(
+		db=db_session,
 		supplier_id=test_supplier.supplier_id,
 		purchaser=purchaser,
 		creditline_size=30000,

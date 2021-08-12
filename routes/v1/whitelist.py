@@ -1,3 +1,4 @@
+from routes.dependencies import get_db
 from typing import Dict, List, Optional, Tuple
 
 from fastapi import APIRouter, Body, Depends, HTTPException
@@ -10,6 +11,7 @@ from database.crud import whitelist as whitelist_service
 from invoice.tusker_client import tusker_client
 from utils.common import CamelModel, PurchaserInfo, SupplierInfo
 from utils.security import check_jwt_token_role
+from sqlalchemy.orm import Session
 
 # ===================== routes ==========================
 whitelist_app = APIRouter()
@@ -34,11 +36,13 @@ class WhitelistUpdateInput(CamelModel):
 
 @whitelist_app.post("/whitelist/new", response_model=Dict, tags=["invoice"])
 def _insert_new_whitelist_entry(
-    input: WhitelistInput = Body(..., embed=True), user_info: Tuple[str, str] = Depends(check_jwt_token_role)
+    input: WhitelistInput = Body(..., embed=True), user_info: Tuple[str, str] = Depends(check_jwt_token_role),
+    db: Session = Depends(get_db)
 ):
     try:
         # print('try adding ', input) # LOG
         whitelist_service.insert_whitelist_entry(
+            db=db,
             supplier_id=input.supplier_id,
             purchaser=input.purchaser,
             creditline_size=input.purchaser.terms.creditline_size,
@@ -51,12 +55,13 @@ def _insert_new_whitelist_entry(
 
 @whitelist_app.post("/whitelist/update", response_model=Dict, tags=["invoice"])
 def _update_whitelist_entry(
-    update: WhitelistUpdateInput = Body(..., embed=True), user_info: Tuple[str, str] = Depends(check_jwt_token_role)
+    update: WhitelistUpdateInput = Body(..., embed=True), user_info: Tuple[str, str] = Depends(check_jwt_token_role),
+    db: Session = Depends(get_db)
 ):
     # TODO  check if I can use different way to use Depends
-    print("sf", update)
     try:
         whitelist_service.update_whitelist_entry(  # **update)
+            db=db,
             supplier_id=update.supplier_id,
             purchaser_id=update.purchaser_id,
             creditline_size=update.creditline_size,

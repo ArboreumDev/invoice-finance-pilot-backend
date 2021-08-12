@@ -12,6 +12,8 @@ from database.crud.whitelist_service import whitelist as whitelist_service
 from utils.common import JWTUser
 from utils.constant import (JWT_ALGORITHM, JWT_EXPIRATION_TIME_MINUTES,
                             JWT_SECRET_KEY)
+from sqlalchemy.orm import Session
+from routes.dependencies import get_db
 
 oauth_schema = OAuth2PasswordBearer(tokenUrl="/token")
 pwd_context = CryptContext(schemes=["bcrypt"])
@@ -30,12 +32,12 @@ def verify_password(plain_password: str, hashed_password: str):
 
 
 # Authenticate username and password to give JWT token
-def authenticate_user(jwt_user: JWTUser):
+def authenticate_user(db: Session, jwt_user: JWTUser):
     """
     checks whether user is in DB, the given password is correct
     returns role of the user
     """
-    db_user = whitelist_service.session.query(User).filter(User.username == jwt_user.username).first()
+    db_user = db.query(User).filter(User.username == jwt_user.username).first()
     if db_user and verify_password(plain_password=jwt_user.password, hashed_password=db_user.hashed_password):
         return db_user.role
     # TODO throw different errors for unknown username / password (or maybe not?)
@@ -51,7 +53,7 @@ def create_jwt_token(user: JWTUser):
 
 
 # Check whether JWT token is correct
-def check_jwt_token_role(token: str = Depends(oauth_schema)):
+def check_jwt_token_role(token: str = Depends(oauth_schema), db: Session = Depends(get_db)):
     """ raise exceptions if unauthorized, else return role and username """
     try:
         jwt_payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=JWT_ALGORITHM)
@@ -59,7 +61,7 @@ def check_jwt_token_role(token: str = Depends(oauth_schema)):
         expiration = jwt_payload.get("exp")
         role = jwt_payload.get("role")
         if time.time() < expiration:
-            if whitelist_service.session.query(User).filter(User.username == username).first() is not None:
+            if db.query(User).filter(User.username == username).first() is not None:
                 return username, role
                 # return final_checks(role, auth_level)
             else:

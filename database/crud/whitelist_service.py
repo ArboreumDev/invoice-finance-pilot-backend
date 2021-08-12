@@ -134,7 +134,14 @@ class WhitelistService(CRUDBase[Whitelist, WhitelistCreate, WhitelistUpdate]):
         if not whitelist_entry:
             raise WhitelistException("Whitelist entry doesnt exist")
 
-        self.update(db, whitelist_entry, WhitelistUpdate(apr=apr, creditline_size=creditline_size, tenor_in_days=tenor_in_days))
+        entry = self.update(
+            db=db,
+            db_obj=whitelist_entry,
+            obj_in=WhitelistUpdate(
+                # supplier_id=supplier_id, purchaser_id=purchaser_id,
+                apr=apr, creditline_size=creditline_size, tenor_in_days=tenor_in_days)
+        )
+
 
 
 whitelist = WhitelistService(Whitelist)

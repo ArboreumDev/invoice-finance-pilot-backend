@@ -1,5 +1,5 @@
 from test.integration.conftest import get_auth_header
-from typing import Tuple
+from typing import Tuple, Dict
 
 import pytest
 from starlette.status import (HTTP_200_OK, HTTP_400_BAD_REQUEST,
@@ -7,28 +7,29 @@ from starlette.status import (HTTP_200_OK, HTTP_400_BAD_REQUEST,
 from starlette.testclient import TestClient
 
 from database.crud.invoice_service import invoice as invoice_service
-from database.test.conftest import insert_base_user, reset_db
+from database.test.conftest import insert_base_user, reset_db, db_session
 from database.test.fixtures import p1, p2
-from database.whitelist_service import whitelist_service
+from database.crud.whitelist_service import whitelist as whitelist_service
 from invoice.tusker_client import tusker_client
 from main import app
 from utils.common import InvoiceFrontendInfo, PurchaserInfo
 from utils.constant import GURUGRUPA_CUSTOMER_ID, LOC_ID4
+from test.integration.test_whitelist_endpoints import auth_user
+from sqlalchemy.orm import Session
 
 client = TestClient(app)
-insert_base_user()
-AUTH_HEADER = get_auth_header()
 
 
 @pytest.fixture(scope="function")
-def whitelist_and_invoices():
+def whitelist_and_invoices(db_session) -> Tuple[Tuple, Tuple, str, PurchaserInfo, Session, Dict ]:
     reset_db(deleteWhitelist=True)
-    insert_base_user()
+    insert_base_user(db_session)
+    auth_header = get_auth_header()
     whitelist_service.insert_whitelist_entry(
-        supplier_id=GURUGRUPA_CUSTOMER_ID, purchaser=p1, creditline_size=50000, apr=0.1, tenor_in_days=90
+        db=db_session, supplier_id=GURUGRUPA_CUSTOMER_ID, purchaser=p1, creditline_size=50000, apr=0.1, tenor_in_days=90
     )
     whitelist_service.insert_whitelist_entry(
-        supplier_id=GURUGRUPA_CUSTOMER_ID, purchaser=p2, creditline_size=50000, apr=0.1, tenor_in_days=90
+        db=db_session, supplier_id=GURUGRUPA_CUSTOMER_ID, purchaser=p2, creditline_size=50000, apr=0.1, tenor_in_days=90
     )
 
     inv_id1, order_ref1, _ = tusker_client.create_test_order(
@@ -38,7 +39,7 @@ def whitelist_and_invoices():
         supplier_id=GURUGRUPA_CUSTOMER_ID, location_id=p2.location_id
     )
 
-    yield (inv_id1, order_ref1), (inv_id2, order_ref2), GURUGRUPA_CUSTOMER_ID, p1
+    yield (inv_id1, order_ref1), (inv_id2, order_ref2), GURUGRUPA_CUSTOMER_ID, p1, db_session, auth_header
 
     reset_db(deleteWhitelist=True)
 
@@ -57,64 +58,69 @@ def test_invalid_credential():
 
 # TODO all negative endpoint results
 def test_insert_existing_invoice_failure(whitelist_and_invoices):
-    assert len(invoice_service.get_all_invoices()) == 0
-    # should add new invoice to db
     _, order_ref1 = whitelist_and_invoices[0]
-    res = client.post(f"v1/invoice/{order_ref1}", headers=AUTH_HEADER)
+    db_session, auth_header = whitelist_and_invoices[4], whitelist_and_invoices[5]
+
+    assert len(invoice_service.get_all_invoices(db_session)) == 0
+    # should add new invoice to db
+    res = client.post(f"v1/invoice/{order_ref1}", headers=auth_header)
 
     assert res.status_code == HTTP_200_OK
-    assert len(invoice_service.get_all_invoices()) == 1
+    assert len(invoice_service.get_all_invoices(db_session)) == 1
 
-    res = client.post(f"v1/invoice/{order_ref1}", headers=AUTH_HEADER)
+    res = client.post(f"v1/invoice/{order_ref1}", headers=auth_header)
     assert res.status_code == HTTP_400_BAD_REQUEST
 
 
 def test_get_order(whitelist_and_invoices):
-    _, (_, order_ref), _, _ = whitelist_and_invoices
-    response = client.get(f"v1/order/{order_ref}", headers=AUTH_HEADER)
+    _, (_, order_ref), _, _, _, auth_header= whitelist_and_invoices
+    response = client.get(f"v1/order/{order_ref}", headers=auth_header)
     order = InvoiceFrontendInfo(**response.json())
     assert order.shipping_status == "PLACED_AND_VALID"
 
 
 def test_whitelist_failure(whitelist_and_invoices):
     # create order for customer that is not whitelisted
-    _, _, supplier_id, purchaser = whitelist_and_invoices
+    _, _, supplier_id, purchaser, _, auth_header = whitelist_and_invoices
     assert LOC_ID4 != purchaser.id
 
     _, order_ref, _ = tusker_client.create_test_order(supplier_id=supplier_id, location_id=LOC_ID4)
 
     # try querying order
-    response = client.get(f"v1/order/{order_ref}", headers=AUTH_HEADER)
+    response = client.get(f"v1/order/{order_ref}", headers=auth_header)
     assert response.status_code == 400
     assert "whitelisted" in response.json()["detail"]
 
 
 def test_whitelist_success(whitelist_and_invoices):
-    _, (inv_id, order_ref), supplier_id, purchaser = whitelist_and_invoices
-    response = client.get(f"v1/order/{order_ref}", headers=AUTH_HEADER)
+    _, (inv_id, order_ref), supplier_id, purchaser, _, auth_header = whitelist_and_invoices
+    response = client.get(f"v1/order/{order_ref}", headers=auth_header)
     assert response.status_code == 200
 
 
-def test_get_order_invalid_order_id():
-    response = client.get("v1/order/deadBeef", headers=AUTH_HEADER)
+def test_get_order_invalid_order_id(auth_user):
+    response = client.get("v1/order/deadBeef", headers=auth_user)
     assert response.status_code == HTTP_404_NOT_FOUND
     assert "order id" in response.json()["detail"]
 
 
 def test_add_new_invoice_success(whitelist_and_invoices):
-    assert len(invoice_service.get_all_invoices()) == 0
+    auth_header = whitelist_and_invoices[5]
+    db = whitelist_and_invoices[4]
+    assert len(invoice_service.get_all_invoices(db)) == 0
     # should add new invoice to db
     _, order_ref1 = whitelist_and_invoices[0]
-    res = client.post(f"v1/invoice/{order_ref1}", headers=AUTH_HEADER)
+    res = client.post(f"v1/invoice/{order_ref1}", headers=auth_header)
     print(res)
 
     assert res.status_code == HTTP_200_OK
-    assert len(invoice_service.get_all_invoices()) == 1
+    assert len(invoice_service.get_all_invoices(db)) == 1
 
 
 @pytest.mark.xfail()
 def test_add_new_invoice_failures(invoices):
     (inv_id1, order_ref1), _ = invoices
+    auth_header = whitelist_and_invoices[5]
     # should reject invoices if
 
     #  - have invalid recipient
@@ -123,7 +129,7 @@ def test_add_new_invoice_failures(invoices):
     #  - have invalid order status (e.g. already delivered)
     tusker_client.mark_test_order_as(inv_id1, "DELIVERED")
 
-    res = client.post(f"v1/invoice/{order_ref1}", headers=AUTH_HEADER)
+    res = client.post(f"v1/invoice/{order_ref1}", headers=auth_header)
     assert res.status_code == HTTP_400_BAD_REQUEST and "status" in res.json()["detail"]
     #  - woudl exceed credit limit
     # TODO
@@ -134,11 +140,12 @@ def test_add_new_invoice_failures(invoices):
 
 
 def test_get_invoices_from_db(whitelist_and_invoices):
-    # add order to db
+    # add invoice with order_ref to db
     inv_id1, order_ref1 = whitelist_and_invoices[0]
-    client.post(f"v1/invoice/{order_ref1}", headers=AUTH_HEADER)
+    auth_header = whitelist_and_invoices[5]
+    client.post(f"v1/invoice/{order_ref1}", headers=auth_header)
 
-    res = client.get("v1/invoice/", headers=AUTH_HEADER)
+    res = client.get("v1/invoice/", headers=auth_header)
     assert res.status_code == HTTP_200_OK
     assert res.json()[0]["orderId"] == order_ref1
 
@@ -148,22 +155,22 @@ def test_get_invoices_from_db(whitelist_and_invoices):
 def test_update_db(invoices):
     # add order to db
     (inv_id1, order_ref1), _ = invoices
-    client.post(f"v1/invoice/{order_ref1}", headers=AUTH_HEADER)
+    client.post(f"v1/invoice/{order_ref1}", headers=auth_header)
 
     # read from get-invoices endpoint
-    response = client.get("v1/invoice", headers=AUTH_HEADER)
+    response = client.get("v1/invoice", headers=auth_header)
     before = InvoiceFrontendInfo(**response.json()[0]).shipping_status
 
     # update order at source (tusker), then call db update
     tusker_client.mark_test_order_as(inv_id1, "IN_TRANSIT")
 
     # update
-    res = client.post("v1/invoice/update", headers=AUTH_HEADER)
+    res = client.post("v1/invoice/update", headers=auth_header)
     assert res.status_code == HTTP_200_OK
     # TODO check what update returned
 
     # refetch orders from get-invoice endpoint
-    response = client.get("v1/invoice", headers=AUTH_HEADER)
+    response = client.get("v1/invoice", headers=auth_header)
     assert response.status_code == HTTP_200_OK
     InvoiceFrontendInfo(**response.json()[0]).shipping_status == "IN_TRANSIT" != before
 
@@ -173,7 +180,7 @@ def test_update_db(invoices):
 @pytest.mark.xfail()
 def test_credit(whitelist_entry: Tuple[PurchaserInfo, str]):
     purchaser, supplier_id = whitelist_entry
-    response = client.get("v1/credit", headers=AUTH_HEADER)
+    response = client.get("v1/credit", headers=auth_header)
 
     assert response.status_code == HTTP_200_OK
 
