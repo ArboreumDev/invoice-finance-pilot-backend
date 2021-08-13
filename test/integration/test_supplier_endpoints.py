@@ -14,21 +14,18 @@ new_supplier_entry = SupplierCreate(
 ).dict()
 
 
-def test_post_new_supplier_entry_success(auth_user):
+def test_post_new_supplier_entry_success(auth_user, clean_supplier_table):
 
     response = client.post("v1/supplier/new", json={"input": new_supplier_entry}, headers=auth_user)
     assert response.status_code == HTTP_200_OK
 
 
-def test_post_new_supplier_duplicate_entry_failure(auth_user, db_session):
-    db_session.connection().execute("delete from supplier")
-
+def test_post_new_supplier_duplicate_entry_failure(auth_user, clean_supplier_table):
     response = client.post("v1/supplier/new", json={"input": new_supplier_entry}, headers=auth_user)
     assert response.status_code == HTTP_200_OK
     response = client.post("v1/supplier/new", json={"input": new_supplier_entry}, headers=auth_user)
     assert response.status_code == HTTP_400_BAD_REQUEST
 
-    db_session.connection().execute("delete from supplier")
 
 
 def test_supplier_update(supplier_x_auth_user):

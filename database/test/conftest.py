@@ -39,6 +39,7 @@ def reset_db(deleteWhitelist = False):
     db.commit()
 
 
+
 @pytest.fixture(scope="function")
 def db_session():
     _db = SessionLocal()

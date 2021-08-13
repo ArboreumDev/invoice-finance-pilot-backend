@@ -31,6 +31,19 @@ def reset_db(db: Session, deleteWhitelist=False):
     db.commit()
 
 
+@pytest.fixture(scope="function")
+def clean_supplier_table(db_session):
+
+    db_session.connection().execute("delete from supplier")
+    db_session.commit()
+
+    yield db_session
+
+
+    db_session.connection().execute("delete from supplier")
+    db_session.commit()
+
+
 def insert_base_user(db: Session):
     tusker_user = User(
         email="tusker@mail.india",
