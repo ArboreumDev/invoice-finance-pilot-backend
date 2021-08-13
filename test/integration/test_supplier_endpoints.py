@@ -1,4 +1,3 @@
-
 import pytest
 from starlette.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
 from starlette.testclient import TestClient
@@ -25,7 +24,6 @@ def test_post_new_supplier_duplicate_entry_failure(auth_user, clean_supplier_tab
     assert response.status_code == HTTP_200_OK
     response = client.post("v1/supplier/new", json={"input": new_supplier_entry}, headers=auth_user)
     assert response.status_code == HTTP_400_BAD_REQUEST
-
 
 
 def test_supplier_update(supplier_x_auth_user):

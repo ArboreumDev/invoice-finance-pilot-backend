@@ -39,7 +39,6 @@ def clean_supplier_table(db_session):
 
     yield db_session
 
-
     db_session.connection().execute("delete from supplier")
     db_session.commit()
 
