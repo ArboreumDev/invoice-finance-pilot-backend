@@ -1,13 +1,14 @@
-from database.exceptions import UnknownPurchaserException
 from typing import Tuple
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
 from starlette.status import HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR
 
+from database.crud import whitelist as whitelist_service
+from database.crud.invoice_service import invoice as invoice_service
 from database.exceptions import UnknownPurchaserException
-from database.invoice_service import invoice_service
-from database.whitelist_service import whitelist_service
 from invoice.tusker_client import tusker_client
+from routes.dependencies import get_db
 from utils.security import check_jwt_token_role
 
 # ===================== routes ==========================
@@ -18,21 +19,21 @@ test_app = APIRouter()
 
 
 @test_app.post("/update/value/{invoiceId}/{value}")
-def update_invoice_value(invoiceId: str, value: int):
+def update_invoice_value(invoiceId: str, value: int, db: Session = Depends(get_db)):
     print(invoiceId, value)
-    invoice_service.update_invoice_value(invoiceId, int(value))
+    invoice_service.update_invoice_value(invoiceId, int(value), db)
     return {"OK"}
 
 
 @test_app.post("/update/status/{invoiceId}/{new_status}")
-def update_invoice_finance_status(invoiceId: str, new_status: str):
-    invoice_service.update_invoice_payment_status(invoiceId, new_status)
+def update_invoice_finance_status(invoiceId: str, new_status: str, db: Session = Depends(get_db)):
+    invoice_service.update_invoice_payment_status(invoiceId, new_status, db)
     return {"OK"}
 
 
 @test_app.post("/update/shipment/{invoiceId}/{new_status}")
-def update_invoice_delivery_status(invoiceId: str, new_status: str):
-    invoice_service.update_invoice_shipment_status(invoiceId, new_status)
+def update_invoice_delivery_status(invoiceId: str, new_status: str, db: Session = Depends(get_db)):
+    invoice_service.update_invoice_shipment_status(invoiceId, new_status, db)
     return {"OK"}
 
 
@@ -51,11 +52,15 @@ def mark_as_delivered(invoiceId: str):
 
 @test_app.post("/new/order/{supplier_id}/{purchaser_id}/{value}")
 def create_new_test_order(
-    supplier_id: str, purchaser_id: str, value: float, user_info: Tuple[str, str] = Depends(check_jwt_token_role)
+    supplier_id: str,
+    purchaser_id: str,
+    value: float,
+    user_info: Tuple[str, str] = Depends(check_jwt_token_role),
+    db: Session = Depends(get_db),
 ):
     username, _ = user_info
     try:
-        target_id = whitelist_service.purchaser_id_to_location(purchaser_id)
+        target_id = whitelist_service.purchaser_id_to_location(db, purchaser_id)
         res = tusker_client.create_test_order(
             # TODO
             supplier_id=supplier_id,

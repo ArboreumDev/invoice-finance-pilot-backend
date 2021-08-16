@@ -9,6 +9,12 @@ class BaseException(Exception):
 class WhitelistException(BaseException):
     pass
 
+class SupplierException(BaseException):
+    pass
+
+class UnknownSupplierException(BaseException):
+    pass
+
 class UnknownPurchaserException(BaseException):
     pass
 
@@ -19,7 +25,15 @@ class CreditLimitException(BaseException):
 class DuplicateInvoiceException(BaseException):
     pass
 
+
+class UnknownInvoiceException(BaseException):
+    pass
+
+
 class DuplicateWhitelistEntryException(BaseException):
     pass
 
+
+class DuplicateSupplierEntryException(BaseException):
+    pass
 

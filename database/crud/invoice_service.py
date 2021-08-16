@@ -1,16 +1,24 @@
-from database.exceptions import CreditLimitException, DuplicateInvoiceException
-from database.db import session
+from database.schemas import InvoiceCreate
+from database.exceptions import CreditLimitException, DuplicateInvoiceException, UnknownInvoiceException
+from database.db import SessionLocal, session
 import datetime as dt
 from database.models import Invoice, User, Supplier
 from typing import Dict
 from invoice.tusker_client import code_to_order_status, tusker_client
 from utils.email import EmailClient, terms_to_email_body
+from sqlalchemy.orm import Session
 import json
 from utils.common import LoanTerms, CreditLineInfo, PaymentDetails, PurchaserInfo
 from utils.constant import DISBURSAL_EMAIL, ARBOREUM_DISBURSAL_EMAIL
 from invoice.utils import raw_order_to_price
 import uuid
-from database.whitelist_service import  whitelist_service, whitelist_entry_to_receiverInfo
+from database.crud.whitelist_service import  whitelist_entry_to_receiverInfo
+from database import crud
+from database.crud.base import CRUDBase
+from database.models import Invoice
+from database.schemas import InvoiceCreate, InvoiceUpdate
+
+
 
 
 def invoice_to_terms(id: str, order_id: str, amount: float, start_date: dt.datetime):
@@ -24,78 +32,78 @@ def invoice_to_terms(id: str, order_id: str, amount: float, start_date: dt.datet
     )
 
 
-class InvoiceService():
-    def __init__(self):
-        self.session = session
-
-    def insert_new_invoice_from_raw_order(self, raw_order: Dict):
+class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
+    def insert_new_invoice_from_raw_order(self, raw_order: Dict, db: Session):
         # verify the customer of the order has the purchaser whitelisted
         supplier_id=raw_order.get('cust').get('id')
         location_id = raw_order.get('rcvr').get('id')
-        purchaser_id = whitelist_service.get_whitelisted_purchaser_from_location_id(supplier_id, location_id)
-        return self._insert_new_invoice_for_purchaser_x_supplier(raw_order, purchaser_id, supplier_id)
+        purchaser_id = crud.whitelist.get_whitelisted_purchaser_from_location_id(db, supplier_id, location_id)
+        return self._insert_new_invoice_for_purchaser_x_supplier(raw_order, purchaser_id, supplier_id, db)
 
-    def _insert_new_invoice_for_purchaser_x_supplier(self, raw_order: Dict, purchaser_id: str, supplier_id: str):
-        exists = self.session.query(Invoice.id).filter_by(id=raw_order.get('id')).first() is not None
+    def _insert_new_invoice_for_purchaser_x_supplier(self, raw_order: Dict, purchaser_id: str, supplier_id: str, db: Session):
+        exists = self.get(db, id=raw_order.get('id')) is not None
+
         if exists:
             raise DuplicateInvoiceException("invoice already exists")
 
-        new_invoice = Invoice(
+        new_invoice = InvoiceCreate(
             id=raw_order.get("id"),
             order_ref=raw_order.get('ref_no'),
+            supplier_id=supplier_id,
+            purchaser_id=purchaser_id,
             shipment_status=code_to_order_status(raw_order.get('status')),
             finance_status="INITIAL",
-            purchaser_id=purchaser_id,
+            # TODO add default apr & tenor from whitelist-entry
+            apr=0.42,
+            tenor_in_days=42,
             value=raw_order_to_price(raw_order),
-            supplier_id=supplier_id,
             data=json.dumps(raw_order),
             payment_details=json.dumps(PaymentDetails(
                 requestId=str(uuid.uuid4()),
                 repaymentId=str(uuid.uuid4()),
             ).dict())
         )
-        self.session.add(new_invoice)
-        self.session.commit()
-        return new_invoice.id
+        invoice = self.create(db, obj_in=new_invoice)
+        return invoice.id
 
-    def update_invoice_shipment_status(self, invoice_id: str, new_status: str):
-        invoice = self.session.query(Invoice).filter(Invoice.id == invoice_id).first()
-        invoice.shipment_status = new_status
-        invoice.updated_on = dt.datetime.utcnow()
-        self.session.commit()
+    def update_invoice_shipment_status(self, invoice_id: str, new_status: str, db: Session):
+        invoice = self.get(db, invoice_id)
+        self.update_and_log(db, invoice, { "shipment_status": new_status })
 
-    def update_invoice_value(self, invoice_id: str, new_value: int):
-        invoice = self.session.query(Invoice).filter(Invoice.id == invoice_id).first()
-        invoice.value = new_value
-        self.session.commit()
+    def update_and_log(self, db: Session, db_object, new_data: Dict):
+        if db_object:
+            update = InvoiceUpdate(**new_data, updated_on=dt.datetime.utcnow())
+            return self.update(db, db_obj=db_object, obj_in=update)
+        else:
+            raise UnknownInvoiceException
 
-    def update_invoice_payment_status(self, invoice_id: str, new_status: str):
-        invoice = self.session.query(Invoice).filter(Invoice.id == invoice_id).first()
+    def update_invoice_value(self, invoice_id: str, new_value: int, db: Session):
+        invoice = self.get(db, invoice_id)
+        self.update_and_log(db, invoice, { "value": new_value })
+
+    def update_invoice_payment_status(self, invoice_id: str, new_status: str, db: Session):
+        invoice = self.get(db, invoice_id)
+        update = {}
         if (new_status == "FINANCED"):
-            self.trigger_disbursal(invoice)
-            invoice.financed_on = dt.datetime.utcnow()
-        invoice.updated_on = dt.datetime.utcnow()
-        invoice.finance_status = new_status
-        self.session.commit()
-        return invoice
+            self.trigger_disbursal(invoice, db)
+            update['financed_on'] = dt.datetime.utcnow()
+        update['finance_status'] = new_status
+        return self.update_and_log(db, invoice, update)
 
-    def update_invoice_with_loan_terms(self, invoice: Invoice, terms: LoanTerms):
+    def update_invoice_with_loan_terms(self, invoice: Invoice, terms: LoanTerms, db: Session):
         payment_details = json.loads(invoice.payment_details)
+        # TODO use pydantic json helpers
         payment_details['start_date'] = str(terms.start_date)
         payment_details['collection_date'] = str(terms.collection_date)
         payment_details['interest'] = terms.interest
-        invoice.payment_details = json.dumps(payment_details)
-        self.session.commit()
+        self.update_and_log(db, invoice, {'payment_details': json.dumps(payment_details)})
 
-    def delete_invoice(self, invoice_id: str):
-        invoice = self.session.query(Invoice).filter(Invoice.id == invoice_id).first()
-        self.session.delete(invoice)
-        self.session.commit()
+    def get_all_invoices(self, db: Session):
+        # TODO use skip & limit for pagination
+        return self.get_multi(db)
+        # return db.query(Invoice).all()
 
-    def get_all_invoices(self):
-        return self.session.query(Invoice).all()
-
-    def update_invoice_db(self):
+    def update_invoice_db(self, db: Session):
         """ get latest data for all invoices in db from tusker, compare shipment status,
         if changed: 
             try to process it, update DB if processing was successful
@@ -104,7 +112,7 @@ class InvoiceService():
         updated = []
         errored = []
         # get latest data for all (TODO non-final) orders in DB
-        res = self.session.query(Invoice).all()
+        res = db.query(Invoice).all()
         # TODO optimize by moving all filtering into the query
         invoices = {i.id: i for i in res}
         # get order_ref to track by
@@ -121,13 +129,13 @@ class InvoiceService():
             if new_shipment_status != invoice.shipment_status:
                 # ...if new, enact consequence and if successful update DB
                 print(f"{invoice.shipment_status} -> {new_shipment_status}")
+                update = {}
                 try:
-                    self.handle_update(invoice, new_shipment_status)
-                    invoice.shipment_status = new_shipment_status
+                    self.handle_update(invoice, new_shipment_status, db)
+                    update['shipment_status'] = new_shipment_status
                     if new_shipment_status == "DELIVERED":
-                        invoice.delivered_on = dt.datetime.utcnow()
-                    invoice.updated_on = dt.datetime.utcnow()
-                    self.session.commit()
+                        update['delivered_on'] = dt.datetime.utcnow()
+                    self.update_and_log(db, invoice, update)
                     updated.append((invoice.id, new_shipment_status))
                 except Exception as e:
                     print(f"ERROR handling {invoice.id}: {str(e)}")
@@ -137,11 +145,11 @@ class InvoiceService():
 
         return updated, errored
 
-    def handle_update(self, invoice: Invoice, new_status: str):
+    def handle_update(self, invoice: Invoice, new_status: str, db: Session):
         error = ""
         if new_status == "DELIVERED":
             print('disbursal manager notified')
-            self.trigger_disbursal(invoice)
+            self.trigger_disbursal(invoice, db)
         elif new_status == "PAID_BACK":
             print('invoice marked as repaid')
         elif new_status == "DEFAULTED":
@@ -153,35 +161,33 @@ class InvoiceService():
         # mark as paid and reduce
         pass
 
-    def trigger_disbursal(self, invoice: Invoice):
+    def trigger_disbursal(self, invoice: Invoice, db: Session):
         # ============== get loan terms ==========
         # calculate repayment info
         # TODO get actual invoice start date
         start_date = dt.datetime.utcnow()
         terms = invoice_to_terms(invoice.id, invoice.order_ref, invoice.value, start_date)
-        self.update_invoice_with_loan_terms(invoice, terms)
-        supplier = self.session.query(Supplier).filter(Supplier.supplier_id==invoice.supplier_id).first()
+        self.update_invoice_with_loan_terms(invoice, terms, db)
+        supplier = crud.supplier.get(db, invoice.supplier_id)
         msg = terms_to_email_body(terms, supplier.name if supplier else "TODO")
 
         # ================= send email to Tusker with FundRequest
         try:
             ec = EmailClient()
             ec.send_email(body=msg, subject="Arboreum Disbursal Request", targets=[DISBURSAL_EMAIL, ARBOREUM_DISBURSAL_EMAIL])
-            invoice.finance_status = "DISBURSAL_REQUESTED"
-            self.session.commit()
+            self.update_and_log(db, invoice, {'finance_status': "DISBURSAL_REQUESTED"})
         except Exception as e:
-            invoice.finance_status = "ERROR_SENDING_REQUEST"
-            self.session.commit()
+            self.update_and_log(db, invoice, {'finance_status': "ERROR_SENDING_REQUEST"})
             raise AssertionError(f"Could not send email: {str(e)}") # TODO add custom exception
 
 
-    def check_credit_limit(self, raw_order):
+    def check_credit_limit(self, raw_order, db: Session):
         target_location_id=raw_order.get('rcvr').get('id')
         supplier_id=raw_order.get('cust').get('id')
-        purchaser_id = whitelist_service.get_whitelisted_purchaser_from_location_id(supplier_id, target_location_id)
+        purchaser_id = crud.whitelist.get_whitelisted_purchaser_from_location_id(db, supplier_id, target_location_id)
 
         value=raw_order_to_price(raw_order)
-        credit = self.get_credit_line_info(supplier_id)
+        credit = self.get_credit_line_info(supplier_id, db)
 
         if credit[purchaser_id].available < value:
             raise CreditLimitException(
@@ -192,12 +198,12 @@ class InvoiceService():
 
     # TODO turn this into a view using
     # https://stackoverflow.com/questions/9766940/how-to-create-an-sql-view-with-sqlalchemy
-    def get_credit_line_info(self, supplier_id: str):
+    def get_credit_line_info(self, supplier_id: str, db: Session):
         credit_line_breakdown = {}
-        for w_entry in whitelist_service.get_whitelist(supplier_id):
+        for w_entry in crud.whitelist.get_whitelist(db, supplier_id):
             credit_line_size  = w_entry.creditline_size if w_entry.creditline_size != 0 else 0
 
-            invoices = self.session.query(Invoice).filter(Invoice.purchaser_id == w_entry.purchaser_id).all()
+            invoices = db.query(Invoice).filter(Invoice.purchaser_id == w_entry.purchaser_id).all()
             to_be_repaid = sum(i.value for i in invoices if i.finance_status == "FINANCED")
             requested = sum(i.value for i in invoices if i.finance_status in ["DISBURSAL_REQUESTED", "INITIAL"])
             n_of_invoices = len(invoices)
@@ -213,9 +219,9 @@ class InvoiceService():
             })
         return credit_line_breakdown
 
-    def get_credit_line_summary(self, supplier_id: str, supplier_name: str):
+    def get_credit_line_summary(self, supplier_id: str, supplier_name: str, db: Session):
         summary = CreditLineInfo(info=PurchaserInfo(name=supplier_name), supplier_id="tusker")
-        credit_line_breakdown = self.get_credit_line_info(supplier_id)
+        credit_line_breakdown = self.get_credit_line_info(supplier_id, db)
         for c in credit_line_breakdown.values():
             summary.total += c.total
             summary.available += c.available
@@ -224,15 +230,15 @@ class InvoiceService():
             summary.invoices += c.invoices
         return summary
 
-    def get_provider_summary(self, provider: str):
+    def get_provider_summary(self, provider: str, db: Session):
         """ create a credit line summary for all customers whose role is user """
         credit = {}
-        for supplier in self.session.query(Supplier).all():
-            credit[supplier.name] = invoice_service.get_credit_line_summary(supplier_id=supplier.supplier_id, supplier_name=supplier.name)
+        for supplier in crud.supplier.get_all_suppliers(db):
+            credit[supplier.name] = crud.invoice.get_credit_line_summary(supplier_id=supplier.supplier_id, supplier_name=supplier.name, db=db)
         return credit
 
 
 
-invoice_service = InvoiceService()
+invoice = InvoiceService(Invoice)
 
 
