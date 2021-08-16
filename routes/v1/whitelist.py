@@ -1,3 +1,5 @@
+from database.utils import remove_none_entries
+from os import remove
 from typing import Dict, Optional, Tuple
 
 from fastapi import APIRouter, Body, Depends, HTTPException
@@ -5,6 +7,7 @@ from sqlalchemy.orm import Session
 from starlette.status import HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND
 
 from database.crud import whitelist as whitelist_service
+from database.schemas.whitelist import WhitelistUpdate
 from database.exceptions import (DuplicateWhitelistEntryException,
                                  WhitelistException)
 from invoice.tusker_client import tusker_client
@@ -61,9 +64,7 @@ def _update_whitelist_entry(
             db=db,
             supplier_id=update.supplier_id,
             purchaser_id=update.purchaser_id,
-            creditline_size=update.creditline_size,
-            apr=update.apr,
-            tenor_in_days=update.tenor_in_days,
+            update=WhitelistUpdate(**remove_none_entries(update.dict()))
         )
     except DuplicateWhitelistEntryException:
         raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="receiver already whitelisted")
