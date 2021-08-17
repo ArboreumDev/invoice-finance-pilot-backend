@@ -28,6 +28,7 @@ class SupplierService(CRUDBase[Supplier, SupplierCreate, SupplierUpdate]):
     def update( self, db: Session, update: SupplierUpdateInput):
         supplier_entry = self.get(db, supplier_id=update.supplier_id)
         if not supplier_entry:
+            self._logger.error(f"Update target not found: supplier_id: {update.supplier_id}")
             raise UnknownSupplierException("Supplier entry doesnt exist")
 
         return super().update(

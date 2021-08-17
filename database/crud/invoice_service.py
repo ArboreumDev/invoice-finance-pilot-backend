@@ -41,10 +41,12 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         return self._insert_new_invoice_for_purchaser_x_supplier(raw_order, purchaser_id, supplier_id, db)
 
     def _insert_new_invoice_for_purchaser_x_supplier(self, raw_order: Dict, purchaser_id: str, supplier_id: str, db: Session):
-        exists = self.get(db, id=raw_order.get('id')) is not None
+        _id = raw_order.get('id')
+        exists = self.get(db, id=_id) is not None
 
         if exists:
-            raise DuplicateInvoiceException("invoice already exists")
+            self._logger.error(f"Duplicate Invoice Entry: Order {_id} already in db. Raw Order: {raw_order}")
+            raise DuplicateInvoiceException(f"invoice with {_id} already exists")
 
         new_invoice = InvoiceCreate(
             id=raw_order.get("id"),
@@ -64,6 +66,7 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
             ).dict())
         )
         invoice = self.create(db, obj_in=new_invoice)
+        self._logger.info(f"Duplicate Invoice Entry: Order {_id} already in db. Raw Order: {raw_order}")
         return invoice.id
 
     def update_invoice_shipment_status(self, invoice_id: str, new_status: str, db: Session):
@@ -75,6 +78,7 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
             update = InvoiceUpdate(**new_data, updated_on=dt.datetime.utcnow())
             return self.update(db, db_obj=db_object, obj_in=update)
         else:
+            self._logger.error(f"Update target object not found for new_data {new_data}")
             raise UnknownInvoiceException
 
     def update_invoice_value(self, invoice_id: str, new_value: int, db: Session):
@@ -118,17 +122,16 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         # get order_ref to track by
         all_reference_numbers = [i.order_ref for i in res]
         latest_raw_orders = tusker_client.track_orders(all_reference_numbers)
-        print('updating ', len(latest_raw_orders), ' orders')
-        # assert len(latest_raw_orders) == len(all_reference_numbers), "update missing"
+        self._logger.info(f"updating {len(latest_raw_orders)} orders")
 
         # compare with DB if status changed
         for order in latest_raw_orders:
             new_shipment_status = code_to_order_status(order.get("status"))
             invoice = invoices[order.get("id")]
-            print('updating ', order.get("ref_no"))
+            self._logger.info(f"updating order with ref_no: {order.get('ref_no')}")
             if new_shipment_status != invoice.shipment_status:
                 # ...if new, enact consequence and if successful update DB
-                print(f"{invoice.shipment_status} -> {new_shipment_status}")
+                self._logger.info(f"{invoice.shipment_status} -> {new_shipment_status}")
                 update = {}
                 try:
                     self.handle_update(invoice, new_shipment_status, db)
@@ -139,21 +142,22 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
                     updated.append((invoice.id, new_shipment_status))
                 except Exception as e:
                     print(f"ERROR handling {invoice.id}: {str(e)}")
+                    self._logger.error(f"ERROR handling {invoice.id}: {str(e)}")
                     errored.append((invoice.id, new_shipment_status))
             else:
-                print("no update needed", invoice.shipment_status)
+                self._logger.info(f"no update needed: {invoice.shipment_status} unchanged.")
 
         return updated, errored
 
     def handle_update(self, invoice: Invoice, new_status: str, db: Session):
         error = ""
         if new_status == "DELIVERED":
-            print('disbursal manager notified')
+            self._logger.info('disbursal manager notified')
             self.trigger_disbursal(invoice, db)
         elif new_status == "PAID_BACK":
-            print('invoice marked as repaid')
+            self._logger.info('invoice marked as repaid')
         elif new_status == "DEFAULTED":
-            print('handle default')
+            self._logger.info('handle default')
         else:
             error += f"unprocessed invoice status {new_status} for order {invoice.order_ref}\n"
 
