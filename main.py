@@ -1,4 +1,5 @@
-from fastapi import Depends, FastAPI, HTTPException
+from logging import Logger
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 # from routes.v1.mapping import mapping_app
@@ -13,7 +14,7 @@ from utils.security import authenticate_user, create_jwt_token, check_jwt_token_
 from sqlalchemy.orm import Session
 from typing import Generator
 from database.db import SessionLocal
-from routes.dependencies import get_db
+from routes.dependencies import get_db, log_request
 
 
 origins = [
@@ -22,7 +23,7 @@ origins = [
 app = FastAPI()
 
 app.include_router(invoice_app, prefix="/v1", dependencies=[Depends(check_jwt_token_role)])
-app.include_router(whitelist_app, prefix="/v1", dependencies=[Depends(check_jwt_token_role)])
+app.include_router(whitelist_app, prefix="/v1", dependencies=[Depends(check_jwt_token_role), Depends(log_request)])
 app.include_router(supplier_app, prefix="/v1", dependencies=[Depends(check_jwt_token_role)])
 app.include_router(test_app, prefix="/v1/test", dependencies=[])
 
