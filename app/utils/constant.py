@@ -20,8 +20,10 @@ config_keys = [
     "TUSKER_API_URL",
     "TEST_AUTH_PW",
     "GURUGRUPA_PW",
-    "PROD_DB_USER",
-    "PROD_DB_PASSWORD",
+    "POSTGRES_USER",
+    "POSTGRES_PASSWORD",
+    "POSTGRES_HOST",
+    "POSTGRES_PORT",
     "ENVIRONMENT",
 ]
 
