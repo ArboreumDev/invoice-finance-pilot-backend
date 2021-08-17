@@ -38,6 +38,18 @@ then store the Variables in `db/const` or in an .env file
 
 > python3 -m database.create
 
+# Migrations
+Creating a new revision
+```console
+$ alembic revision --autogenerate -m "Add column last_name to User model"
+```
+Don't forget to commit new revision to git.
+
+Switching to the latest migration
+```console
+$ alembic upgrade head
+```
+
 # seed the db with whitelist
 
 add gurugrupas receiver into whitelist:
