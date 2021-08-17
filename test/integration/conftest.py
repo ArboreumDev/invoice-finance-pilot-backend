@@ -12,7 +12,7 @@ client = TestClient(app)
 CUSTOMER_ID = "0001e776-c372-4ec5-8fa4-f30ab74ca631"
 
 
-def reset_db(db: Session, tables = []):
+def reset_db(db: Session, tables=[]):
     if len(tables) == 0:
         db.connection().execute("delete from invoice")
         db.connection().execute("delete from users")

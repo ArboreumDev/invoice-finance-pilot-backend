@@ -7,7 +7,7 @@ logging.basicConfig(
     format="%(asctime)s %(name)-12s %(levelname)-8s %(message)s",
     datefmt="%m-%d %H:%M",
     filename="tusker_backend_main.log",
-    filemode='w'
+    filemode="w",
 )
 # define a Handler which writes INFO messages or higher to the sys.stderr
 console = logging.StreamHandler()
@@ -23,7 +23,6 @@ logging.getLogger("").addHandler(console)
 class Logger:
     def __init__(self, name):
         self.logger = logging.getLogger(name)
-
 
 
 # Now, define a couple of other loggers which might represent areas in your

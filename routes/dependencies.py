@@ -1,10 +1,12 @@
-from typing import Generator
-from fastapi import Request
 import logging
+from typing import Generator
+
+from fastapi import Request
 
 from database.db import SessionLocal
 
 logger = logging.getLogger("API")
+
 
 def get_db() -> Generator:
     try:
@@ -12,6 +14,7 @@ def get_db() -> Generator:
         yield db
     finally:
         db.close()
+
 
 def log_request(request: Request):
     logger.info(f"{request.method} {request.url}")

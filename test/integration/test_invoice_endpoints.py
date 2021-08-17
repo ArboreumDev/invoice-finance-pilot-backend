@@ -1,4 +1,4 @@
-from test.integration.conftest import get_auth_header
+from test.integration.conftest import get_auth_header, reset_db
 from typing import Dict, Tuple
 
 import pytest
@@ -11,8 +11,7 @@ from database.crud.invoice_service import invoice as invoice_service
 from database.crud.supplier_service import supplier as supplier_service
 from database.crud.whitelist_service import whitelist as whitelist_service
 from database.schemas.supplier import SupplierCreate
-from database.test.conftest import (db_session, insert_base_user)  # noqa: 401
-from test.integration.conftest import reset_db
+from database.test.conftest import db_session, insert_base_user  # noqa: 401
 from database.test.fixtures import p1, p2
 from invoice.tusker_client import tusker_client
 from main import app
@@ -71,7 +70,6 @@ def whitelist_entry(db_session: Session) -> Tuple[PurchaserInfo, str, Session]: 
     yield p1, CUSTOMER_ID, db_session, auth_header
 
     reset_db(db_session)
-
 
 
 # TODO add jwt-token to all requests / modify client to have a valid header by default
