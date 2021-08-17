@@ -12,6 +12,18 @@ client = TestClient(app)
 CUSTOMER_ID = "0001e776-c372-4ec5-8fa4-f30ab74ca631"
 
 
+def reset_db(db: Session, tables = []):
+    if len(tables) == 0:
+        db.connection().execute("delete from invoice")
+        db.connection().execute("delete from users")
+        db.connection().execute("delete from supplier")
+        db.connection().execute("delete from whitelist")
+    else:
+        for table in tables:
+            db.connection().execute(f"delete from {table}")
+    db.commit()
+
+
 @pytest.fixture(scope="function")
 def db_session():
     _db = SessionLocal()
@@ -19,16 +31,6 @@ def db_session():
         yield _db
     finally:
         _db.close()
-
-
-def reset_db(db: Session, deleteWhitelist=False):
-    db.connection().execute("delete from invoice")
-    db.connection().execute("delete from invoice")
-    db.connection().execute("delete from users")
-    db.connection().execute("delete from supplier")
-    if deleteWhitelist:
-        db.connection().execute("delete from whitelist")
-    db.commit()
 
 
 @pytest.fixture(scope="function")
