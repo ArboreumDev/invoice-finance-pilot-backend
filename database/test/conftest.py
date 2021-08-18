@@ -12,6 +12,7 @@ from typing import Tuple, List
 import copy
 from utils.common import PurchaserInfo
 from sqlalchemy.orm import Session
+from utils.logger import get_logger
 
 whitelist_service = crud.whitelist
 invoice_service = crud.invoice
@@ -41,13 +42,18 @@ def reset_db(db: Session, tables = []):
     db.commit()
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="session")
 def db_session():
+    logger = get_logger(__name__)
+    logger.info("Creating DB test session")
+
     _db = SessionLocal()
+
     try:
         yield _db
     finally:
         _db.close()
+        logger.info("Closed DB test session")
 
 @pytest.fixture(scope="function")
 def clean_db(db_session: Session) -> Session:

@@ -2,8 +2,8 @@
 import logging
 from logging import config
 
-config.fileConfig('./logging.conf', disable_existing_loggers=True)
+config.fileConfig("./logging.conf", disable_existing_loggers=True)
+
 
 def get_logger(name):
     return logging.getLogger(name)
-
