@@ -1,4 +1,3 @@
-from logging import Logger
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware

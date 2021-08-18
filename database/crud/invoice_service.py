@@ -142,7 +142,7 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
                     updated.append((invoice.id, new_shipment_status))
                 except Exception as e:
                     print(f"ERROR handling {invoice.id}: {str(e)}")
-                    self._logger.error(f"ERROR handling {invoice.id}: {str(e)}")
+                    self._logger.exception(f"ERROR handling {invoice.id}: {str(e)}")
                     errored.append((invoice.id, new_shipment_status))
             else:
                 self._logger.info(f"no update needed: {invoice.shipment_status} unchanged.")

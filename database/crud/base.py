@@ -4,7 +4,7 @@ from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 import logging
-from utils.logger import Logger
+from utils.logger import get_logger
 
 from database.base_class import Base
 
@@ -22,7 +22,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         * `schema`: A Pydantic model (schema) class
         """
         self.model = model
-        self._logger = logging.getLogger(self.__class__.__name__)
+        self._logger = get_logger(self.__class__.__name__)
 
 
     def get(self, db: Session, id: Any) -> Optional[ModelType]:

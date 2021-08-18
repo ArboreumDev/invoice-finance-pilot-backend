@@ -4,8 +4,7 @@ from typing import Generator
 from fastapi import Request
 
 from database.db import SessionLocal
-
-logger = logging.getLogger("API")
+from utils.logger import get_logger
 
 
 def get_db() -> Generator:
@@ -17,6 +16,7 @@ def get_db() -> Generator:
 
 
 def log_request(request: Request):
+    logger = get_logger("api")
     logger.info(f"{request.method} {request.url}")
     logger.debug("Params:")
     for name, value in request.path_params.items():
