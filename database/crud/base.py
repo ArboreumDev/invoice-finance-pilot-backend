@@ -34,7 +34,10 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         return db.query(self.model).offset(skip).limit(limit).all()
 
     def create(self, db: Session, *, obj_in: CreateSchemaType) -> ModelType:
-        self._logger.info(f"Creating new {self.model.__name__}-entry from {obj_in}")
+        self._logger.info(f"Creating new {self.model.__name__}-entry")
+        for name, value in obj_in.dict().items():
+            self._logger.debug(f"\t{name}: {value}")
+
         obj_in_data = jsonable_encoder(obj_in)
         db_obj = self.model(**obj_in_data)  # type: ignore
         db.add(db_obj)
@@ -50,7 +53,15 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         db_obj: ModelType,
         obj_in: Union[UpdateSchemaType, Dict[str, Any]]
     ) -> ModelType:
-        self._logger.info(f"Updating {self.model.__name__}-entry {db_obj} with data {obj_in}")
+
+        self._logger.info(f"Updating {self.model.__name__}-entry")
+        self._logger.debug(f"db-object: ")
+        for name, value in db_obj.__dict__.items():
+            self._logger.debug(f"\t{name}: {value}")
+        self._logger.debug("with new data:")
+        for name, value in obj_in.__dict__.items():
+            self._logger.debug(f"\t{name}: {value}")
+
         obj_data = jsonable_encoder(db_obj)
         if isinstance(obj_in, dict):
             update_data = obj_in

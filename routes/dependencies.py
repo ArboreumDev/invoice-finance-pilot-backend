@@ -17,9 +17,16 @@ def get_db() -> Generator:
 def log_request(request: Request):
     logger = get_logger("api")
     logger.info(f"{request.method} {request.url}")
+
     logger.debug("Params:")
     for name, value in request.path_params.items():
         logger.debug(f"\t{name}: {value}")
+
+    if hasattr(request, "_json"):
+        logger.debug("Body:")
+        for name, value in request._json.items():
+            logger.debug(f"\t{name}: {value}")
+
     logger.debug("Headers:")
     for name, value in request.headers.items():
         logger.debug(f"\t{name}: {value}")
