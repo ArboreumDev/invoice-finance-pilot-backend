@@ -87,7 +87,7 @@ def test_update_invoice_with_payment_terms(invoice1):
     before = invoice_service.get(db_session, id=_id)
     assert json.loads(before.payment_details)['interest'] != 1000
 
-    terms = invoice_to_terms(_id, invoice1.order_ref, invoice1.value, dt.datetime.now())
+    terms = invoice_to_terms(_id, invoice1.order_ref, 'loanId1', invoice1.value, dt.datetime.now())
     terms.interest = 1000
     invoice_service.update_invoice_with_loan_terms(before, terms, db_session)
 

@@ -5,11 +5,13 @@ from starlette.testclient import TestClient
 from database.crud.supplier_service import supplier as supplier_service
 from main import app
 from routes.v1.supplier import SupplierInput, SupplierUpdateInput
+from utils.constant import GURUGRUPA_CUSTOMER_DATA
 
 client = TestClient(app)
 
 new_supplier_input = SupplierInput(
-    supplier_id="s1", name="supplierName", creditline_size=50000, default_apr=0.1, default_tenor_in_days=90
+    supplier_id="s1", name="supplierName", creditline_size=50000, default_apr=0.1, default_tenor_in_days=90, 
+    data=GURUGRUPA_CUSTOMER_DATA
 ).dict()
 
 

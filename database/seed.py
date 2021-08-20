@@ -5,6 +5,7 @@ from database.models import User, Supplier
 from database.schemas.supplier import SupplierCreate
 from dotenv import load_dotenv
 import os
+from utils.constant import GURUGRUPA_CUSTOMER_DATA
 
 from database.test.conftest import reset_db
 from database.db import SessionLocal
@@ -74,7 +75,8 @@ gurugrupa = SupplierCreate(
 	creditline_size=MAX_CREDIT * (len(GURUGRUPA_RECEIVERS) + 3),
 	default_apr=MONTHLY_INTEREST,
 	# default_apr=.3,
-	default_tenor_in_days=DEFAULT_LOAN_TENOR
+	default_tenor_in_days=DEFAULT_LOAN_TENOR,
+	data=GURUGRUPA_CUSTOMER_DATA
 )
 crud.supplier.create(db_session, obj_in=gurugrupa)
 
@@ -83,7 +85,8 @@ test_supplier = SupplierCreate(
 	name='TEST Supplier',
 	creditline_size=30000 * 5,
 	default_apr=0.1,
-	default_tenor_in_days=180
+	default_tenor_in_days=180,
+	data="moreInfo"
 )
 crud.supplier.create(db_session, obj_in=test_supplier)
 

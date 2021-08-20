@@ -84,18 +84,25 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
 
     def update_invoice_payment_status(self, invoice_id: str, new_status: str, loan_id: str, db: Session):
         invoice = self.get(db, invoice_id)
+        print('iv', invoice)
         update = {}
         if (new_status == "FINANCED"):
-            self.trigger_disbursal(invoice, loan_id, db)
-            update['financed_on'] = dt.datetime.utcnow()
+            # update['financed_on'] = dt.datetime.utcnow()
+            update = {
+                'payment_details': json.dumps({
+                    **json.loads(invoice.payment_details),
+                    'loan_id': loan_id,
+                }),
+                'financed_on': dt.datetime.utcnow()
+            }
         update['finance_status'] = new_status
         return self.update_and_log(db, invoice, update)
 
-    def update_invoice_with_loan_id(self, invoice: Invoice, loan_id: str, db: Session):
-        payment_details = json.loads(invoice.payment_details)
-        # TODO use pydantic json helpers
-        payment_details['loan_id'] = loan_id
-        self.update_and_log(db, invoice, {'payment_details': json.dumps(payment_details)})
+    # def update_invoice_with_loan_id(self, invoice: Invoice, loan_id: str, db: Session):
+    #     payment_details = json.loads(invoice.payment_details)
+    #     # TODO use pydantic json helpers
+    #     payment_details['loan_id'] = loan_id
+    #     self.update_and_log(db, invoice, {'payment_details': json.dumps(payment_details)})
 
 
     def update_invoice_with_loan_terms(self, invoice: Invoice, terms: LoanTerms, db: Session):
@@ -158,7 +165,7 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         error = ""
         if new_status == "DELIVERED":
             print('disbursal manager notified')
-            self.trigger_disbursal(invoice, db)
+            self.request_disbursal(invoice, db)
         elif new_status == "PAID_BACK":
             print('invoice marked as repaid')
         elif new_status == "DEFAULTED":
@@ -170,15 +177,15 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         # mark as paid and reduce
         pass
 
-    def trigger_disbursal(self, invoice: Invoice, loan_id: str, db: Session):
+    def request_disbursal(self, invoice: Invoice, db: Session):
         # ============== get loan terms ==========
         # calculate repayment info
         # TODO get actual invoice start date
         start_date = dt.datetime.utcnow()
-        terms = invoice_to_terms(invoice.id, invoice.order_ref, loan_id, invoice.value, start_date)
+        terms = invoice_to_terms(invoice.id, invoice.order_ref, "TO_BE_ENTERED", invoice.value, start_date)
         self.update_invoice_with_loan_terms(invoice, terms, db)
         supplier = crud.supplier.get(db, invoice.supplier_id)
-        msg = terms_to_email_body(terms, supplier.name if supplier else "TODO")
+        msg = terms_to_email_body(terms, supplier if supplier else "TODO")
 
         # ================= send email to Tusker with FundRequest
         try:

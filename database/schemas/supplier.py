@@ -9,6 +9,7 @@ class SupplierBase(BaseModel):
     supplier_id: str 
     creditline_id: Optional[str] = ""
     name: str 
+    data: str # data as stored as info on tusker system
     creditline_size: int
     default_apr: float
     default_tenor_in_days: int

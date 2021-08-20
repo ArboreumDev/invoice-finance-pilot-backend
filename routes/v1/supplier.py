@@ -1,8 +1,10 @@
 from typing import Dict, List, Optional, Tuple
+from utils.email import EmailClient, terms_to_email_body, new_supplier_to_email_body
+from utils.constant import DISBURSAL_EMAIL, ARBOREUM_DISBURSAL_EMAIL
 
 from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
-from starlette.status import HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND
+from starlette.status import HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND, HTTP_425_TOO_EARLY
 
 from database import crud
 from database.exceptions import DuplicateSupplierEntryException, SupplierException
@@ -16,12 +18,12 @@ supplier_app = APIRouter()
 
 class SupplierInput(CamelModel):
     """ this is basically the class as SupplierCreate, only that it inherits from CamelModel """
-
     supplier_id: str
     name: str
     creditline_size: int
     default_apr: float
     default_tenor_in_days: int
+    data: str
 
 
 class SupplierUpdateInput(CamelModel):
@@ -59,7 +61,19 @@ def _insert_new_supplier_entry(
     if exists:
         raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="supplier already exists")
     else:
-        crud.supplier.create(db=db, obj_in=SupplierCreate(**input.dict()))
+        new_supplier = crud.supplier.create(db=db, obj_in=SupplierCreate(**input.dict()))
+        try:
+            ec = EmailClient()
+            msg = new_supplier_to_email_body(new_supplier)
+            print(msg)
+            ec.send_email(body=msg, subject="New Supplier Register", targets=[DISBURSAL_EMAIL, ARBOREUM_DISBURSAL_EMAIL])
+        except Exception as e:
+            print(e)
+            # log error
+            raise HTTPException(HTTP_425_TOO_EARLY,  detail=f"Registered supplier but could not send email: {str(e)}")
+
+
+
 
 
 @supplier_app.post("/supplier/update", response_model=Dict, tags=["invoice"])

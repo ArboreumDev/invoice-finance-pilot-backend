@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from starlette.testclient import TestClient
 
 from database import crud
+from utils.constant import GURUGRUPA_CUSTOMER_DATA
 from database.db import SessionLocal
 from database.models import User
 from database.schemas.supplier import SupplierCreate
@@ -91,6 +92,7 @@ def supplier_x_auth_user(db_session, auth_user):
             creditline_size=400000000,
             default_apr=0.142,
             default_tenor_in_days=90,
+            data=GURUGRUPA_CUSTOMER_DATA
         ),
     )
     yield supplier_in_db, auth_user, db_session

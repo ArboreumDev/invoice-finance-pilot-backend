@@ -73,6 +73,7 @@ class Supplier(Base):
     creditline_size = Column(Integer, nullable=False)
     default_apr = Column(Float, nullable=True)
     default_tenor_in_days=Column(Integer, nullable=True)
+    data = Column(Text, nullable=True)
 
     # TODO add relatioship to invoices
     # invoices = relationship("Invoice", back_populates="supplier")
