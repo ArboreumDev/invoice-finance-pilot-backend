@@ -15,7 +15,7 @@ TEST_DB_URL = (
 load_dotenv()
 PROD_DB_USER = os.getenv("POSTGRES_USER")
 PROD_DB_HOST = os.getenv("POSTGRES_HOST")
-PROD_DB_PORT = 5444
+PROD_DB_PORT = os.getenv("POSTGRES_PORT")
 PROD_DB_PASSWORD = os.getenv("POSTGRES_PASSWORD")
 PROD_DB_NAME = os.getenv("POSTGRES_DB")
 PROD_DB_URL = (

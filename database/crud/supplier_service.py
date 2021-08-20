@@ -35,11 +35,12 @@ class SupplierService(CRUDBase[Supplier, SupplierCreate, SupplierUpdate]):
         # only allow updating creditline_id if there are no live or requested invoices for that supplier
         if supplier_entry.creditline_id and update.creditline_id:
             live_invoices = db.query(Invoice).filter(
-                Invoice.supplier_id == supplier_entry.id
+                Invoice.supplier_id == supplier_entry.supplier_id
             ).filter(
                 Invoice.finance_status in ["FINANCED", "DISBURSAL_REQUESTED"]
             ).all()
-            if live_invoices is not None:
+            print('live',live_invoices, len(live_invoices))
+            if len(live_invoices) > 0:
                 raise SupplierException(
                     "Invalid Update: Supplier has live invoices and there this should not be changed. \
                     Contact your admin if you think otherwise"

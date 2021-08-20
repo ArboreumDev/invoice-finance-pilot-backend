@@ -51,6 +51,7 @@ class PurchaserInfo(CamelModel):
 class SupplierInfo(CamelModel):
     id: str = ""
     name: str = ""
+    creditline_id: str = ""
     creditline_size: int = 0
     default_terms: Terms = Terms()
 
