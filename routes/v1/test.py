@@ -2,7 +2,7 @@ from typing import Tuple
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from starlette.status import HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR
+from starlette.status import HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR
 
 from database.crud import whitelist as whitelist_service
 from database.crud.invoice_service import invoice as invoice_service
@@ -25,9 +25,11 @@ def update_invoice_value(invoiceId: str, value: int, db: Session = Depends(get_d
     return {"OK"}
 
 
-@test_app.post("/update/status/{invoiceId}/{new_status}")
-def update_invoice_finance_status(invoiceId: str, new_status: str, db: Session = Depends(get_db)):
-    invoice_service.update_invoice_payment_status(invoiceId, new_status, db)
+@test_app.post("/update/status/{invoiceId}/{new_status}/{loan_id}")
+def update_invoice_finance_status(invoiceId: str, new_status: str, loan_id: str = "", db: Session = Depends(get_db)):
+    if new_status == "FINANCED" and not loan_id:
+        raise HTTPException(HTTP_400_BAD_REQUEST, "Missing value for loan_id")
+    invoice_service.update_invoice_payment_status(invoiceId, new_status, loan_id, db)
     return {"OK"}
 
 

@@ -29,6 +29,7 @@ class SupplierUpdateInput(CamelModel):
     creditline_size: Optional[int]
     apr: Optional[float]
     tenor_in_days: Optional[int]
+    creditline_id: Optional[str]
 
 
 @supplier_app.get("/supplier", response_model=List[SupplierInfo])

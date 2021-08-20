@@ -70,6 +70,7 @@ class Invoice(BaseInvoice):
 class PaymentDetails(CamelModel):
     request_id: str = ""
     repayment_id: str = ""
+    loan_id: str = ""
     interest: float = 0
     collection_date: dt.datetime = None
     start_date: dt.datetime = None
@@ -106,6 +107,7 @@ class Listing(BaseModel):
 
 
 class LoanTerms(BaseModel):
+    loan_id: str
     order_id: str
     principal: float
     invoice_id: str
