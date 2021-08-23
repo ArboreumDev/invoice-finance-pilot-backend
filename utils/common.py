@@ -72,6 +72,7 @@ class PaymentDetails(CamelModel):
     request_id: str = ""
     repayment_id: str = ""
     loan_id: str = ""
+    disbursal_transaction_id: str = ""
     interest: float = 0
     collection_date: dt.datetime = None
     start_date: dt.datetime = None

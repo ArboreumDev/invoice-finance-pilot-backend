@@ -82,7 +82,7 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         invoice = self.get(db, invoice_id)
         self.update_and_log(db, invoice, { "value": new_value })
 
-    def update_invoice_payment_status(self, invoice_id: str, new_status: str, loan_id: str, db: Session):
+    def update_invoice_payment_status(self,db: Session, invoice_id: str, new_status: str, loan_id: str = "", tx_id: str = ""):
         invoice = self.get(db, invoice_id)
         print('iv', invoice)
         update = {}
@@ -92,9 +92,11 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
                 'payment_details': json.dumps({
                     **json.loads(invoice.payment_details),
                     'loan_id': loan_id,
+                    'disbursal_transaction_id': tx_id
                 }),
                 'financed_on': dt.datetime.utcnow()
             }
+        print('up', update)
         update['finance_status'] = new_status
         return self.update_and_log(db, invoice, update)
 

@@ -62,6 +62,7 @@ def db_invoice_to_frontend_info(inv: Invoice):
         payment_details=PaymentDetails(
             request_id=payment_details.get("request_id", "unknown"),
             loan_id=payment_details.get("loan_id", "unknown"),
+            disbursal_transaction_id=payment_details.get("disbursal_transaction_id", "unknown"),
             repayment_id=payment_details.get("repayment_id", "unknown"),
             interest=payment_details.get("interest", "unknown"),
             collection_date=payment_details.get("collection_date", "unknown"),

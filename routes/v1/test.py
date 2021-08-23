@@ -25,11 +25,13 @@ def update_invoice_value(invoiceId: str, value: int, db: Session = Depends(get_d
     return {"OK"}
 
 
-@test_app.post("/update/status/{invoiceId}/{new_status}/{loan_id}")
-def update_invoice_finance_status(invoiceId: str, new_status: str, loan_id: str = "", db: Session = Depends(get_db)):
+@test_app.post("/update/status/{invoiceId}/{new_status}")
+def update_invoice_finance_status(invoiceId: str, new_status: str, loan_id: str = "", tx_id: str = "", db: Session = Depends(get_db)):
     if new_status == "FINANCED" and not loan_id:
         raise HTTPException(HTTP_400_BAD_REQUEST, "Missing value for loan_id")
-    invoice_service.update_invoice_payment_status(invoiceId, new_status, loan_id, db)
+    invoice_service.update_invoice_payment_status(
+        db=db, invoice_id=invoiceId, new_status=new_status, loan_id=loan_id, tx_id=tx_id
+    )
     return {"OK"}
 
 
