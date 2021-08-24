@@ -217,3 +217,20 @@ def test_credit(whitelist_entry: Tuple[PurchaserInfo, str, Session, Dict]):
     credit_breakdown = response.json()
 
     assert purchaser.id in credit_breakdown[supplier_id]
+
+
+# needs the loan admin fixtures to suceed
+# then expect 404 detail == 'empy image link'
+@pytest.mark.xfail()
+def test_invoice_image_download(whitelist_and_invoices):
+    invoice_id, order_ref = whitelist_and_invoices[0]
+    auth_header = whitelist_and_invoices[5]
+
+    # insert invoice
+    res = client.post(f"v1/invoice/{order_ref}", headers=auth_header)
+
+    #try downloading the image
+    response = client.get(f"v1/invoice/image/{invoice_id}", headers=auth_header)
+
+    assert response.status_code == HTTP_200_OK
+
