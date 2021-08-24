@@ -56,8 +56,8 @@ def insert_base_user(db: Session):
     db.commit()
 
 
-def get_auth_header():
-    response = client.post("/token", dict(username="tusker", password="tusker"))
+def get_auth_header(username: str = "tusker", password: str = "tusker"):
+    response = client.post("/token", dict(username=username, password=password))
     if response.status_code != 200:
         raise AssertionError("Authentication failure:, original error" + str(response.json()))
     jwt_token = response.json()["access_token"]
