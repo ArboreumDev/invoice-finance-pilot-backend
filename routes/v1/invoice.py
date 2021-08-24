@@ -1,11 +1,10 @@
 from typing import Dict, List, Tuple
-import requests
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
-from starlette.status import (HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED, HTTP_404_NOT_FOUND,
+from starlette.status import (HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED,
+                              HTTP_404_NOT_FOUND,
                               HTTP_500_INTERNAL_SERVER_ERROR)
-from starlette.responses import StreamingResponse
 
 from database import crud
 from database.exceptions import (CreditLimitException,
@@ -124,19 +123,17 @@ def _get_creditSummary(user_info: Tuple[str, str] = Depends(check_jwt_token_role
 
 @invoice_app.get("/invoice/image/{invoice_id}", response_class=Response)
 def _get_invoice_image_from_tusker(
-    invoice_id: str,
-    db: Session = Depends(get_db),
-    user_info: Tuple[str, str] = Depends(check_jwt_token_role)
-    ):
+    invoice_id: str, db: Session = Depends(get_db), user_info: Tuple[str, str] = Depends(check_jwt_token_role)
+):
     if user_info[1] != "loanAdmin":
         raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Invalid Credentials")
     invoice = crud.invoice.get(db, invoice_id)
     if invoice is None:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Unknown invoice id")
-    
+
     # user order id of invoice to pull latest data from tusker
     raw_order = tusker_client.track_orders([invoice.order_ref])[0]
-    documents = [d for d in raw_order.get("documents", []) if d.get('template_code', 0) == 1]
+    documents = [d for d in raw_order.get("documents", []) if d.get("template_code", 0) == 1]
     if len(documents) == 0:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="No documents attached")
     # most test data wont have an image... for debugging purpose here is one that exists
@@ -147,12 +144,7 @@ def _get_invoice_image_from_tusker(
     image_link = "doc_fcdf7709-0436-40ce-a77e-629bee25fee8.jpeg"
     if isinstance(image_link, str):
         res = tusker_client.get_invoice_image(image_link)
-        return Response(
-            content=res.content,
-            status_code=200,
-            media_type="image/png"
-        )
-
+        return Response(content=res.content, status_code=200, media_type="image/png")
 
     else:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Invalid image link")

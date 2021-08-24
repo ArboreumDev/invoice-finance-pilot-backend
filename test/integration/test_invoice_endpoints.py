@@ -227,10 +227,9 @@ def test_invoice_image_download(whitelist_and_invoices):
     auth_header = whitelist_and_invoices[5]
 
     # insert invoice
-    res = client.post(f"v1/invoice/{order_ref}", headers=auth_header)
+    client.post(f"v1/invoice/{order_ref}", headers=auth_header)
 
-    #try downloading the image
+    # try downloading the image
     response = client.get(f"v1/invoice/image/{invoice_id}", headers=auth_header)
 
     assert response.status_code == HTTP_200_OK
-

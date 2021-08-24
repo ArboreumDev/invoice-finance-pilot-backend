@@ -159,16 +159,13 @@ class TuskerClient:
         return {"results": found, "status": "OK"}
 
     def get_invoice_image(self, image_link: str):
-        TUSKER_INVOICE_BUCKET_URL = 'https://fleet-non-prod.s3.amazonaws.com/consgt'
-        TUSKER_REFERER = 'https://tusker-staging.logistimo.com/'
-        url=f"{TUSKER_INVOICE_BUCKET_URL}/{image_link}"
-        print('url', url)
+        TUSKER_INVOICE_BUCKET_URL = "https://fleet-non-prod.s3.amazonaws.com/consgt"
+        TUSKER_REFERER = "https://tusker-staging.logistimo.com/"
+        url = f"{TUSKER_INVOICE_BUCKET_URL}/{image_link}"
+        print("url", url)
 
-        return requests.get(
-            url=url,
-            headers={ 'Referer': TUSKER_REFERER },
-            stream=True
-        )
+        return requests.get(url=url, headers={"Referer": TUSKER_REFERER}, stream=True)
+
 
 # %%
 tusker_client = TuskerClient(base_url=TUSKER_STAGING_BASE_URL, token=TUSKER_STAGING_TOKEN)
