@@ -10,8 +10,12 @@ from utils.constant import GURUGRUPA_CUSTOMER_DATA
 client = TestClient(app)
 
 new_supplier_input = SupplierInput(
-    supplier_id="s1", name="supplierName", creditline_size=50000, default_apr=0.1, default_tenor_in_days=90, 
-    data=GURUGRUPA_CUSTOMER_DATA
+    supplier_id="s1",
+    name="supplierName",
+    creditline_size=50000,
+    default_apr=0.1,
+    default_tenor_in_days=90,
+    data=GURUGRUPA_CUSTOMER_DATA,
 ).dict()
 
 
