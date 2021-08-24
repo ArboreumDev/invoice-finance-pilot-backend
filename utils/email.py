@@ -11,28 +11,22 @@ from utils.constant import (EMAIL_HOST, EMAIL_PASSWORD, EMAIL_PORT,
 class EmailClient:
     def __init__(self):
         # TODO get this from .env
-        smtp_ssl_host = EMAIL_HOST
-        smtp_ssl_port = EMAIL_PORT
-        username = EMAIL_USERNAME
-        password = EMAIL_PASSWORD
+        self.smtp_ssl_host = EMAIL_HOST
+        self.smtp_ssl_port = EMAIL_PORT
+        self.username = EMAIL_USERNAME
+        self.password = EMAIL_PASSWORD
         if not EMAIL_USERNAME:
             raise NotImplementedError("missing secret")
         self.sender = "dev@arboreum.dev"
-        self.server = smtplib.SMTP_SSL(smtp_ssl_host, smtp_ssl_port)
-        # self.server.connect(EMAIL_HOST, EMAIL_PORT)
-        # self.server.ehlo()
-        # self.server.starttls()
-        # self.server.ehlo()
-        self.server.login(username, password)
 
     def send_email(self, body, subject, targets):
         msg = MIMEText(body)
         msg["Subject"] = subject
         msg["From"] = self.sender
         msg["To"] = ", ".join(targets)
-        # self.server.connect(EMAIL_HOST, EMAIL_PORT)
-        # self.server.login(EMAIL_USERNAME, EMAIL_PASSWORD)
-        self.server.sendmail(self.sender, targets, msg.as_string())
+        with smtplib.SMTP_SSL(self.smtp_ssl_host, self.smtp_ssl_port) as server:
+            server.login(self.username, self.password)
+            server.sendmail(self.sender, targets, msg.as_string())
 
 
 def terms_to_email_body(terms: LoanTerms, supplier: Supplier):
@@ -78,5 +72,5 @@ def new_supplier_to_email_body(supplier: Supplier):
         for key, value in json.loads(supplier.data):
             msg += f"{key}: {value}\n"
     except Exception:
-        msg += str(value)
+        msg += str(supplier.data)
     return msg
