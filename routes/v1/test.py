@@ -1,6 +1,7 @@
-from typing import Tuple
+from typing import Tuple, Dict
+from utils.common import CamelModel
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlalchemy.orm import Session
 from starlette.status import HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR
 
@@ -10,6 +11,7 @@ from database.exceptions import UnknownPurchaserException
 from invoice.tusker_client import tusker_client
 from routes.dependencies import get_db
 from utils.security import check_jwt_token_role
+import datetime as dt
 
 # ===================== routes ==========================
 test_app = APIRouter()
@@ -22,6 +24,14 @@ test_app = APIRouter()
 def update_invoice_value(invoiceId: str, value: int, db: Session = Depends(get_db)):
     print(invoiceId, value)
     invoice_service.update_invoice_value(invoiceId, int(value), db)
+    return {"OK"}
+
+class VerificationUpdate(CamelModel):
+    new_status: str
+
+@test_app.post("/update/verification/{invoice_id}")
+def update_invoice_verification_status(invoice_id: str, update: VerificationUpdate = Body(..., embed=True), db: Session = Depends(get_db)):
+    invoice_service.update_invoice_payment_details(invoice_id, {"verification_result": update.new_status}, db)
     return {"OK"}
 
 

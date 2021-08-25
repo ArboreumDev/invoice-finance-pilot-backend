@@ -123,7 +123,8 @@ def _get_creditSummary(user_info: Tuple[str, str] = Depends(check_jwt_token_role
 
 @invoice_app.get("/invoice/image/{invoice_id}", response_class=Response)
 def _get_invoice_image_from_tusker(
-    invoice_id: str, db: Session = Depends(get_db), user_info: Tuple[str, str] = Depends(check_jwt_token_role)
+    invoice_id: str, db: Session = Depends(get_db),
+    user_info: Tuple[str, str] = Depends(check_jwt_token_role)
 ):
     if user_info[1] != "loanAdmin":
         raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Invalid Credentials")
