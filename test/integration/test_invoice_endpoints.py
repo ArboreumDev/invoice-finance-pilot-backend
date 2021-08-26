@@ -16,7 +16,7 @@ from database.test.conftest import (db_session, insert_base_user,  # noqa: 401
 from database.test.fixtures import p1, p2
 from invoice.tusker_client import tusker_client
 from main import app
-from utils.common import FinanceStatus, InvoiceFrontendInfo, PurchaserInfo
+from utils.common import InvoiceFrontendInfo, PurchaserInfo
 from utils.constant import GURUGRUPA_CUSTOMER_ID, LOC_ID4
 
 client = TestClient(app)
@@ -225,14 +225,14 @@ def test_verify_invoice(whitelist_and_invoices):
     # request invoice for financing:
     client.post(f"v1/invoice/{order_ref}", headers=auth_header)
     res = client.get("v1/invoice/", headers=auth_header)
-    assert res.json()[0]["verified"] == False
+    assert not res.json()[0]["verified"]
 
     # verify
     client.post(f"v1/invoice/verification/{inv_id}/true", headers=auth_header)
     res = client.get("v1/invoice/", headers=auth_header)
-    assert res.json()[0]["verified"] == True
+    assert res.json()[0]["verified"]
 
     # unverify
     client.post(f"v1/invoice/verification/{inv_id}/false", headers=auth_header)
     res = client.get("v1/invoice/", headers=auth_header)
-    assert res.json()[0]["verified"] == False
+    assert not res.json()[0]["verified"]
