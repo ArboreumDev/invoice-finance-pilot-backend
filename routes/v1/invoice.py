@@ -2,7 +2,7 @@ from typing import Dict, List, Tuple
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from starlette.status import (HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED, HTTP_404_NOT_FOUND,
+from starlette.status import (HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND,
                               HTTP_500_INTERNAL_SERVER_ERROR)
 
 from database import crud
@@ -12,7 +12,7 @@ from database.exceptions import (CreditLimitException,
 from invoice.tusker_client import tusker_client
 from invoice.utils import db_invoice_to_frontend_info, raw_order_to_invoice
 from routes.dependencies import get_db
-from utils.common import CamelModel, CreditLineInfo, FinanceStatus, InvoiceFrontendInfo
+from utils.common import CamelModel, CreditLineInfo, InvoiceFrontendInfo
 from utils.security import check_jwt_token_role
 
 # ===================== routes ==========================
@@ -119,13 +119,14 @@ def _get_creditSummary(user_info: Tuple[str, str] = Depends(check_jwt_token_role
         res[s.supplier_id] = invoice_service.get_credit_line_info(supplier_id=s.supplier_id, db=db)
     return res
 
-@invoice_app.post("/invoice/verification/{invoice_id}/{verified}", tags=['invoice'])
+
+@invoice_app.post("/invoice/verification/{invoice_id}/{verified}", tags=["invoice"])
 def _mark_invoice_verification_status(
     invoice_id: str,
     verified: bool,
-    user_info: Tuple[str, str] = Depends(check_jwt_token_role), 
-    db: Session = Depends(get_db)
-    ):
+    user_info: Tuple[str, str] = Depends(check_jwt_token_role),
+    db: Session = Depends(get_db),
+):
     # username, role = user_info
     # if role != 'tusker':
     #     raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="only tusker should be setting this")
@@ -133,4 +134,4 @@ def _mark_invoice_verification_status(
     # TODO log who updated to what status at what time
 
     invoice_service.update_verification_status(db, invoice_id, verified)
-    return {'status': "OK"}
+    return {"status": "OK"}

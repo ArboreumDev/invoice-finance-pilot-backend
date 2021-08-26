@@ -225,14 +225,14 @@ def test_verify_invoice(whitelist_and_invoices):
     # request invoice for financing:
     client.post(f"v1/invoice/{order_ref}", headers=auth_header)
     res = client.get("v1/invoice/", headers=auth_header)
-    assert res.json()[0]["status"] == FinanceStatus.INITIAL
+    assert res.json()[0]["verified"] == False
 
     # verify
     client.post(f"v1/invoice/verification/{inv_id}/true", headers=auth_header)
     res = client.get("v1/invoice/", headers=auth_header)
-    assert res.json()[0]["status"] == FinanceStatus.VERIFIED
+    assert res.json()[0]["verified"] == True
 
     # unverify
     client.post(f"v1/invoice/verification/{inv_id}/false", headers=auth_header)
     res = client.get("v1/invoice/", headers=auth_header)
-    assert res.json()[0]["status"] == FinanceStatus.INITIAL
+    assert res.json()[0]["verified"] == False

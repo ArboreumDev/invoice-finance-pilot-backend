@@ -85,6 +85,7 @@ class InvoiceFrontendInfo(CamelModel):
     invoice_id: str
     order_id: str
     value: float = 1
+    verified: bool = False
     destination: str = ""
     shipping_status: str = ""
     status: FinanceStatus = FinanceStatus.INITIAL

@@ -3,7 +3,8 @@ from typing import Dict
 
 from database.models import Invoice
 from invoice.tusker_client import code_to_order_status
-from utils.common import FinanceStatus, InvoiceFrontendInfo, PaymentDetails, PurchaserInfo
+from utils.common import (FinanceStatus, InvoiceFrontendInfo, PaymentDetails,
+                          PurchaserInfo)
 
 
 def raw_order_to_price(raw_order: Dict):
