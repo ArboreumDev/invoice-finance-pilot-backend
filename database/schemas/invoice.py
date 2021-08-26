@@ -44,6 +44,7 @@ class InvoiceInDB(InvoiceBase):
     updated_on: datetime
     delivered_on: datetime
     financed_on: datetime
+    verified: bool
 
     class Config:
         orm_mode = True
@@ -57,6 +58,7 @@ class InvoiceUpdate(InvoiceBase):
     value: Optional[float] = None
     delivered_on: Optional[datetime] = None
     financed_on: Optional[datetime] = None
+    verified: Optional[bool]
     payment_details: Optional[str]
     updated_on: datetime
 

@@ -52,6 +52,7 @@ def db_invoice_to_frontend_info(inv: Invoice):
         order_id=inv.order_ref,
         value=inv.value,
         status=inv.finance_status,
+        verified=inv.verified,
         shipping_status=inv.shipment_status,
         receiver_info=PurchaserInfo(
             id=inv.purchaser_id,

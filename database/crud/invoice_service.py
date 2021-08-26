@@ -71,6 +71,14 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         invoice = self.get(db, invoice_id)
         self.update_and_log(db, invoice, { "shipment_status": new_status })
 
+    def update_verification_status(self,db: Session, invoice_id: str, verified: bool):
+        invoice = self.get(db, invoice_id)
+        return self.update_and_log(
+            db,
+            invoice,
+            { "verified": verified }
+        )
+
     def update_and_log(self, db: Session, db_object, new_data: Dict):
         if db_object:
             update = InvoiceUpdate(**new_data, updated_on=dt.datetime.utcnow())

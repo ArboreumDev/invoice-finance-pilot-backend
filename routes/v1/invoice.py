@@ -132,9 +132,5 @@ def _mark_invoice_verification_status(
 
     # TODO log who updated to what status at what time
 
-    invoice_service.update_invoice_payment_status(
-        invoice_id=invoice_id, 
-        new_status=FinanceStatus.VERIFIED if verified else FinanceStatus.INITIAL,
-        db=db
-    )
+    invoice_service.update_verification_status(db, invoice_id, verified)
     return {'status': "OK"}
