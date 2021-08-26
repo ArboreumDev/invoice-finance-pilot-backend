@@ -17,6 +17,7 @@ from database import crud
 from database.crud.base import CRUDBase
 from database.models import Invoice
 from database.schemas import InvoiceCreate, InvoiceUpdate
+from utils.common import FinanceStatus
 
 
 
@@ -52,7 +53,7 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
             supplier_id=supplier_id,
             purchaser_id=purchaser_id,
             shipment_status=code_to_order_status(raw_order.get('status')),
-            finance_status="INITIAL",
+            finance_status=FinanceStatus.INITIAL,
             # TODO add default apr & tenor from whitelist-entry
             apr=0.42,
             tenor_in_days=42,
@@ -81,10 +82,10 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         invoice = self.get(db, invoice_id)
         self.update_and_log(db, invoice, { "value": new_value })
 
-    def update_invoice_payment_status(self, invoice_id: str, new_status: str, db: Session):
+    def update_invoice_payment_status(self, invoice_id: str, new_status: FinanceStatus, db: Session):
         invoice = self.get(db, invoice_id)
         update = {}
-        if (new_status == "FINANCED"):
+        if (new_status == FinanceStatus.FINANCED):
             self.trigger_disbursal(invoice, db)
             update['financed_on'] = dt.datetime.utcnow()
         update['finance_status'] = new_status
@@ -175,7 +176,7 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         try:
             ec = EmailClient()
             ec.send_email(body=msg, subject="Arboreum Disbursal Request", targets=[DISBURSAL_EMAIL, ARBOREUM_DISBURSAL_EMAIL])
-            self.update_and_log(db, invoice, {'finance_status': "DISBURSAL_REQUESTED"})
+            self.update_and_log(db, invoice, {'finance_status': FinanceStatus.DISBURSAL_REQUESTED})
         except Exception as e:
             self.update_and_log(db, invoice, {'finance_status': "ERROR_SENDING_REQUEST"})
             raise AssertionError(f"Could not send email: {str(e)}") # TODO add custom exception
@@ -204,8 +205,8 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
             credit_line_size  = w_entry.creditline_size if w_entry.creditline_size != 0 else 0
 
             invoices = db.query(Invoice).filter(Invoice.purchaser_id == w_entry.purchaser_id).all()
-            to_be_repaid = sum(i.value for i in invoices if i.finance_status == "FINANCED")
-            requested = sum(i.value for i in invoices if i.finance_status in ["DISBURSAL_REQUESTED", "INITIAL"])
+            to_be_repaid = sum(i.value for i in invoices if i.finance_status == FinanceStatus.FINANCED)
+            requested = sum(i.value for i in invoices if i.finance_status in [ FinanceStatus.DISBURSAL_REQUESTED, FinanceStatus.INITIAL])
             n_of_invoices = len(invoices)
 
             credit_line_breakdown[w_entry.purchaser_id] = CreditLineInfo(**{

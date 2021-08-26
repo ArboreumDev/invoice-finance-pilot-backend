@@ -17,6 +17,7 @@ import json
 from utils.constant import MAX_CREDIT, RECEIVER_ID1, GURUGRUPA_CUSTOMER_ID
 from database.test.conftest import reset_db
 import datetime as dt
+from utils.common import FinanceStatus
 
 invoice_service = crud.invoice
 db = SessionLocal()
@@ -54,7 +55,7 @@ def test_internal_insert_invoice(invoice1):
     assert invoice_in_db.value == NEW_RAW_ORDER.get("consgt", {}).get("val_dcl", 0)
     assert invoice_in_db.order_ref == NEW_RAW_ORDER.get('ref_no')
     assert invoice_in_db.shipment_status == "PLACED_AND_VALID"
-    assert invoice_in_db.finance_status == "INITIAL"
+    assert invoice_in_db.finance_status == FinanceStatus.INITIAL
 
     # check raw data is conserved
     assert json.loads(invoice_in_db.data) == NEW_RAW_ORDER
@@ -160,13 +161,13 @@ def test_update_db_stores_update_timestamp_and_delivered_on(invoice1):
 
 def test_update_invoices(invoice1):
     invoice1, db_session = invoice1
-    assert invoice1.finance_status == "INITIAL"
+    assert invoice1.finance_status == FinanceStatus.INITIAL
     assert invoice1.shipment_status == "DELIVERED"
 
-    invoice_service.update_invoice_payment_status(invoice1.id, "PAID", db_session)
+    invoice_service.update_invoice_payment_status(invoice1.id, FinanceStatus.REPAID, db_session)
     invoice_service.update_invoice_shipment_status(invoice1.id, "IN_TRANSIT", db_session)
 
-    assert invoice1.finance_status == "PAID"
+    assert invoice1.finance_status == "REPAID"
     assert invoice1.shipment_status == "IN_TRANSIT"
 
     # invoice_service.update_invoice_payment_status
