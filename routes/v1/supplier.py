@@ -14,11 +14,21 @@ from utils.security import check_jwt_token_role
 supplier_app = APIRouter()
 
 
+class SupplierInput(CamelModel):
+    """ this is basically the class as SupplierCreate, only that it inherits from CamelModel """
+
+    supplier_id: str
+    name: str
+    creditline_size: int
+    default_apr: float
+    default_tenor_in_days: int
+
+
 class SupplierUpdateInput(CamelModel):
     supplier_id: str
     creditline_size: Optional[int]
-    default_apr: Optional[float]
-    default_tenor_in_days: Optional[int]
+    apr: Optional[float]
+    tenor_in_days: Optional[int]
 
 
 @supplier_app.get("/supplier", response_model=List[SupplierInfo])
@@ -39,7 +49,7 @@ def _get_suppliers(user_info: Tuple[str, str] = Depends(check_jwt_token_role), d
 
 @supplier_app.post("/supplier/new", response_model=Dict, tags=["invoice"])
 def _insert_new_supplier_entry(
-    input: SupplierCreate = Body(..., embed=True),
+    input: SupplierInput = Body(..., embed=True),
     user_info: Tuple[str, str] = Depends(check_jwt_token_role),
     db: Session = Depends(get_db),
 ):
@@ -47,7 +57,7 @@ def _insert_new_supplier_entry(
     if exists:
         raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="supplier already exists")
     else:
-        crud.supplier.create(db=db, obj_in=input)
+        crud.supplier.create(db=db, obj_in=SupplierCreate(**input.dict()))
 
 
 @supplier_app.post("/supplier/update", response_model=Dict, tags=["invoice"])
@@ -57,6 +67,6 @@ def _update_supplier_entry(
     db: Session = Depends(get_db),
 ):
     try:
-        crud.supplier.update(db, update)
+        crud.supplier.update(db, update=update)
     except DuplicateSupplierEntryException:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Supplier entry not found")

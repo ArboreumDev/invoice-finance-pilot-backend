@@ -1,3 +1,4 @@
+from database.utils import remove_none_entries
 from routes.v1.supplier import SupplierUpdateInput
 from database.exceptions import UnknownSupplierException
 from os import name
@@ -33,7 +34,11 @@ class SupplierService(CRUDBase[Supplier, SupplierCreate, SupplierUpdate]):
         return super().update(
             db=db,
             db_obj=supplier_entry,
-            obj_in=SupplierUpdate(**update.dict())
+            obj_in=SupplierUpdate(
+                **remove_none_entries(update.dict()),
+                default_apr=update.apr,
+                default_tenor_in_days=update.tenor_in_days
+            )
         )
 
  

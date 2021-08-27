@@ -44,8 +44,8 @@ def test_update_supplier(supplier_entry):
         update=SupplierUpdateInput(
             supplier_id=supplier.supplier_id,
             creditline_size=41000,
-            default_apr=.41,
-            default_tenor_in_days=41
+            apr=.41,
+            tenor_in_days=41
         )
     )
 
