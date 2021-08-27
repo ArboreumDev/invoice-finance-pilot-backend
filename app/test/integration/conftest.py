@@ -9,6 +9,7 @@ from database import crud
 from database.models import Base
 from database.models import User
 from database.schemas.supplier import SupplierCreate
+from database.utils import reset_db
 from main import app
 from routes.dependencies import get_db
 
@@ -48,12 +49,6 @@ app.dependency_overrides[get_db] = override_get_db
 
 client = TestClient(app)
 CUSTOMER_ID = "0001e776-c372-4ec5-8fa4-f30ab74ca631"
-
-
-def reset_db(db: Session, deleteWhitelist=False):
-    db.execute("TRUNCATE invoice, users, supplier")
-    if deleteWhitelist:
-        db.execute("TRUNCATE whitelist")
 
 
 @pytest.fixture(scope="function")

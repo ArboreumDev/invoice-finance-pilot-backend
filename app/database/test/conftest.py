@@ -9,8 +9,8 @@ from typing import Tuple, List
 from utils.common import PurchaserInfo
 from sqlalchemy.orm import Session
 
-from test.integration.conftest import insert_base_user, reset_db, db_session
-
+from test.integration.conftest import insert_base_user, db_session
+from database.utils import reset_db
 
 whitelist_service = crud.whitelist
 invoice_service = crud.invoice

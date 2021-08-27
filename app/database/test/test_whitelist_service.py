@@ -5,7 +5,8 @@ from database.db import Session
 
 from database.crud import whitelist as whitelist_service
 from utils.common import PurchaserInfo
-from database.test.conftest import reset_db, db_session
+from database.test.conftest import db_session
+from database.utils import reset_db
 from database.test.fixtures import CUSTOMER_ID, p1, OTHER_CUSTOMER_ID, OTHER_PURCHASER_ID, OTHER_LOCATION_ID
 from database.exceptions import DuplicateWhitelistEntryException
 

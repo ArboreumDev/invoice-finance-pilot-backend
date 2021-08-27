@@ -1,6 +1,7 @@
 from routes.v1.supplier import SupplierUpdateInput
 from database.schemas.supplier import SupplierCreate
-from database.test.conftest import db_session, reset_db
+from database.test.conftest import db_session
+from database.utils import reset_db
 from database import crud
 
 

@@ -9,7 +9,8 @@ from database.test.fixtures import NEW_RAW_ORDER
 from sqlalchemy.orm import Session
 from typing import Tuple
 import json
-from database.test.conftest import reset_db, db_session
+from database.test.conftest import db_session
+from database.utils import reset_db
 from test.integration.conftest import TestingSessionLocal
 import datetime as dt
 

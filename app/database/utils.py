@@ -1,9 +1,7 @@
-from db.database import session
-from db.models import Invoice
+from sqlalchemy.orm import Session
 
 
-def get_invoices():
-    result = session.query(Invoice).all()
-    print("allinvoices", result)
-
-    return result
+def reset_db(db: Session, deleteWhitelist=False):
+    db.execute("TRUNCATE invoice, users, supplier")
+    if deleteWhitelist:
+        db.execute("TRUNCATE whitelist")

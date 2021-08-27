@@ -6,14 +6,14 @@ from database.schemas.supplier import SupplierCreate
 from dotenv import load_dotenv
 import os
 
-from database.test.conftest import reset_db
+from database.utils import reset_db
 from database.db import SessionLocal
 from database import crud
 
 db_session = SessionLocal()
 
 load_dotenv()
-reset_db(deleteWhitelist=True)
+reset_db(db_session, deleteWhitelist=True)
 GURUGRUPA_CUSTOMER_ID = os.getenv("GURUGRUPA_CUSTOMER_ID")
 GURUGRUPA_RECEIVERS = [
  PurchaserInfo(id='dd06ff1a-d9f2-4b2a-8182-d9d2e9522d8e', name='SHri verabhadreshwar medical store', phone='+91-9448186108', city='Laxmeshwar', location_id='030a0c98-d7e2-473c-afba-bed41feb2960'),
