@@ -1,12 +1,10 @@
 import pytest
 from starlette.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
-from starlette.testclient import TestClient
 
 from database.crud.supplier_service import supplier as supplier_service
-from main import app
 from routes.v1.supplier import SupplierCreate, SupplierUpdateInput
+from test.integration.conftest import client
 
-client = TestClient(app)
 
 new_supplier_entry = SupplierCreate(
     supplier_id="s1", name="supplierName", creditline_size=50000, default_apr=0.1, default_tenor_in_days=90

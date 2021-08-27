@@ -1,4 +1,3 @@
-version: "3.3"
 services:
   backend:
     image: ghcr.io/arboreumdev/tusker-pilot-backend:docker
@@ -18,8 +17,16 @@ services:
     environment:
       - PGDATA=/var/lib/postgresql/data/pgdata
   frontend:
+    profiles:
+      - frontend
     image: ghcr.io/arboreumdev/tusker-pilot-frontend:docker
     ports:
       - "3000:3000"
+  test-db:
+    profiles:
+      - testing
+    image: postgres:12
+    env_file:
+      - .env
 volumes:
   app-db-data:

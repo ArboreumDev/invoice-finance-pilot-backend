@@ -3,15 +3,11 @@ import math
 import copy
 from database import crud
 from sqlalchemy.orm import Session
-from database.crud.invoice_service import InvoiceService, invoice_to_terms
+from database.crud.invoice_service import InvoiceService
 from database.crud.whitelist_service import WhitelistService
-from database.test.conftest import reset_db
-from database.models import Invoice
-import datetime as dt
-
 
 invoice_service: InvoiceService = crud.invoice
-whitelist_service: InvoiceService = crud.whitelist
+whitelist_service: WhitelistService = crud.whitelist
 
 
 def test_credit_line_breakdown(whitelisted_invoices):
@@ -45,6 +41,7 @@ def test_credit_line_breakdown(whitelisted_invoices):
     # after = invoice_service.get_credit_line_info(GURUGRUPA_CUSTOMER_ID)
     # assert after[gurugrupa_receiver1].used == before[gurugrupa_receiver1].used + in1.value + in2.value
 
+
 def test_credit_line_breakdown_invalid_customer_id(db_session: Session):
     assert invoice_service.get_credit_line_info("deadbeef", db_session) == {}
 
@@ -63,6 +60,7 @@ def test_credit_line_summary(whitelisted_invoices):
     # assert sum(c.requested for c in customer.values())== summary['gurugrupa'].requested
     # assert sum(c.available for c in customer.values())== summary['gurugrupa'].available
     # assert sum(c.invoices for c in customer.values())== summary['gurugrupa'].invoices
+
 
 @pytest.mark.skip()
 def test_insert_new_invoice_exceeds_credit_line_failure():

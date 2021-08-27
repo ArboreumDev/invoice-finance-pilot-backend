@@ -1,34 +1,59 @@
+import os
+
 import pytest
-from sqlalchemy.orm import Session
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
 from starlette.testclient import TestClient
 
 from database import crud
-from database.db import SessionLocal
+from database.models import Base
 from database.models import User
 from database.schemas.supplier import SupplierCreate
 from main import app
+from routes.dependencies import get_db
+
+TEST_DB_USER = os.getenv("POSTGRES_USER")
+TEST_DB_HOST = os.getenv("POSTGRES_TEST_HOST")
+TEST_DB_PORT = "5432"
+TEST_DB_PASSWORD = os.getenv("POSTGRES_PASSWORD")
+TEST_DB_NAME = os.getenv("POSTGRES_DB")
+
+TEST_DB_URL = (
+    f"postgresql://{TEST_DB_USER}:{TEST_DB_PASSWORD}@{TEST_DB_HOST}:{TEST_DB_PORT}/{TEST_DB_NAME}"
+)
+
+engine = create_engine(
+    TEST_DB_URL
+)
+Base.metadata.create_all(bind=engine)
+
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+def override_get_db():
+    db = TestingSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+@pytest.fixture(scope="function")
+def db_session():
+    yield from override_get_db()
+
+
+app.dependency_overrides[get_db] = override_get_db
+
 
 client = TestClient(app)
 CUSTOMER_ID = "0001e776-c372-4ec5-8fa4-f30ab74ca631"
 
 
-@pytest.fixture(scope="function")
-def db_session():
-    _db = SessionLocal()
-    try:
-        yield _db
-    finally:
-        _db.close()
-
-
 def reset_db(db: Session, deleteWhitelist=False):
-    db.connection().execute("delete from invoice")
-    db.connection().execute("delete from invoice")
-    db.connection().execute("delete from users")
-    db.connection().execute("delete from supplier")
+    db.execute("TRUNCATE invoice, users, supplier")
     if deleteWhitelist:
-        db.connection().execute("delete from whitelist")
-    db.commit()
+        db.execute("TRUNCATE whitelist")
 
 
 @pytest.fixture(scope="function")

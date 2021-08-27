@@ -1,41 +1,34 @@
 # %%
 import pytest
 import time
-import copy
 from database import crud
 from database.crud.invoice_service import invoice_to_terms
-from database.crud.whitelist_service import whitelist as whitelistService
 from database.models import Invoice
 from database.exceptions import DuplicateInvoiceException
-from database.test.fixtures import NEW_RAW_ORDER, RAW_ORDER, get_new_raw_order
-from database.db import SessionLocal, metadata, engine, session
+from database.test.fixtures import NEW_RAW_ORDER
 from sqlalchemy.orm import Session
-from invoice.tusker_client import code_to_order_status, tusker_client
 from typing import Tuple
-import contextlib
 import json
-from utils.constant import MAX_CREDIT, RECEIVER_ID1, GURUGRUPA_CUSTOMER_ID
-from database.test.conftest import reset_db
+from database.test.conftest import reset_db, db_session
+from test.integration.conftest import TestingSessionLocal
 import datetime as dt
 
 invoice_service = crud.invoice
-db = SessionLocal()
 
 
 # %%
 # @pytest.mark.skip()
-def test_reset_db():
-    reset_db()
-    invoice_service._insert_new_invoice_for_purchaser_x_supplier(NEW_RAW_ORDER, "p", "s", db)
-    reset_db()
-    after = invoice_service.get_all_invoices(db)
+def test_reset_db(db_session):
+    reset_db(db_session)
+    invoice_service._insert_new_invoice_for_purchaser_x_supplier(NEW_RAW_ORDER, "p", "s", db_session)
+    reset_db(db_session)
+    after = invoice_service.get_all_invoices(db_session)
     assert len(after) == 0
 
 
 def test_internal_insert_invoice(invoice1):
     _, db_session = invoice1
     before = invoice_service.get_all_invoices(db_session)
-
     invoice_id = invoice_service._insert_new_invoice_for_purchaser_x_supplier(
         NEW_RAW_ORDER,
         purchaser_id="testP",
@@ -44,7 +37,6 @@ def test_internal_insert_invoice(invoice1):
     )
 
     after = invoice_service.get_all_invoices(db_session)
-
     # verify there is an extra invoice and its the one newly added
     assert len(after) == len(before) + 1
     assert invoice_id in [i.id for i in after]
@@ -58,7 +50,7 @@ def test_internal_insert_invoice(invoice1):
 
     # check raw data is conserved
     assert json.loads(invoice_in_db.data) == NEW_RAW_ORDER
-    reset_db()
+    reset_db(db_session)
 
 
 def test_insert_invoice_that_exists_fail(invoice1: Tuple[Invoice, Session]):
@@ -68,7 +60,7 @@ def test_insert_invoice_that_exists_fail(invoice1: Tuple[Invoice, Session]):
             raw_order = json.loads(invoice1.data),
             purchaser_id=invoice1.purchaser_id,
             supplier_id=invoice1.supplier_id,
-            db=db
+            db=db_session
         )
 
 
@@ -76,8 +68,7 @@ def test_update_invoice_shipment_status(invoice1):
     invoice1, db_session = invoice1
     invoice_service.update_invoice_shipment_status(invoice1.id, "NEW_STATUS", db_session)
     after = invoice_service.get(db_session, invoice1.id)
-    assert  after.shipment_status == "NEW_STATUS"
-    reset_db()
+    assert after.shipment_status == "NEW_STATUS"
 
 
 def test_update_invoice_with_payment_terms(invoice1):
@@ -106,13 +97,14 @@ def test_delete_invoice(invoice1):
 
 
 def test_get_all_invoices(invoices):
-    [invoice1, invoice2], db = invoices
+    [invoice1, invoice2], db_session = invoices
 
-    _invoices = invoice_service.get_all_invoices(db)
+    _invoices = invoice_service.get_all_invoices(db_session)
 
     ids_from_db = [i.id for i in _invoices]
     assert invoice1.id in ids_from_db
     assert invoice2.id in ids_from_db
+
 
 def test_update_db(invoice1):
     invoice1, db_session = invoice1
@@ -129,7 +121,6 @@ def test_update_db(invoice1):
     assert updated[0][0] == invoice1.id
     assert updated[0][1] == tmp
 
-
     # TODO this chcek should pass
     after = invoice_service.get_all_invoices(db_session)[0]
     # assert before.updated_on < after.updated_on
@@ -137,8 +128,10 @@ def test_update_db(invoice1):
     # TODO move this into its own test
     assert after.delivered_on is not None
 
+
 @pytest.mark.xfail()
 def test_update_db_stores_update_timestamp_and_delivered_on(invoice1):
+
     # save current status (same as what is on tusker-api)
     tmp = invoice1.shipment_status
     assert invoice1.shipment_status == "DELIVERED"

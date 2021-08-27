@@ -2,15 +2,13 @@ from test.integration.conftest import get_auth_header
 
 import pytest
 from starlette.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
-from starlette.testclient import TestClient
 
 from database.crud.whitelist_service import whitelist as whitelist_service
 from database.test.conftest import insert_base_user, reset_db
-from main import app
 from routes.v1.whitelist import WhitelistInput, WhitelistUpdateInput
 from utils.common import PurchaserInfo, Terms
+from test.integration.conftest import client
 
-client = TestClient(app)
 
 new_whitelist_entry = WhitelistInput(
     supplier_id="s1",
@@ -28,11 +26,11 @@ new_whitelist_entry = WhitelistInput(
 @pytest.fixture(scope="function")
 def auth_user(db_session):
     """ empty db, except one user registered """
-    reset_db(deleteWhitelist=True)
+    reset_db(db_session, deleteWhitelist=True)
     insert_base_user(db_session)
     auth_header = get_auth_header()
     yield auth_header
-    reset_db(deleteWhitelist=True)
+    reset_db(db_session, deleteWhitelist=True)
 
 
 def test_post_new_whitelist_entry_success(auth_user):

@@ -1,16 +1,28 @@
 dev-api:
-	uvicorn main:app --reload --port 8000 --host 0.0.0.0
+    docker compose --profile testing up -d
+
+dev-api-standalone:
+    docker compose -f docker-compose.yml up -d
+
+dev-api-local:
+    docker compose --profile testing up -d db test-db
+    uvicorn main:app --app-dir app/ --reload --port 8000 --host 0.0.0.0
 
 lint:
-	flake8 invoice routes test utils --max-line-length=120
+	flake8 app/invoice app/routes app/test app/utils --max-line-length=120
 
 lint-format:
-	black invoice routes test utils --line-length=120
-	autoflake invoice routes test utils --remove-unused-variables --remove-all-unused-imports --in-place -r
-	isort invoice routes test utils
+	black app/invoice app/routes app/test app/utils --line-length=120
+	autoflake app/invoice app/routes app/test app/utils --remove-unused-variables --remove-all-unused-imports --in-place -r
+	isort app/invoice app/routes app/test app/utils
 
-test: 
-	pytest --workers auto
+test:
+    docker compose --profile testing up -d
+    docker compose exec -T pytest --workers auto
+
+test-local:
+    docker compose --profile testing up -d test-db
+    cd app && python -m pytest --workers auto
 
 test_db:
 	docker up arboreum_backend
