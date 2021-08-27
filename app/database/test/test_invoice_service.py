@@ -129,24 +129,22 @@ def test_update_db(invoice1):
     assert after.delivered_on is not None
 
 
-@pytest.mark.xfail()
 def test_update_db_stores_update_timestamp_and_delivered_on(invoice1):
-
     # save current status (same as what is on tusker-api)
-    tmp = invoice1.shipment_status
-    assert invoice1.shipment_status == "DELIVERED"
+    invoice, db_session = invoice1
+    assert invoice.shipment_status == "DELIVERED"
 
     # change status on db so that whatever is pulled from tusker will be new
-    invoice1.shipment_status = "somestatus"
-    before = invoice_service.get_all_invoices()[0]
-
-    updated, errored = invoice_service.update_invoice_db()
+    invoice_service.update_invoice_shipment_status(invoice.id, "somestatus", db_session)
+    before = invoice_service.get_all_invoices(db_session)[0]
+    last_updated = before.updated_on
+    updated, errored = invoice_service.update_invoice_db(db_session)
 
     assert not errored
 
-    after = invoice_service.get_all_invoices()[0]
-    # TODO issue#32
-    assert before.updated_on < after.updated_on
+    after = invoice_service.get_all_invoices(db_session)[0]
+
+    assert last_updated < after.updated_on
 
     assert after.delivered_on is not None
 
