@@ -13,6 +13,7 @@ from routes.dependencies import get_db
 from utils.common import JWTUser
 from utils.constant import (JWT_ALGORITHM, JWT_EXPIRATION_TIME_MINUTES,
                             JWT_SECRET_KEY)
+from utils.logger import get_logger
 
 oauth_schema = OAuth2PasswordBearer(tokenUrl="/token")
 pwd_context = CryptContext(schemes=["bcrypt"])
@@ -54,6 +55,7 @@ def create_jwt_token(user: JWTUser):
 # Check whether JWT token is correct
 def check_jwt_token_role(token: str = Depends(oauth_schema), db: Session = Depends(get_db)):
     """ raise exceptions if unauthorized, else return role and username """
+    logger = get_logger(__name__)
     try:
         jwt_payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=JWT_ALGORITHM)
         username = jwt_payload.get("sub")
@@ -64,10 +66,13 @@ def check_jwt_token_role(token: str = Depends(oauth_schema), db: Session = Depen
                 return username, role
                 # return final_checks(role, auth_level)
             else:
+                logger.exception(f"Login rejected because unknown user: {username} with role {role}")
                 raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Unknown User")
         else:
+            logger.exception(f"Login from {username} with role {role} rejected because JWT expired")
             raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="JWT expired")
     except Exception as e:
+        logger.exception(f"Login rejected: {str(e)}")
         raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail=str(e))
 
 

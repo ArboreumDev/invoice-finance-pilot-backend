@@ -1,4 +1,4 @@
-from test.integration.conftest import get_auth_header
+from test.integration.conftest import get_auth_header, reset_db
 from typing import Dict, Tuple
 
 import pytest
@@ -11,8 +11,7 @@ from database.crud.invoice_service import invoice as invoice_service
 from database.crud.supplier_service import supplier as supplier_service
 from database.crud.whitelist_service import whitelist as whitelist_service
 from database.schemas.supplier import SupplierCreate
-from database.test.conftest import (db_session, insert_base_user,  # noqa: 401
-                                    reset_db)
+from database.test.conftest import db_session, insert_base_user  # noqa: 401
 from database.test.fixtures import p1, p2
 from invoice.tusker_client import tusker_client
 from main import app
@@ -26,7 +25,7 @@ CUSTOMER_ID = "0001e776-c372-4ec5-8fa4-f30ab74ca631"
 # TODO figure out why these fixtures can not be imported from the other conftest file
 @pytest.fixture(scope="function")
 def whitelist_and_invoices(db_session) -> Tuple[Tuple, Tuple, str, PurchaserInfo, Session, Dict]:  # noqa: F811
-    reset_db(deleteWhitelist=True)
+    reset_db(db_session)
     insert_base_user(db_session)
     auth_header = get_auth_header()
     whitelist_service.insert_whitelist_entry(
@@ -45,12 +44,13 @@ def whitelist_and_invoices(db_session) -> Tuple[Tuple, Tuple, str, PurchaserInfo
 
     yield (inv_id1, order_ref1), (inv_id2, order_ref2), GURUGRUPA_CUSTOMER_ID, p1, db_session, auth_header
 
-    reset_db(deleteWhitelist=True)
+    reset_db(db_session)
 
 
 @pytest.fixture(scope="function")
 def whitelist_entry(db_session: Session) -> Tuple[PurchaserInfo, str, Session]:  # noqa: F811
-    reset_db(deleteWhitelist=True)
+    reset_db(db_session)
+
     insert_base_user(db_session)
     auth_header = get_auth_header()
     whitelist_service.insert_whitelist_entry(
@@ -64,12 +64,13 @@ def whitelist_entry(db_session: Session) -> Tuple[PurchaserInfo, str, Session]: 
             creditline_size=400000000,
             default_apr=0.142,
             default_tenor_in_days=90,
+            data=""
         ),
     )
 
     yield p1, CUSTOMER_ID, db_session, auth_header
 
-    reset_db(deleteWhitelist=True)
+    reset_db(db_session)
 
 
 # TODO add jwt-token to all requests / modify client to have a valid header by default
@@ -236,3 +237,19 @@ def test_verify_invoice(whitelist_and_invoices):
     client.post(f"v1/invoice/verification/{inv_id}/false", headers=auth_header)
     res = client.get("v1/invoice/", headers=auth_header)
     assert not res.json()[0]["verified"]
+
+
+# needs the loan admin fixtures to suceed
+# then expect 404 detail == 'empy image link'
+@pytest.mark.xfail()
+def test_invoice_image_download(whitelist_and_invoices):
+    invoice_id, order_ref = whitelist_and_invoices[0]
+    auth_header = whitelist_and_invoices[5]
+
+    # insert invoice
+    client.post(f"v1/invoice/{order_ref}", headers=auth_header)
+
+    # try downloading the image
+    response = client.get(f"v1/invoice/image/{invoice_id}", headers=auth_header)
+
+    assert response.status_code == HTTP_200_OK

@@ -1,10 +1,11 @@
+from database.utils import remove_none_entries
 from routes.v1.supplier import SupplierUpdateInput
-from database.exceptions import UnknownSupplierException
+from database.exceptions import SupplierException, UnknownSupplierException
 from os import name
 from typing import Dict, List
 from sqlalchemy.orm import Session
 from database.db import session
-from database.models import Supplier
+from database.models import Supplier, Invoice
 from database.crud.base import CRUDBase
 from database.schemas import SupplierCreate, SupplierUpdate
 
@@ -27,13 +28,33 @@ class SupplierService(CRUDBase[Supplier, SupplierCreate, SupplierUpdate]):
 
     def update( self, db: Session, update: SupplierUpdateInput):
         supplier_entry = self.get(db, supplier_id=update.supplier_id)
+
         if not supplier_entry:
+            self._logger.error(f"Update target not found: supplier_id: {update.supplier_id}")
             raise UnknownSupplierException("Supplier entry doesnt exist")
+
+        # only allow updating creditline_id if there are no live or requested invoices for that supplier
+        if supplier_entry.creditline_id and update.creditline_id:
+            live_invoices = db.query(Invoice).filter(
+                Invoice.supplier_id == supplier_entry.supplier_id
+            ).filter(
+                Invoice.finance_status in ["FINANCED", "DISBURSAL_REQUESTED"]
+            ).all()
+            print('live',live_invoices, len(live_invoices))
+            if len(live_invoices) > 0:
+                raise SupplierException(
+                    "Invalid Update: Supplier has live invoices and there this should not be changed. \
+                    Contact your admin if you think otherwise"
+                )
 
         return super().update(
             db=db,
             db_obj=supplier_entry,
-            obj_in=SupplierUpdate(**update.dict())
+            obj_in=SupplierUpdate(
+                **remove_none_entries(update.dict()),
+                default_apr=update.apr,
+                default_tenor_in_days=update.tenor_in_days
+            )
         )
 
  

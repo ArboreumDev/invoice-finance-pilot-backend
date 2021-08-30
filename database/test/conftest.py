@@ -12,6 +12,7 @@ from typing import Tuple, List
 import copy
 from utils.common import PurchaserInfo
 from sqlalchemy.orm import Session
+from utils.logger import get_logger
 
 whitelist_service = crud.whitelist
 invoice_service = crud.invoice
@@ -29,42 +30,56 @@ def insert_base_user(db: Session):
     db.add(tusker_user)
     db.commit()
 
-def reset_db(deleteWhitelist = False):
-    db.connection().execute("delete from invoice")
-    db.connection().execute("delete from invoice")
-    db.connection().execute("delete from users")
-    db.connection().execute("delete from supplier")
-    if deleteWhitelist:
+def reset_db(db: Session, tables = []):
+    if len(tables) == 0:
+        db.connection().execute("delete from invoice")
+        db.connection().execute("delete from users")
+        db.connection().execute("delete from supplier")
         db.connection().execute("delete from whitelist")
+    else:
+        for table in tables:
+            db.connection().execute(f"delete from {table}")
     db.commit()
 
 
-
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="session")
 def db_session():
+    logger = get_logger(__name__)
+    logger.info("Creating DB test session")
+
     _db = SessionLocal()
+
     try:
         yield _db
     finally:
         _db.close()
+        logger.info("Closed DB test session")
+
+@pytest.fixture(scope="function")
+def clean_db(db_session: Session) -> Session:
+    reset_db(db_session)
+
+    yield db_session
+
+    reset_db(db_session)
 
 
 @pytest.fixture(scope="function")
 def invoice1(db_session: Session) -> Tuple[Invoice, Session]:
     """ will only insert into invoices table, there will be no connected entries"""
-    reset_db()
+    reset_db(db_session)
     invoice_id = invoice_service._insert_new_invoice_for_purchaser_x_supplier(RAW_ORDER, "testP", "testS", db_session)
     invoice = invoice_service.get(db_session, id=invoice_id)
 
     yield invoice, db_session
 
-    reset_db()
+    reset_db(db_session)
 
 
 @pytest.fixture(scope="function")
 def invoices(db_session: Session) -> Tuple[List[Invoice], Session]:
 
-    reset_db()
+    reset_db(db_session)
     insert_base_user(db_session)
     auth_header = get_auth_header()
     invoice_service._insert_new_invoice_for_purchaser_x_supplier(
@@ -77,11 +92,11 @@ def invoices(db_session: Session) -> Tuple[List[Invoice], Session]:
 
     yield invoices, db_session
 
-    reset_db()
+    reset_db(db_session)
 
 @pytest.fixture(scope="function")
 def whitelisted_invoices(db_session: Session):
-    reset_db(deleteWhitelist=True)
+    reset_db(db_session)
     insert_base_user(db_session)
 
 
@@ -128,7 +143,7 @@ def whitelisted_invoices(db_session: Session):
 
     yield invoices, db_session
 
-    reset_db(deleteWhitelist=True)
+    reset_db(db_session)
 
  
 
@@ -137,7 +152,7 @@ CUSTOMER_ID = "0001e776-c372-4ec5-8fa4-f30ab74ca631"
 p1 = PurchaserInfo(id='aa8b8369-be51-49a3-8419-3d1eb8c4146c', name='Mahantesh Medical', phone='+91-9449642927', city='Kundagol', location_id='e0f2c12d-9371-4863-a39a-0037cd6c711b')
 @pytest.fixture(scope="function")
 def whitelist_entry(db_session: Session) -> Tuple[PurchaserInfo, str, Session]:
-    reset_db(deleteWhitelist=True)
+    reset_db(db_session)
     insert_base_user(db_session)
     auth_header = get_auth_header()
     whitelist_service.insert_whitelist_entry(
@@ -151,7 +166,7 @@ def whitelist_entry(db_session: Session) -> Tuple[PurchaserInfo, str, Session]:
 
     yield p1, CUSTOMER_ID, db_session
 
-    reset_db(deleteWhitelist=True)
+    reset_db(db_session)
 
 
 @pytest.fixture(scope="function")

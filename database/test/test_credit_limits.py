@@ -22,7 +22,7 @@ def test_credit_line_breakdown(whitelisted_invoices):
 
     before = copy.deepcopy(invoice_service.get_credit_line_info(supplier_id, db))
 
-    invoice_service.update_invoice_payment_status(in1.id, "FINANCED", db)
+    invoice_service.update_invoice_payment_status(db, in1.id, "FINANCED")
 
     # verify invoices with disbursed status are deducted from available credit
     after =  invoice_service.get_credit_line_info(supplier_id, db)

@@ -7,28 +7,35 @@ from database.db import SessionLocal
 from database.models import User
 from database.schemas.supplier import SupplierCreate
 from main import app
+from utils.constant import GURUGRUPA_CUSTOMER_DATA
+from utils.logger import get_logger
 
 client = TestClient(app)
 CUSTOMER_ID = "0001e776-c372-4ec5-8fa4-f30ab74ca631"
 
 
-@pytest.fixture(scope="function")
+def reset_db(db: Session, tables=[]):
+    if len(tables) == 0:
+        db.connection().execute("delete from invoice")
+        db.connection().execute("delete from users")
+        db.connection().execute("delete from supplier")
+        db.connection().execute("delete from whitelist")
+    else:
+        for table in tables:
+            db.connection().execute(f"delete from {table}")
+    db.commit()
+
+
+@pytest.fixture(scope="session")
 def db_session():
+    logger = get_logger(__name__)
+    logger.info("Creating DB test session")
     _db = SessionLocal()
     try:
         yield _db
     finally:
         _db.close()
-
-
-def reset_db(db: Session, deleteWhitelist=False):
-    db.connection().execute("delete from invoice")
-    db.connection().execute("delete from invoice")
-    db.connection().execute("delete from users")
-    db.connection().execute("delete from supplier")
-    if deleteWhitelist:
-        db.connection().execute("delete from whitelist")
-    db.commit()
+        logger.info("Closed DB test session")
 
 
 @pytest.fixture(scope="function")
@@ -55,8 +62,8 @@ def insert_base_user(db: Session):
     db.commit()
 
 
-def get_auth_header():
-    response = client.post("/token", dict(username="tusker", password="tusker"))
+def get_auth_header(username: str = "tusker", password: str = "tusker"):
+    response = client.post("/token", dict(username=username, password=password))
     if response.status_code != 200:
         raise AssertionError("Authentication failure:, original error" + str(response.json()))
     jwt_token = response.json()["access_token"]
@@ -91,6 +98,7 @@ def supplier_x_auth_user(db_session, auth_user):
             creditline_size=400000000,
             default_apr=0.142,
             default_tenor_in_days=90,
+            data=GURUGRUPA_CUSTOMER_DATA,
         ),
     )
     yield supplier_in_db, auth_user, db_session

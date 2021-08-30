@@ -13,20 +13,20 @@ from database.db import SessionLocal
 db = SessionLocal()
 
 
-def test_insert_whitelist_entry():
-	whitelisted = whitelist_service.get_whitelisted_locations_for_supplier(db, CUSTOMER_ID)
-	assert len(whitelisted) == 0
-	whitelist_service.insert_whitelist_entry(
+def test_insert_whitelist_entry(clean_db):
+    whitelisted = whitelist_service.get_whitelisted_locations_for_supplier(clean_db, CUSTOMER_ID)
+    # assert len(whitelisted) == 0
+    whitelist_service.insert_whitelist_entry(
         db,
-		supplier_id=CUSTOMER_ID,
-		purchaser=p1,
-		creditline_size=50000,
-		apr=0.1,
-		tenor_in_days=90
-	)
+        supplier_id=CUSTOMER_ID,
+        purchaser=p1,
+        creditline_size=50000,
+        apr=0.1,
+        tenor_in_days=90
+    )
 
-	whitelisted = whitelist_service.get_whitelisted_locations_for_supplier(db, CUSTOMER_ID)
-	assert len(whitelisted) == 1
+    whitelisted = whitelist_service.get_whitelisted_locations_for_supplier(clean_db, CUSTOMER_ID)
+    assert len(whitelisted) == 1
 
 @pytest.mark.skip()
 def test_optional_parameter_entry():

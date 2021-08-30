@@ -5,15 +5,21 @@ from database.models import User, Supplier
 from database.schemas.supplier import SupplierCreate
 from dotenv import load_dotenv
 import os
+from utils.constant import GURUGRUPA_CUSTOMER_DATA
 
 from database.test.conftest import reset_db
 from database.db import SessionLocal
 from database import crud
+from utils.logger import  get_logger
+
+logger = get_logger(__name__)
+
+logger.info('Applying Seed Data')
 
 db_session = SessionLocal()
 
 load_dotenv()
-reset_db(deleteWhitelist=True)
+reset_db(db_session)
 GURUGRUPA_CUSTOMER_ID = os.getenv("GURUGRUPA_CUSTOMER_ID")
 GURUGRUPA_RECEIVERS = [
  PurchaserInfo(id='dd06ff1a-d9f2-4b2a-8182-d9d2e9522d8e', name='SHri verabhadreshwar medical store', phone='+91-9448186108', city='Laxmeshwar', location_id='030a0c98-d7e2-473c-afba-bed41feb2960'),
@@ -57,7 +63,15 @@ tusker_user = User(
 	hashed_password = "$2b$12$8t8LDzm.Ag68n6kv8pZoI.Oqd1x1rczNfe8QUcZwp6wnX8.dse0Ni", # pw=tusker
 	role = "tusker",
 )
+loan_admin = User(
+	email = "avinash@arboreum.dev",
+	username = "avinash",
+	hashed_password = "$2b$12$NuzME53eqmA211BN3CQI.eMfaiQwVkV5JAy/9qDuyDQXoqRDtpmBC", # pw=singh
+	role = "loanAdmin",
+)
+
 db_session.add(tusker_user)
+db_session.add(loan_admin)
 
 # insert gurugrupa and test customer into Supplier DB
 gurugrupa = SupplierCreate(
@@ -66,7 +80,8 @@ gurugrupa = SupplierCreate(
 	creditline_size=MAX_CREDIT * (len(GURUGRUPA_RECEIVERS) + 3),
 	default_apr=MONTHLY_INTEREST,
 	# default_apr=.3,
-	default_tenor_in_days=DEFAULT_LOAN_TENOR
+	default_tenor_in_days=DEFAULT_LOAN_TENOR,
+	data=GURUGRUPA_CUSTOMER_DATA
 )
 crud.supplier.create(db_session, obj_in=gurugrupa)
 
@@ -75,7 +90,8 @@ test_supplier = SupplierCreate(
 	name='TEST Supplier',
 	creditline_size=30000 * 5,
 	default_apr=0.1,
-	default_tenor_in_days=180
+	default_tenor_in_days=180,
+	data="moreInfo"
 )
 crud.supplier.create(db_session, obj_in=test_supplier)
 
@@ -102,3 +118,4 @@ for purchaser in GURUGRUPA_RECEIVERS[-2:]:
 	)
 
 
+logger.info('Applying Seed Data Completed')

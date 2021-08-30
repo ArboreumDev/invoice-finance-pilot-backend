@@ -4,25 +4,31 @@ from starlette.testclient import TestClient
 
 from database.crud.supplier_service import supplier as supplier_service
 from main import app
-from routes.v1.supplier import SupplierCreate, SupplierUpdateInput
+from routes.v1.supplier import SupplierInput, SupplierUpdateInput
+from utils.constant import GURUGRUPA_CUSTOMER_DATA
 
 client = TestClient(app)
 
-new_supplier_entry = SupplierCreate(
-    supplier_id="s1", name="supplierName", creditline_size=50000, default_apr=0.1, default_tenor_in_days=90
+new_supplier_input = SupplierInput(
+    supplier_id="s1",
+    name="supplierName",
+    creditline_size=50000,
+    default_apr=0.1,
+    default_tenor_in_days=90,
+    data=GURUGRUPA_CUSTOMER_DATA,
 ).dict()
 
 
 def test_post_new_supplier_entry_success(auth_user, clean_supplier_table):
 
-    response = client.post("v1/supplier/new", json={"input": new_supplier_entry}, headers=auth_user)
+    response = client.post("v1/supplier/new", json={"input": new_supplier_input}, headers=auth_user)
     assert response.status_code == HTTP_200_OK
 
 
 def test_post_new_supplier_duplicate_entry_failure(auth_user, clean_supplier_table):
-    response = client.post("v1/supplier/new", json={"input": new_supplier_entry}, headers=auth_user)
+    response = client.post("v1/supplier/new", json={"input": new_supplier_input}, headers=auth_user)
     assert response.status_code == HTTP_200_OK
-    response = client.post("v1/supplier/new", json={"input": new_supplier_entry}, headers=auth_user)
+    response = client.post("v1/supplier/new", json={"input": new_supplier_input}, headers=auth_user)
     assert response.status_code == HTTP_400_BAD_REQUEST
 
 
@@ -41,7 +47,7 @@ def test_supplier_update(supplier_x_auth_user):
     update = SupplierUpdateInput(
         supplier_id=supplier_id,
         creditline_size=new_creditline_size,
-        default_apr=new_apr,
+        apr=new_apr,
     ).dict()
 
     response = client.post("v1/supplier/update", json={"update": update}, headers=auth_user)

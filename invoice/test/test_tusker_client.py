@@ -1,7 +1,6 @@
 import pytest
 
-from invoice.tusker_client import (TUSKER_STAGING_BASE_URL,
-                                   TUSKER_STAGING_TOKEN, TuskerClient,
+from invoice.tusker_client import (TUSKER_BASE_URL, TUSKER_TOKEN, TuskerClient,
                                    order_status_to_code, tusker_client)
 from utils.constant import GURUGRUPA_CUSTOMER_ID, LOC_ID1
 
@@ -10,13 +9,13 @@ from utils.constant import GURUGRUPA_CUSTOMER_ID, LOC_ID1
 
 def test_init_client_invalid_credentials():
     # TODO how to raise an exception here of gracefully raise that a connection can not be established?
-    tc = TuskerClient(base_url=TUSKER_STAGING_BASE_URL, token="invalidToken")
+    tc = TuskerClient(base_url=TUSKER_BASE_URL, token="invalidToken")
     with pytest.raises(NotImplementedError):
         tc.create_test_order([])
 
 
 def test_init_client_valid_credentials():
-    tc = TuskerClient(base_url=TUSKER_STAGING_BASE_URL, token=TUSKER_STAGING_TOKEN)
+    tc = TuskerClient(base_url=TUSKER_BASE_URL, token=TUSKER_TOKEN)
     tc.create_test_order([])
 
 
