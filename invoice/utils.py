@@ -67,5 +67,6 @@ def db_invoice_to_frontend_info(inv: Invoice):
             interest=payment_details.get("interest", "unknown"),
             collection_date=payment_details.get("collection_date", "unknown"),
             start_date=payment_details.get("start_date", "unknown"),
+            verification_result=payment_details.get("verification_result", ""),
         ),
     )

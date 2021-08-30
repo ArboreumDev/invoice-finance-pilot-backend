@@ -30,6 +30,7 @@ class SupplierService(CRUDBase[Supplier, SupplierCreate, SupplierUpdate]):
         supplier_entry = self.get(db, supplier_id=update.supplier_id)
 
         if not supplier_entry:
+            self._logger.error(f"Update target not found: supplier_id: {update.supplier_id}")
             raise UnknownSupplierException("Supplier entry doesnt exist")
 
         # only allow updating creditline_id if there are no live or requested invoices for that supplier

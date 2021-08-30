@@ -19,6 +19,7 @@ class InvoiceUpdateInput(CamelModel):
     new_value: Optional[str]
     loan_id: Optional[str]
     tx_id: Optional[str]
+    signature_verification_result: Optional[str]
 
 
 @admin_app.post("/update")
@@ -31,9 +32,15 @@ def update_invoice_finance_status(
     if role != "loanAdmin":
         raise HTTPException(HTTP_401_UNAUTHORIZED, "Missing admin credentials")
 
-    print("in", update)
     if update.new_value:
         invoice_service.update_invoice_value(update.invoice_id, update.new_value, db)
+
+    if update.verification_result:
+        invoice_service.update_invoice_payment_details(
+            update.invoice_id,
+            {"verification_result": update.signature_verification_result},
+            db
+        )
 
     if update.new_status:
         if update.new_status == "FINANCED" and not update.loan_id:
