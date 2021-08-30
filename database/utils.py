@@ -1,9 +1,5 @@
-from db.database import session
-from db.models import Invoice
+from typing import Dict
 
+def remove_none_entries(d: Dict):
+    return {k:v for k,v in d.items() if v != None}
 
-def get_invoices():
-    result = session.query(Invoice).all()
-    print("allinvoices", result)
-
-    return result

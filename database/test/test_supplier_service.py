@@ -33,7 +33,7 @@ def test_add_supplier(supplier_entry):
     assert s.default_tenor_in_days == 42
     assert s.creditline_size == 42000
 
-    reset_db()
+    reset_db(db_session)
 
 
 def test_update_supplier(supplier_entry):
@@ -44,8 +44,8 @@ def test_update_supplier(supplier_entry):
         update=SupplierUpdateInput(
             supplier_id=supplier.supplier_id,
             creditline_size=41000,
-            default_apr=.41,
-            default_tenor_in_days=41
+            apr=.41,
+            tenor_in_days=41
         )
     )
 
