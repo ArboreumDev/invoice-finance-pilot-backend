@@ -1,22 +1,25 @@
 # %%
 import copy
+import os
 from typing import List
 
 import requests
+from dotenv import load_dotenv
 
 from utils.common import PurchaserInfo
 from utils.constant import GURUGRUPA_CUSTOMER_ID, TUSKER_DEFAULT_NEW_ORDER
 
-# TODO save thie in .env
-TUSKER_STAGING_TOKEN = "EKtk84IF9xzutyEMD-I_w35SlqcaXlOrKGcHIoxm3Ow"
-TUSKER_STAGING_BASE_URL = "https://tusker-staging.logistimo.com/tusker-service"
+load_dotenv()
+TUSKER_INVOICE_BUCKET_URL = os.getenv("TUSKER_INVOICE_BUCKET_URL")
+TUSKER_REFERER = os.getenv("TUSKER_REFERER")
+TUSKER_TOKEN = os.getenv("TUSKER_TOKEN")
+TUSKER_BASE_URL = os.getenv("TUSKER_BASE_URL")
+
 TUSKER_USER_URL = "/search/users/suggestions"
 TUSKER_ORDER_URL = "/orders"
 TUSKER_ORDER_SEARCH_URL = "/orders/search"
 
-
 # TODO refactor status to be enum
-
 code_to_status = {
     2: "PENDING",
     3: "PLACED_AND_VALID",
@@ -159,8 +162,6 @@ class TuskerClient:
         return {"results": found, "status": "OK"}
 
     def get_invoice_image(self, image_link: str):
-        TUSKER_INVOICE_BUCKET_URL = "https://fleet-non-prod.s3.amazonaws.com/consgt"
-        TUSKER_REFERER = "https://tusker-staging.logistimo.com/"
         url = f"{TUSKER_INVOICE_BUCKET_URL}/{image_link}"
         print("url", url)
 
@@ -168,7 +169,7 @@ class TuskerClient:
 
 
 # %%
-tusker_client = TuskerClient(base_url=TUSKER_STAGING_BASE_URL, token=TUSKER_STAGING_TOKEN)
+tusker_client = TuskerClient(base_url=TUSKER_BASE_URL, token=TUSKER_TOKEN)
 # %% code to create hitelist
 
 # whitelist = {}
