@@ -19,16 +19,15 @@ from database.test.conftest import reset_db
 import datetime as dt
 
 invoice_service = crud.invoice
-db = SessionLocal()
 
 
 # %%
 # @pytest.mark.skip()
-def test_reset_db():
-    reset_db()
-    invoice_service._insert_new_invoice_for_purchaser_x_supplier(NEW_RAW_ORDER, "p", "s", db)
-    reset_db()
-    after = invoice_service.get_all_invoices(db)
+def test_reset_db(db_session):
+    reset_db(db_session)
+    invoice_service._insert_new_invoice_for_purchaser_x_supplier(NEW_RAW_ORDER, "p", "s", db_session)
+    reset_db(db_session)
+    after = invoice_service.get_all_invoices(db_session)
     assert len(after) == 0
 
 
@@ -58,7 +57,7 @@ def test_internal_insert_invoice(invoice1):
 
     # check raw data is conserved
     assert json.loads(invoice_in_db.data) == NEW_RAW_ORDER
-    reset_db()
+    reset_db(db_session)
 
 
 def test_insert_invoice_that_exists_fail(invoice1: Tuple[Invoice, Session]):
@@ -68,7 +67,7 @@ def test_insert_invoice_that_exists_fail(invoice1: Tuple[Invoice, Session]):
             raw_order = json.loads(invoice1.data),
             purchaser_id=invoice1.purchaser_id,
             supplier_id=invoice1.supplier_id,
-            db=db
+            db=db_session
         )
 
 
@@ -77,7 +76,7 @@ def test_update_invoice_shipment_status(invoice1):
     invoice_service.update_invoice_shipment_status(invoice1.id, "NEW_STATUS", db_session)
     after = invoice_service.get(db_session, invoice1.id)
     assert  after.shipment_status == "NEW_STATUS"
-    reset_db()
+    reset_db(db_session)
 
 
 def test_update_invoice_with_payment_terms(invoice1):

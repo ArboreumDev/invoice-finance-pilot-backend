@@ -39,7 +39,6 @@ def update_invoice_delivery_status(invoiceId: str, new_status: str, db: Session 
 
 @test_app.patch("/update/shipment/{invoiceId}")
 def mark_as_delivered(invoiceId: str):
-    print("got as id", invoiceId)
     try:
         res = tusker_client.mark_test_order_as(invoiceId, "DELIVERED")
         if res:
