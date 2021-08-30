@@ -36,7 +36,7 @@ def insert_admin_user(db: Session):
 # TODO figure out why these fixtures can not be imported from the other conftest file
 @pytest.fixture(scope="function")
 def whitelist_and_invoices(db_session) -> Tuple[Tuple, Tuple, str, PurchaserInfo, Session, Dict]:  # noqa: F811
-    reset_db(deleteWhitelist=True)
+    reset_db(db_session)
     insert_admin_user(db_session)
     auth_header = get_auth_header(username="admin", password="tusker")
     whitelist_service.insert_whitelist_entry(
@@ -52,7 +52,7 @@ def whitelist_and_invoices(db_session) -> Tuple[Tuple, Tuple, str, PurchaserInfo
 
     yield (inv_id1, order_ref1), GURUGRUPA_CUSTOMER_ID, p1, db_session, auth_header
 
-    reset_db(deleteWhitelist=True)
+    reset_db(db_session)
 
 
 def test_admin_update_value_success(whitelist_and_invoices):
@@ -93,7 +93,7 @@ def test_admin_update_status_success(whitelist_and_invoices):
 
 
 def test_only_admin_can_update(db_session: Session):  # noqa: F811
-    reset_db(deleteWhitelist=True)
+    reset_db(db_session)
     insert_base_user(db_session)
     auth_header = get_auth_header()
 
