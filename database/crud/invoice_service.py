@@ -101,6 +101,12 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         payment_details['collection_date'] = str(terms.collection_date)
         payment_details['interest'] = terms.interest
         self.update_and_log(db, invoice, {'payment_details': json.dumps(payment_details)})
+    
+    def update_invoice_payment_details(self, invoice_id: str, new_data: Dict, db: Session):
+        invoice = self.get(db, invoice_id)
+        payment_details = json.loads(invoice.payment_details)
+        payment_details.update(new_data)
+        self.update_and_log(db, invoice, {'payment_details': json.dumps(payment_details)})
 
     def get_all_invoices(self, db: Session):
         # TODO use skip & limit for pagination
