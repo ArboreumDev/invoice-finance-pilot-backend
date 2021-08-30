@@ -76,6 +76,8 @@ def invoice1(db_session: Session) -> Tuple[Invoice, Session]:
     reset_db(db_session)
 
 
+
+
 @pytest.fixture(scope="function")
 def invoices(db_session: Session) -> Tuple[List[Invoice], Session]:
 
@@ -181,9 +183,28 @@ def supplier_entry(db_session) -> Tuple[Supplier, Session]:
             creditline_size=400000000,
             default_apr=0.142,
             default_tenor_in_days=90,
+            data=""
         ),
     )
     yield supplier_in_db, db_session
 
     crud.supplier.remove_if_there(db, CUSTOMER_ID)
+
+
+@pytest.fixture(scope="function")
+def invoice_x_supplier(supplier_entry) -> Tuple[Invoice, Session]:
+    """ will insert one invoices and the matching supplier"""
+
+    supplier_in_db, db_session = supplier_entry
+    _purchaser=p1
+
+    invoice_id = invoice_service._insert_new_invoice_for_purchaser_x_supplier(
+        RAW_ORDER, _purchaser.id, supplier_in_db.supplier_id, db_session)
+
+    invoice = invoice_service.get(db_session, id=invoice_id)
+
+    yield invoice, db_session
+
+    reset_db(db_session)
+
 

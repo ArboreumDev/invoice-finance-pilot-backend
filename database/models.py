@@ -4,6 +4,7 @@ from sqlalchemy import (Column, DateTime, Float, ForeignKey, Integer, String,
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import  create_engine
 from sqlalchemy.orm import  relationship
+from sqlalchemy.sql.sqltypes import Boolean
 from database.db import Base
 
 
@@ -19,6 +20,7 @@ class Invoice(Base):
 
     shipment_status = Column(String(50), nullable=True)
     finance_status = Column(String(50), nullable=True)
+    verified = Column(Boolean, default=False)
 
     apr = Column(Float, nullable=True)
     # repaid = Column(Float, nullable=True)

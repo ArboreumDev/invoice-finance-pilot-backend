@@ -13,7 +13,12 @@ class ShipmentStatus(str, Enum):
 
 
 class FinanceStatus(str, Enum):
-    NONE = "NONE"
+    INITIAL = "INITIAL"
+    # UNVERIFIED = "UNVERIFIED"
+    VERIFIED = "VERIFIED"
+    AWAITING_DELIVERY = "AWAITING_DELIVERY"
+    DISBURSAL_REQUESTED = "DISBURSAL_REQUESTED"
+    ERROR_SENDING_REQUEST = "ERROR_SENDING_REQUEST"
     FINANCED = "FINANCED"
     REPAID = "REPAID"
     DEFAULTED = "DEFAULTED"
@@ -61,7 +66,7 @@ class Invoice(BaseInvoice):
     value: int = 1
     destination: str = ""
     shipping_status: str = ""
-    status: str = "INITIAL"
+    status: FinanceStatus = FinanceStatus.INITIAL
     raw: str = ""
     receiver_info: PurchaserInfo
     # shipping_status: ShipmentStatus = ShipmentStatus.AWAITING_SHIPMENT
@@ -84,9 +89,10 @@ class InvoiceFrontendInfo(CamelModel):
     invoice_id: str
     order_id: str
     value: float = 1
+    verified: bool = False
     destination: str = ""
     shipping_status: str = ""
-    status: str = "INITIAL"
+    status: FinanceStatus = FinanceStatus.INITIAL
     receiver_info: PurchaserInfo
     payment_details: PaymentDetails
     # shipping_status: ShipmentStatus = ShipmentStatus.AWAITING_SHIPMENT

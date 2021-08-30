@@ -64,6 +64,7 @@ def whitelist_entry(db_session: Session) -> Tuple[PurchaserInfo, str, Session]: 
             creditline_size=400000000,
             default_apr=0.142,
             default_tenor_in_days=90,
+            data=""
         ),
     )
 
@@ -217,6 +218,25 @@ def test_credit(whitelist_entry: Tuple[PurchaserInfo, str, Session, Dict]):
     credit_breakdown = response.json()
 
     assert purchaser.id in credit_breakdown[supplier_id]
+
+
+def test_verify_invoice(whitelist_and_invoices):
+    inv_id, order_ref = whitelist_and_invoices[0]
+    auth_header = whitelist_and_invoices[5]
+    # request invoice for financing:
+    client.post(f"v1/invoice/{order_ref}", headers=auth_header)
+    res = client.get("v1/invoice/", headers=auth_header)
+    assert not res.json()[0]["verified"]
+
+    # verify
+    client.post(f"v1/invoice/verification/{inv_id}/true", headers=auth_header)
+    res = client.get("v1/invoice/", headers=auth_header)
+    assert res.json()[0]["verified"]
+
+    # unverify
+    client.post(f"v1/invoice/verification/{inv_id}/false", headers=auth_header)
+    res = client.get("v1/invoice/", headers=auth_header)
+    assert not res.json()[0]["verified"]
 
 
 # needs the loan admin fixtures to suceed

@@ -1,3 +1,4 @@
+from utils.logger import get_logger
 from typing import Dict, List, Tuple
 
 from fastapi import APIRouter, Depends, HTTPException, Response
@@ -119,6 +120,23 @@ def _get_creditSummary(user_info: Tuple[str, str] = Depends(check_jwt_token_role
     for s in suppliers:
         res[s.supplier_id] = invoice_service.get_credit_line_info(supplier_id=s.supplier_id, db=db)
     return res
+
+
+@invoice_app.post("/invoice/verification/{invoice_id}/{verified}", tags=["invoice"])
+def _mark_invoice_verification_status(
+    invoice_id: str,
+    verified: bool,
+    user_info: Tuple[str, str] = Depends(check_jwt_token_role),
+    db: Session = Depends(get_db),
+):
+    username, role = user_info
+    # if role != 'tusker':
+    #     raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="only tusker should be setting this")
+
+    logger = get_logger(__name__)
+    logger.info(f"{username} with role {role} sets invoice verification status to {verified}")
+    invoice_service.update_verification_status(db, invoice_id, verified)
+    return {"status": "OK"}
 
 
 @invoice_app.get("/invoice/image/{invoice_id}", response_class=Response)

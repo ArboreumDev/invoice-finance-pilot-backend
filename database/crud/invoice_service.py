@@ -17,6 +17,7 @@ from database import crud
 from database.crud.base import CRUDBase
 from database.models import Invoice
 from database.schemas import InvoiceCreate, InvoiceUpdate
+from utils.common import FinanceStatus
 
 
 
@@ -55,7 +56,7 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
             supplier_id=supplier_id,
             purchaser_id=purchaser_id,
             shipment_status=code_to_order_status(raw_order.get('status')),
-            finance_status="INITIAL",
+            finance_status=FinanceStatus.INITIAL,
             # TODO add default apr & tenor from whitelist-entry
             apr=0.42,
             tenor_in_days=42,
@@ -74,6 +75,14 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         invoice = self.get(db, invoice_id)
         self.update_and_log(db, invoice, { "shipment_status": new_status })
 
+    def update_verification_status(self,db: Session, invoice_id: str, verified: bool):
+        invoice = self.get(db, invoice_id)
+        return self.update_and_log(
+            db,
+            invoice,
+            { "verified": verified }
+        )
+
     def update_and_log(self, db: Session, db_object, new_data: Dict):
         if db_object:
             update = InvoiceUpdate(**new_data, updated_on=dt.datetime.utcnow())
@@ -86,11 +95,10 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         invoice = self.get(db, invoice_id)
         self.update_and_log(db, invoice, { "value": new_value })
 
-    def update_invoice_payment_status(self,db: Session, invoice_id: str, new_status: str, loan_id: str = "", tx_id: str = ""):
+    def update_invoice_payment_status(self,db: Session, invoice_id: str, new_status: FinanceStatus, loan_id: str = "", tx_id: str = ""):
         invoice = self.get(db, invoice_id)
         update = {}
         if (new_status == "FINANCED"):
-            # update['financed_on'] = dt.datetime.utcnow()
             update = {
                 'payment_details': json.dumps({
                     **json.loads(invoice.payment_details),
@@ -196,13 +204,15 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         terms = invoice_to_terms(invoice.id, invoice.order_ref, "TO_BE_ENTERED", invoice.value, start_date)
         self.update_invoice_with_loan_terms(invoice, terms, db)
         supplier = crud.supplier.get(db, invoice.supplier_id)
-        msg = terms_to_email_body(terms, supplier if supplier else "TODO")
+        if not supplier:
+            raise UnknownInvoiceException("Invoice must belong to a supplier")
+        msg = terms_to_email_body(terms, supplier) 
 
         # ================= send email to Tusker with FundRequest
         try:
             ec = EmailClient()
             ec.send_email(body=msg, subject="Arboreum Disbursal Request", targets=[DISBURSAL_EMAIL, ARBOREUM_DISBURSAL_EMAIL])
-            self.update_and_log(db, invoice, {'finance_status': "DISBURSAL_REQUESTED"})
+            self.update_and_log(db, invoice, {'finance_status': FinanceStatus.DISBURSAL_REQUESTED})
         except Exception as e:
             self.update_and_log(db, invoice, {'finance_status': "ERROR_SENDING_REQUEST"})
             raise AssertionError(f"Could not send email: {str(e)}") # TODO add custom exception
@@ -231,8 +241,8 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
             credit_line_size  = w_entry.creditline_size if w_entry.creditline_size != 0 else 0
 
             invoices = db.query(Invoice).filter(Invoice.purchaser_id == w_entry.purchaser_id).all()
-            to_be_repaid = sum(i.value for i in invoices if i.finance_status == "FINANCED")
-            requested = sum(i.value for i in invoices if i.finance_status in ["DISBURSAL_REQUESTED", "INITIAL"])
+            to_be_repaid = sum(i.value for i in invoices if i.finance_status == FinanceStatus.FINANCED)
+            requested = sum(i.value for i in invoices if i.finance_status in [ FinanceStatus.DISBURSAL_REQUESTED, FinanceStatus.INITIAL])
             n_of_invoices = len(invoices)
 
             credit_line_breakdown[w_entry.purchaser_id] = CreditLineInfo(**{
