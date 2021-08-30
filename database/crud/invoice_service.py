@@ -84,7 +84,6 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
 
     def update_invoice_payment_status(self,db: Session, invoice_id: str, new_status: str, loan_id: str = "", tx_id: str = ""):
         invoice = self.get(db, invoice_id)
-        print('iv', invoice)
         update = {}
         if (new_status == "FINANCED"):
             # update['financed_on'] = dt.datetime.utcnow()
