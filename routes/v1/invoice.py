@@ -136,7 +136,7 @@ def _get_invoice_image_from_tusker(
     documents = [d for d in raw_order.get("documents", []) if d.get("template_code", 0) == 1]
     if len(documents) == 0:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="No documents attached")
-    image_link = documents[0].get('particulars', {}).get('doc_image', "")
+    image_link = documents[0].get("particulars", {}).get("doc_image", "")
     if not image_link:
         raise HTTPException(status_code=HTTP_412_PRECONDITION_FAILED, detail="Empty doc_image link")
 

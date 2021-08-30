@@ -1,13 +1,14 @@
 import pytest
 from sqlalchemy.orm import Session
 from starlette.testclient import TestClient
-from utils.logger import get_logger
 
 from database import crud
 from database.db import SessionLocal
 from database.models import User
 from database.schemas.supplier import SupplierCreate
 from main import app
+from utils.constant import GURUGRUPA_CUSTOMER_DATA
+from utils.logger import get_logger
 
 client = TestClient(app)
 CUSTOMER_ID = "0001e776-c372-4ec5-8fa4-f30ab74ca631"
@@ -61,8 +62,8 @@ def insert_base_user(db: Session):
     db.commit()
 
 
-def get_auth_header():
-    response = client.post("/token", dict(username="tusker", password="tusker"))
+def get_auth_header(username: str = "tusker", password: str = "tusker"):
+    response = client.post("/token", dict(username=username, password=password))
     if response.status_code != 200:
         raise AssertionError("Authentication failure:, original error" + str(response.json()))
     jwt_token = response.json()["access_token"]
@@ -97,6 +98,7 @@ def supplier_x_auth_user(db_session, auth_user):
             creditline_size=400000000,
             default_apr=0.142,
             default_tenor_in_days=90,
+            data=GURUGRUPA_CUSTOMER_DATA,
         ),
     )
     yield supplier_in_db, auth_user, db_session

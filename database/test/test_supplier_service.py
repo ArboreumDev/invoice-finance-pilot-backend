@@ -23,7 +23,7 @@ def test_add_supplier(supplier_entry):
     before = len(crud.supplier.get_all_suppliers(db_session))
 
     crud.supplier.create(db, obj_in=SupplierCreate(
-        supplier_id='supplier2',name='name',default_apr=0.42, default_tenor_in_days=42, creditline_size=42000 
+        supplier_id='supplier2',name='name',default_apr=0.42, default_tenor_in_days=42, creditline_size=42000, data="moreInfo"
     ))
 
     assert len(crud.supplier.get_all_suppliers(db_session)) == before + 1

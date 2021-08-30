@@ -51,6 +51,7 @@ class PurchaserInfo(CamelModel):
 class SupplierInfo(CamelModel):
     id: str = ""
     name: str = ""
+    creditline_id: str = ""
     creditline_size: int = 0
     default_terms: Terms = Terms()
 
@@ -70,6 +71,8 @@ class Invoice(BaseInvoice):
 class PaymentDetails(CamelModel):
     request_id: str = ""
     repayment_id: str = ""
+    loan_id: str = ""
+    disbursal_transaction_id: str = ""
     verification_result: str = ""
     interest: float = 0
     collection_date: dt.datetime = None
@@ -107,6 +110,7 @@ class Listing(BaseModel):
 
 
 class LoanTerms(BaseModel):
+    loan_id: str
     order_id: str
     principal: float
     invoice_id: str

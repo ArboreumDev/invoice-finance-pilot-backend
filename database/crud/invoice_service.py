@@ -21,10 +21,11 @@ from database.schemas import InvoiceCreate, InvoiceUpdate
 
 
 
-def invoice_to_terms(id: str, order_id: str, amount: float, start_date: dt.datetime):
+def invoice_to_terms(id: str, order_id: str, loan_id: str, amount: float, start_date: dt.datetime):
     return LoanTerms(
         order_id=order_id,
         invoice_id=id,
+        loan_id=loan_id,
         principal=amount,
         interest=amount * 0.05,
         start_date=start_date,
@@ -85,14 +86,29 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         invoice = self.get(db, invoice_id)
         self.update_and_log(db, invoice, { "value": new_value })
 
-    def update_invoice_payment_status(self, invoice_id: str, new_status: str, db: Session):
+    def update_invoice_payment_status(self,db: Session, invoice_id: str, new_status: str, loan_id: str = "", tx_id: str = ""):
         invoice = self.get(db, invoice_id)
         update = {}
         if (new_status == "FINANCED"):
-            self.trigger_disbursal(invoice, db)
-            update['financed_on'] = dt.datetime.utcnow()
+            # update['financed_on'] = dt.datetime.utcnow()
+            update = {
+                'payment_details': json.dumps({
+                    **json.loads(invoice.payment_details),
+                    'loan_id': loan_id,
+                    'disbursal_transaction_id': tx_id
+                }),
+                'financed_on': dt.datetime.utcnow()
+            }
+        print('up', update)
         update['finance_status'] = new_status
         return self.update_and_log(db, invoice, update)
+
+    # def update_invoice_with_loan_id(self, invoice: Invoice, loan_id: str, db: Session):
+    #     payment_details = json.loads(invoice.payment_details)
+    #     # TODO use pydantic json helpers
+    #     payment_details['loan_id'] = loan_id
+    #     self.update_and_log(db, invoice, {'payment_details': json.dumps(payment_details)})
+
 
     def update_invoice_with_loan_terms(self, invoice: Invoice, terms: LoanTerms, db: Session):
         payment_details = json.loads(invoice.payment_details)
@@ -100,6 +116,7 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         payment_details['start_date'] = str(terms.start_date)
         payment_details['collection_date'] = str(terms.collection_date)
         payment_details['interest'] = terms.interest
+        payment_details['loan_id'] = terms.loan_id 
         self.update_and_log(db, invoice, {'payment_details': json.dumps(payment_details)})
     
     def update_invoice_payment_details(self, invoice_id: str, new_data: Dict, db: Session):
@@ -159,7 +176,7 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         error = ""
         if new_status == "DELIVERED":
             self._logger.info('disbursal manager notified')
-            self.trigger_disbursal(invoice, db)
+            self.request_disbursal(invoice, db)
         elif new_status == "PAID_BACK":
             self._logger.info('invoice marked as repaid')
         elif new_status == "DEFAULTED":
@@ -171,15 +188,15 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         # mark as paid and reduce
         pass
 
-    def trigger_disbursal(self, invoice: Invoice, db: Session):
+    def request_disbursal(self, invoice: Invoice, db: Session):
         # ============== get loan terms ==========
         # calculate repayment info
         # TODO get actual invoice start date
         start_date = dt.datetime.utcnow()
-        terms = invoice_to_terms(invoice.id, invoice.order_ref, invoice.value, start_date)
+        terms = invoice_to_terms(invoice.id, invoice.order_ref, "TO_BE_ENTERED", invoice.value, start_date)
         self.update_invoice_with_loan_terms(invoice, terms, db)
         supplier = crud.supplier.get(db, invoice.supplier_id)
-        msg = terms_to_email_body(terms, supplier.name if supplier else "TODO")
+        msg = terms_to_email_body(terms, supplier if supplier else "TODO")
 
         # ================= send email to Tusker with FundRequest
         try:
