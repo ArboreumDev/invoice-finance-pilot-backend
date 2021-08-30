@@ -37,9 +37,7 @@ def update_invoice_finance_status(
 
     if update.signature_verification_result:
         invoice_service.update_invoice_payment_details(
-            update.invoice_id,
-            {"verification_result": update.signature_verification_result},
-            db
+            update.invoice_id, {"verification_result": update.signature_verification_result}, db
         )
 
     if update.new_status:

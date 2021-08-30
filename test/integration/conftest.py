@@ -1,7 +1,6 @@
 import pytest
 from sqlalchemy.orm import Session
 from starlette.testclient import TestClient
-from utils.logger import get_logger
 
 from database import crud
 from database.db import SessionLocal
@@ -9,6 +8,7 @@ from database.models import User
 from database.schemas.supplier import SupplierCreate
 from main import app
 from utils.constant import GURUGRUPA_CUSTOMER_DATA
+from utils.logger import get_logger
 
 client = TestClient(app)
 CUSTOMER_ID = "0001e776-c372-4ec5-8fa4-f30ab74ca631"
