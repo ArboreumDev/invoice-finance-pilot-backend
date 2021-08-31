@@ -17,14 +17,18 @@ config_keys = [
     "GURUGRUPA_CUSTOMER_ID",
     "DISBURSAL_EMAIL",
     "ARBOREUM_DISBURSAL_EMAIL",
-    "TUSKER_API_URL",
     "TEST_AUTH_PW",
     "GURUGRUPA_PW",
     "POSTGRES_USER",
-    "POSTGRES_PASSWORD",
     "POSTGRES_HOST",
+    "POSTGRES_PASSWORD",
+    "POSTGRES_DB",
     "POSTGRES_PORT",
     "ENVIRONMENT",
+    "TUSKER_INVOICE_BUCKET_URL",
+    "TUSKER_REFERER",
+    "TUSKER_TOKEN",
+    "TUSKER_BASE_URL",
 ]
 
 for key in config_keys:
@@ -85,8 +89,6 @@ GP_CONFIRMATION_MAIL = "julius@arboreum.dev"
 MONTHLY_INTEREST = 0.0165
 DEFAULT_LOAN_TENOR = 90  # days
 
-TUSKER_API_URL = os.getenv("TUSKER_API_URL")
-
 MAX_CREDIT = 50000
 
 TUSKER_DEFAULT_NEW_ORDER = {
@@ -107,3 +109,5 @@ TUSKER_DEFAULT_NEW_ORDER = {
     },
     "strct": False,
 }
+
+GURUGRUPA_CUSTOMER_DATA = """{ "id": "12914db8-0280-4bb4-a326-2e8bc08f206c", "status": 0, "crt": 1471436134000, "upd": 1617713774000, "crt_from": "WEB", "flg": { "status": -1, "duplicate": false }, "w_flg": 0, "rmk": "", "cntct": { "name": "Gurukrupa Agency Main.", "f_name": "Gurukrupa Agency Main.", "l_name": "", "p_mob": "+91-7353775519", "p_alt": "+91-9448397500" }, "sex": 2, "loc": { "id": "c4605f7a-9148-4807-9078-8b9653e2e232", "status": 0, "type": 2, "addressLine1": "1st 2nd 3rd Floor Aziz Msnison Koppikar Road", "crt": 1590401080000, "upd": 1608730170000, "rd_only": true, "crt_from": "WEB", "flg": { "status": -1, "duplicate": false }, "w_flg": 0, "pub": false, "cntct": { "name": "Gurukrupa Agency Main.", "f_name": "Gurukrupa Agency Main.", "l_name": "", "p_mob": "+91-7353775519", "p_alt": "+91-9448397500" }, "addr": { "city": "Hubballi", "state": "Karnataka", "a_l1": "1st 2nd 3rd Floor Aziz Msnison Koppikar Road", "plc_id": "c2033624-4925-47d1-8ded-2e06455f4d0d", "loc": "\"koppikar road\"", "pin": "580020", "s_dist": "hubballi", "dst": "hubballi", "cntry": "IN", "lmrk": "Behind Cotton King Showroom" }, "geo": { "lat": 15.3466765, "long": 75.1423273, "accr": 21.3, "src": "CALC_AUTO" }, "reg_cust": false, "requires_docs_for_pickup": false }, "pref": { "lang": "en_US" }, "gst": { "number": "29AABFG2064K1ZC" }, "billing": [ { "id": "751a9686-f1e7-11e8-af9d-0242ac120002", "crt": 1543283703000, "upd": 1543283703000, "rd_only": true, "crt_from": "WEB", "u_id": "12914db8-0280-4bb4-a326-2e8bc08f206c", "pref": 2, "sts": 0, "d_w": { "start": 1533061800000, "anon": false } } ], "prc": { "id": "69261ffe-060d-4bc2-ab4f-a820bc597f6e", "crt": 1552294978000, "upd": 1552294978000, "crt_from": "WEB", "u_id": "12914db8-0280-4bb4-a326-2e8bc08f206c", "ftr": 0.95, "sts": 0, "d_w": { "start": 1552262400000, "end": 1552761000000, "anon": false } }, "disc": { "id": "c8114b1e-cc91-482e-8815-74f53bc3fa1c", "crt": 1552294988000, "upd": 1552294988000, "crt_from": "WEB", "u_id": "12914db8-0280-4bb4-a326-2e8bc08f206c", "d_cd": "P5", "sts": 0, "d_w": { "start": 1552262400000, "end": 1552761000000, "anon": false } }, "noti_pref": "PUSH", "x_p": 0, "def_shppr_loc": { "id": "c4605f7a-9148-4807-9078-8b9653e2e232", "status": 0, "type": 2, "addressLine1": "1st 2nd 3rd Floor Aziz Msnison Koppikar Road", "crt": 1590401080000, "upd": 1608730170000, "rd_only": true, "crt_from": "WEB", "flg": { "status": -1, "duplicate": false }, "w_flg": 0, "pub": false, "cntct": { "name": "Gurukrupa Agency Main.", "f_name": "Gurukrupa Agency Main.", "l_name": "", "p_mob": "+91-7353775519", "p_alt": "+91-9448397500" }, "addr": { "city": "Hubballi", "state": "Karnataka", "a_l1": "1st 2nd 3rd Floor Aziz Msnison Koppikar Road", "plc_id": "c2033624-4925-47d1-8ded-2e06455f4d0d", "loc": "\"koppikar road\"", "pin": "580020", "s_dist": "hubballi", "dst": "hubballi", "cntry": "IN", "lmrk": "Behind Cotton King Showroom" }, "geo": { "lat": 15.3466765, "long": 75.1423273, "accr": 21.3, "src": "CALC_AUTO" }, "reg_cust": false, "requires_docs_for_pickup": false }, "trst_lvl": 0 })"""  # noqa: E501

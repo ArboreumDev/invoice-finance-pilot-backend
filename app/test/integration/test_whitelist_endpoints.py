@@ -27,11 +27,11 @@ new_whitelist_entry = WhitelistInput(
 @pytest.fixture(scope="function")
 def auth_user(db_session):
     """ empty db, except one user registered """
-    reset_db(db_session, deleteWhitelist=True)
+    reset_db(db_session)
     insert_base_user(db_session)
     auth_header = get_auth_header()
     yield auth_header
-    reset_db(db_session, deleteWhitelist=True)
+    reset_db(db_session)
 
 
 def test_post_new_whitelist_entry_success(auth_user):

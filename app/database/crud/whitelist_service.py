@@ -98,7 +98,8 @@ class WhitelistService(CRUDBase[Whitelist, WhitelistCreate, WhitelistUpdate]):
         exists = db.query(Whitelist).filter_by(
             supplier_id = supplier_id).filter_by(purchaser_id = purchaser.id).first() is not None
         if exists:
-            raise DuplicateWhitelistEntryException("Whitelist entry already exists")
+            self._logger.error( f"Duplicate Whitelist Error: purchaser: {purchaser.id} supplier: {supplier_id}")
+            raise DuplicateWhitelistEntryException(f"Whitelist for purchaser-supplier-pair already exists already exists")
 
         # get default args from supplier-table
         supplier = crud.supplier.get(db, supplier_id)
@@ -126,20 +127,17 @@ class WhitelistService(CRUDBase[Whitelist, WhitelistCreate, WhitelistUpdate]):
         db: Session,
         supplier_id: str,
         purchaser_id: str,
-        creditline_size: int,
-        apr: float,
-        tenor_in_days: int
+        update: WhitelistUpdate,
         ):
         whitelist_entry = self.get(db, supplier_id=supplier_id, purchaser_id=purchaser_id)
         if not whitelist_entry:
+            self._logger.error( f"Update target not found: purchaser: {purchaser_id} supplier: {supplier_id}")
             raise WhitelistException("Whitelist entry doesnt exist")
 
-        entry = self.update(
+        return self.update(
             db=db,
             db_obj=whitelist_entry,
-            obj_in=WhitelistUpdate(
-                # supplier_id=supplier_id, purchaser_id=purchaser_id,
-                apr=apr, creditline_size=creditline_size, tenor_in_days=tenor_in_days)
+            obj_in=update
         )
 
 

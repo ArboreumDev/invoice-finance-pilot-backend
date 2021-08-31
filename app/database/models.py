@@ -4,6 +4,7 @@ from sqlalchemy import (Column, DateTime, Float, ForeignKey, Integer, String,
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import  create_engine
 from sqlalchemy.orm import  relationship
+from sqlalchemy.sql.sqltypes import Boolean
 from database.db import Base
 
 
@@ -19,6 +20,7 @@ class Invoice(Base):
 
     shipment_status = Column(String(50), nullable=True)
     finance_status = Column(String(50), nullable=True)
+    verified = Column(Boolean, default=False)
 
     apr = Column(Float, nullable=True)
     # repaid = Column(Float, nullable=True)
@@ -67,10 +69,12 @@ class User(Base): #TUSKER
 class Supplier(Base):
     __tablename__ = "supplier"
     supplier_id = Column(String(50), primary_key=True) # matches customer_id in tuskers system 
+    creditline_id = Column(String(50), nullable=True) # used to interface with liquiloans ID
     name = Column(String(50), nullable=False)
     creditline_size = Column(Integer, nullable=False)
     default_apr = Column(Float, nullable=True)
     default_tenor_in_days=Column(Integer, nullable=True)
+    data = Column(Text, nullable=True)
 
     # TODO add relatioship to invoices
     # invoices = relationship("Invoice", back_populates="supplier")

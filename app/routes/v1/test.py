@@ -14,23 +14,9 @@ from utils.security import check_jwt_token_role
 # ===================== routes ==========================
 test_app = APIRouter()
 
+
 # DESC: this is just a very fast hack to have an admin interface so that non-technical
 # people can play around with it without having to use dev-tools like insomnia
-
-
-@test_app.post("/update/value/{invoiceId}/{value}")
-def update_invoice_value(invoiceId: str, value: int, db: Session = Depends(get_db)):
-    print(invoiceId, value)
-    invoice_service.update_invoice_value(invoiceId, int(value), db)
-    return {"OK"}
-
-
-@test_app.post("/update/status/{invoiceId}/{new_status}")
-def update_invoice_finance_status(invoiceId: str, new_status: str, db: Session = Depends(get_db)):
-    invoice_service.update_invoice_payment_status(invoiceId, new_status, db)
-    return {"OK"}
-
-
 @test_app.post("/update/shipment/{invoiceId}/{new_status}")
 def update_invoice_delivery_status(invoiceId: str, new_status: str, db: Session = Depends(get_db)):
     invoice_service.update_invoice_shipment_status(invoiceId, new_status, db)
@@ -39,7 +25,6 @@ def update_invoice_delivery_status(invoiceId: str, new_status: str, db: Session 
 
 @test_app.patch("/update/shipment/{invoiceId}")
 def mark_as_delivered(invoiceId: str):
-    print("got as id", invoiceId)
     try:
         res = tusker_client.mark_test_order_as(invoiceId, "DELIVERED")
         if res:

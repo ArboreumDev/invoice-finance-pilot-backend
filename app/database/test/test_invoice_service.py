@@ -13,6 +13,8 @@ from database.test.conftest import db_session
 from database.utils import reset_db
 from test.integration.conftest import TestingSessionLocal
 import datetime as dt
+from utils.constant import MAX_CREDIT, RECEIVER_ID1, GURUGRUPA_CUSTOMER_ID
+from utils.common import FinanceStatus
 
 invoice_service = crud.invoice
 
@@ -47,7 +49,7 @@ def test_internal_insert_invoice(invoice1):
     assert invoice_in_db.value == NEW_RAW_ORDER.get("consgt", {}).get("val_dcl", 0)
     assert invoice_in_db.order_ref == NEW_RAW_ORDER.get('ref_no')
     assert invoice_in_db.shipment_status == "PLACED_AND_VALID"
-    assert invoice_in_db.finance_status == "INITIAL"
+    assert invoice_in_db.finance_status == FinanceStatus.INITIAL
 
     # check raw data is conserved
     assert json.loads(invoice_in_db.data) == NEW_RAW_ORDER
@@ -70,6 +72,7 @@ def test_update_invoice_shipment_status(invoice1):
     invoice_service.update_invoice_shipment_status(invoice1.id, "NEW_STATUS", db_session)
     after = invoice_service.get(db_session, invoice1.id)
     assert after.shipment_status == "NEW_STATUS"
+    reset_db(db_session)
 
 
 def test_update_invoice_with_payment_terms(invoice1):
@@ -79,7 +82,7 @@ def test_update_invoice_with_payment_terms(invoice1):
     before = invoice_service.get(db_session, id=_id)
     assert json.loads(before.payment_details)['interest'] != 1000
 
-    terms = invoice_to_terms(_id, invoice1.order_ref, invoice1.value, dt.datetime.now())
+    terms = invoice_to_terms(_id, invoice1.order_ref, 'loanId1', invoice1.value, dt.datetime.now())
     terms.interest = 1000
     invoice_service.update_invoice_with_loan_terms(before, terms, db_session)
 
@@ -107,8 +110,8 @@ def test_get_all_invoices(invoices):
     assert invoice2.id in ids_from_db
 
 
-def test_update_db(invoice1):
-    invoice1, db_session = invoice1
+def test_update_db(invoice_x_supplier):
+    invoice1, db_session = invoice_x_supplier
     # save current status (same as what is on tusker-api)
     tmp = invoice1.shipment_status
     # change status on db so that whatever is pulled from tusker will be new
@@ -130,9 +133,9 @@ def test_update_db(invoice1):
     assert after.delivered_on is not None
 
 
-def test_update_db_stores_update_timestamp_and_delivered_on(invoice1):
+def test_update_db_stores_update_timestamp_and_delivered_on(invoice_x_supplier):
     # save current status (same as what is on tusker-api)
-    invoice, db_session = invoice1
+    invoice, db_session = invoice_x_supplier
     assert invoice.shipment_status == "DELIVERED"
 
     # change status on db so that whatever is pulled from tusker will be new
@@ -152,16 +155,14 @@ def test_update_db_stores_update_timestamp_and_delivered_on(invoice1):
 
 def test_update_invoices(invoice1):
     invoice1, db_session = invoice1
-    assert invoice1.finance_status == "INITIAL"
+    assert invoice1.finance_status == FinanceStatus.INITIAL
     assert invoice1.shipment_status == "DELIVERED"
 
-    invoice_service.update_invoice_payment_status(invoice1.id, "PAID", db_session)
+    invoice_service.update_invoice_payment_status(db_session, invoice1.id, FinanceStatus.REPAID)
     invoice_service.update_invoice_shipment_status(invoice1.id, "IN_TRANSIT", db_session)
 
-    assert invoice1.finance_status == "PAID"
+    assert invoice1.finance_status == FinanceStatus.REPAID
     assert invoice1.shipment_status == "IN_TRANSIT"
-
-    # invoice_service.update_invoice_payment_status
 
 
 @pytest.mark.skip()

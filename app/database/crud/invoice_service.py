@@ -17,14 +17,16 @@ from database import crud
 from database.crud.base import CRUDBase
 from database.models import Invoice
 from database.schemas import InvoiceCreate, InvoiceUpdate
+from utils.common import FinanceStatus
 
 
 
 
-def invoice_to_terms(id: str, order_id: str, amount: float, start_date: dt.datetime):
+def invoice_to_terms(id: str, order_id: str, loan_id: str, amount: float, start_date: dt.datetime):
     return LoanTerms(
         order_id=order_id,
         invoice_id=id,
+        loan_id=loan_id,
         principal=amount,
         interest=amount * 0.05,
         start_date=start_date,
@@ -41,10 +43,12 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         return self._insert_new_invoice_for_purchaser_x_supplier(raw_order, purchaser_id, supplier_id, db)
 
     def _insert_new_invoice_for_purchaser_x_supplier(self, raw_order: Dict, purchaser_id: str, supplier_id: str, db: Session):
-        exists = self.get(db, id=raw_order.get('id')) is not None
+        _id = raw_order.get('id')
+        exists = self.get(db, id=_id) is not None
 
         if exists:
-            raise DuplicateInvoiceException("invoice already exists")
+            self._logger.error(f"Duplicate Invoice Entry: Order {_id} already in db. Raw Order: {raw_order}")
+            raise DuplicateInvoiceException(f"invoice with {_id} already exists")
 
         new_invoice = InvoiceCreate(
             id=raw_order.get("id"),
@@ -52,7 +56,7 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
             supplier_id=supplier_id,
             purchaser_id=purchaser_id,
             shipment_status=code_to_order_status(raw_order.get('status')),
-            finance_status="INITIAL",
+            finance_status=FinanceStatus.INITIAL,
             # TODO add default apr & tenor from whitelist-entry
             apr=0.42,
             tenor_in_days=42,
@@ -64,31 +68,55 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
             ).dict())
         )
         invoice = self.create(db, obj_in=new_invoice)
+        self._logger.info(f"Duplicate Invoice Entry: Order {_id} already in db. Raw Order: {raw_order}")
         return invoice.id
 
     def update_invoice_shipment_status(self, invoice_id: str, new_status: str, db: Session):
         invoice = self.get(db, invoice_id)
         self.update_and_log(db, invoice, { "shipment_status": new_status })
 
+    def update_verification_status(self,db: Session, invoice_id: str, verified: bool):
+        invoice = self.get(db, invoice_id)
+        return self.update_and_log(
+            db,
+            invoice,
+            { "verified": verified }
+        )
+
     def update_and_log(self, db: Session, db_object, new_data: Dict):
         if db_object:
             update = InvoiceUpdate(**new_data, updated_on=dt.datetime.utcnow())
             return self.update(db, db_obj=db_object, obj_in=update)
         else:
+            self._logger.error(f"Update target object not found for new_data {new_data}")
             raise UnknownInvoiceException
 
     def update_invoice_value(self, invoice_id: str, new_value: int, db: Session):
         invoice = self.get(db, invoice_id)
         self.update_and_log(db, invoice, { "value": new_value })
 
-    def update_invoice_payment_status(self, invoice_id: str, new_status: str, db: Session):
+    def update_invoice_payment_status(self,db: Session, invoice_id: str, new_status: FinanceStatus, loan_id: str = "", tx_id: str = ""):
         invoice = self.get(db, invoice_id)
         update = {}
         if (new_status == "FINANCED"):
-            self.trigger_disbursal(invoice, db)
-            update['financed_on'] = dt.datetime.utcnow()
+            update = {
+                'payment_details': json.dumps({
+                    **json.loads(invoice.payment_details),
+                    'loan_id': loan_id,
+                    'disbursal_transaction_id': tx_id
+                }),
+                'financed_on': dt.datetime.utcnow()
+            }
+        print('up', update)
         update['finance_status'] = new_status
         return self.update_and_log(db, invoice, update)
+
+    # def update_invoice_with_loan_id(self, invoice: Invoice, loan_id: str, db: Session):
+    #     payment_details = json.loads(invoice.payment_details)
+    #     # TODO use pydantic json helpers
+    #     payment_details['loan_id'] = loan_id
+    #     self.update_and_log(db, invoice, {'payment_details': json.dumps(payment_details)})
+
 
     def update_invoice_with_loan_terms(self, invoice: Invoice, terms: LoanTerms, db: Session):
         payment_details = json.loads(invoice.payment_details)
@@ -96,6 +124,13 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         payment_details['start_date'] = str(terms.start_date)
         payment_details['collection_date'] = str(terms.collection_date)
         payment_details['interest'] = terms.interest
+        payment_details['loan_id'] = terms.loan_id 
+        self.update_and_log(db, invoice, {'payment_details': json.dumps(payment_details)})
+    
+    def update_invoice_payment_details(self, invoice_id: str, new_data: Dict, db: Session):
+        invoice = self.get(db, invoice_id)
+        payment_details = json.loads(invoice.payment_details)
+        payment_details.update(new_data)
         self.update_and_log(db, invoice, {'payment_details': json.dumps(payment_details)})
 
     def get_all_invoices(self, db: Session):
@@ -118,17 +153,16 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         # get order_ref to track by
         all_reference_numbers = [i.order_ref for i in res]
         latest_raw_orders = tusker_client.track_orders(all_reference_numbers)
-        print('updating ', len(latest_raw_orders), ' orders')
-        # assert len(latest_raw_orders) == len(all_reference_numbers), "update missing"
+        self._logger.info(f"updating {len(latest_raw_orders)} orders")
 
         # compare with DB if status changed
         for order in latest_raw_orders:
             new_shipment_status = code_to_order_status(order.get("status"))
             invoice = invoices[order.get("id")]
-            print('updating ', order.get("ref_no"))
+            self._logger.info(f"updating order with ref_no: {order.get('ref_no')}")
             if new_shipment_status != invoice.shipment_status:
                 # ...if new, enact consequence and if successful update DB
-                print(f"{invoice.shipment_status} -> {new_shipment_status}")
+                self._logger.info(f"{invoice.shipment_status} -> {new_shipment_status}")
                 update = {}
                 try:
                     self.handle_update(invoice, new_shipment_status, db)
@@ -139,21 +173,22 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
                     updated.append((invoice.id, new_shipment_status))
                 except Exception as e:
                     print(f"ERROR handling {invoice.id}: {str(e)}")
+                    self._logger.exception(f"ERROR handling {invoice.id}: {str(e)}")
                     errored.append((invoice.id, new_shipment_status))
             else:
-                print("no update needed", invoice.shipment_status)
+                self._logger.info(f"no update needed: {invoice.shipment_status} unchanged.")
 
         return updated, errored
 
     def handle_update(self, invoice: Invoice, new_status: str, db: Session):
         error = ""
         if new_status == "DELIVERED":
-            print('disbursal manager notified')
-            self.trigger_disbursal(invoice, db)
+            self._logger.info('disbursal manager notified')
+            self.request_disbursal(invoice, db)
         elif new_status == "PAID_BACK":
-            print('invoice marked as repaid')
+            self._logger.info('invoice marked as repaid')
         elif new_status == "DEFAULTED":
-            print('handle default')
+            self._logger.info('handle default')
         else:
             error += f"unprocessed invoice status {new_status} for order {invoice.order_ref}\n"
 
@@ -161,21 +196,23 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         # mark as paid and reduce
         pass
 
-    def trigger_disbursal(self, invoice: Invoice, db: Session):
+    def request_disbursal(self, invoice: Invoice, db: Session):
         # ============== get loan terms ==========
         # calculate repayment info
         # TODO get actual invoice start date
         start_date = dt.datetime.utcnow()
-        terms = invoice_to_terms(invoice.id, invoice.order_ref, invoice.value, start_date)
+        terms = invoice_to_terms(invoice.id, invoice.order_ref, "TO_BE_ENTERED", invoice.value, start_date)
         self.update_invoice_with_loan_terms(invoice, terms, db)
         supplier = crud.supplier.get(db, invoice.supplier_id)
-        msg = terms_to_email_body(terms, supplier.name if supplier else "TODO")
+        if not supplier:
+            raise UnknownInvoiceException("Invoice must belong to a supplier")
+        msg = terms_to_email_body(terms, supplier) 
 
         # ================= send email to Tusker with FundRequest
         try:
             ec = EmailClient()
             ec.send_email(body=msg, subject="Arboreum Disbursal Request", targets=[DISBURSAL_EMAIL, ARBOREUM_DISBURSAL_EMAIL])
-            self.update_and_log(db, invoice, {'finance_status': "DISBURSAL_REQUESTED"})
+            self.update_and_log(db, invoice, {'finance_status': FinanceStatus.DISBURSAL_REQUESTED})
         except Exception as e:
             self.update_and_log(db, invoice, {'finance_status': "ERROR_SENDING_REQUEST"})
             raise AssertionError(f"Could not send email: {str(e)}") # TODO add custom exception
@@ -204,8 +241,8 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
             credit_line_size  = w_entry.creditline_size if w_entry.creditline_size != 0 else 0
 
             invoices = db.query(Invoice).filter(Invoice.purchaser_id == w_entry.purchaser_id).all()
-            to_be_repaid = sum(i.value for i in invoices if i.finance_status == "FINANCED")
-            requested = sum(i.value for i in invoices if i.finance_status in ["DISBURSAL_REQUESTED", "INITIAL"])
+            to_be_repaid = sum(i.value for i in invoices if i.finance_status == FinanceStatus.FINANCED)
+            requested = sum(i.value for i in invoices if i.finance_status in [ FinanceStatus.DISBURSAL_REQUESTED, FinanceStatus.INITIAL])
             n_of_invoices = len(invoices)
 
             credit_line_breakdown[w_entry.purchaser_id] = CreditLineInfo(**{

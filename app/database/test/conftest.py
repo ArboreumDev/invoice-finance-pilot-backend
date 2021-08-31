@@ -8,6 +8,7 @@ from database.test.fixtures import OTHER_CUSTOMER_ID, RAW_ORDER, NEW_RAW_ORDER, 
 from typing import Tuple, List
 from utils.common import PurchaserInfo
 from sqlalchemy.orm import Session
+from utils.logger import get_logger
 
 from test.integration.conftest import insert_base_user, db_session
 from database.utils import reset_db
@@ -17,14 +18,25 @@ invoice_service = crud.invoice
 
 
 @pytest.fixture(scope="function")
+def clean_db(db_session: Session) -> Session:
+    reset_db(db_session)
+
+    yield db_session
+
+    reset_db(db_session)
+
+
+@pytest.fixture(scope="function")
 def invoice1(db_session: Session) -> Tuple[Invoice, Session]:
     """ will only insert into invoices table, there will be no connected entries"""
     reset_db(db_session)
     invoice_id = invoice_service._insert_new_invoice_for_purchaser_x_supplier(RAW_ORDER, "testP", "testS", db_session)
     invoice = invoice_service.get(db_session, id=invoice_id)
+
     yield invoice, db_session
 
     reset_db(db_session)
+
 
 
 @pytest.fixture(scope="function")
@@ -48,7 +60,7 @@ def invoices(db_session: Session) -> Tuple[List[Invoice], Session]:
 
 @pytest.fixture(scope="function")
 def whitelisted_invoices(db_session: Session):
-    reset_db(db_session, deleteWhitelist=True)
+    reset_db(db_session)
     insert_base_user(db_session)
 
     # create two whitelist entry for supplier
@@ -94,7 +106,9 @@ def whitelisted_invoices(db_session: Session):
 
     yield invoices, db_session
 
-    reset_db(db_session, deleteWhitelist=True)
+    reset_db(db_session)
+
+ 
 
 
 CUSTOMER_ID = "0001e776-c372-4ec5-8fa4-f30ab74ca631"
@@ -102,7 +116,7 @@ CUSTOMER_ID = "0001e776-c372-4ec5-8fa4-f30ab74ca631"
 
 @pytest.fixture(scope="function")
 def whitelist_entry(db_session: Session) -> Tuple[PurchaserInfo, str, Session]:
-    reset_db(db_session, deleteWhitelist=True)
+    reset_db(db_session)
     insert_base_user(db_session)
     auth_header = get_auth_header()
     whitelist_service.insert_whitelist_entry(
@@ -116,12 +130,12 @@ def whitelist_entry(db_session: Session) -> Tuple[PurchaserInfo, str, Session]:
 
     yield p1, CUSTOMER_ID, db_session
 
-    reset_db(db_session, deleteWhitelist=True)
+    reset_db(db_session)
 
 
 @pytest.fixture(scope="function")
 def supplier_entry(db_session) -> Tuple[Supplier, Session]:
-    crud.supplier.remove_if_there(db_session, CUSTOMER_ID)
+    reset_db(db_session)
 
     supplier_in_db = crud.supplier.create(
         db=db_session,
@@ -131,9 +145,28 @@ def supplier_entry(db_session) -> Tuple[Supplier, Session]:
             creditline_size=400000000,
             default_apr=0.142,
             default_tenor_in_days=90,
+            data=""
         ),
     )
     yield supplier_in_db, db_session
 
     crud.supplier.remove_if_there(db_session, CUSTOMER_ID)
+
+
+@pytest.fixture(scope="function")
+def invoice_x_supplier(supplier_entry) -> Tuple[Invoice, Session]:
+    """ will insert one invoices and the matching supplier"""
+
+    supplier_in_db, db_session = supplier_entry
+    _purchaser=p1
+
+    invoice_id = invoice_service._insert_new_invoice_for_purchaser_x_supplier(
+        RAW_ORDER, _purchaser.id, supplier_in_db.supplier_id, db_session)
+
+    invoice = invoice_service.get(db_session, id=invoice_id)
+
+    yield invoice, db_session
+
+    reset_db(db_session)
+
 

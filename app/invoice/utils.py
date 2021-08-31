@@ -3,7 +3,8 @@ from typing import Dict
 
 from database.models import Invoice
 from invoice.tusker_client import code_to_order_status
-from utils.common import InvoiceFrontendInfo, PaymentDetails, PurchaserInfo
+from utils.common import (FinanceStatus, InvoiceFrontendInfo, PaymentDetails,
+                          PurchaserInfo)
 
 
 def raw_order_to_price(raw_order: Dict):
@@ -30,7 +31,7 @@ def raw_order_to_invoice(raw_order: Dict):
             "supplier_id": raw_order.get("cust").get("id"),
             "order_id": raw_order.get("ref_no"),
             "value": raw_order_to_price(raw_order),
-            "status": "NONE",
+            "status": FinanceStatus.INITIAL,
             "shipping_status": code_to_order_status(raw_order.get("status")),
             "receiver_info": {
                 "name": raw_order.get("rcvr", {}).get("cntct", {}).get("name", "not found"),
@@ -52,6 +53,7 @@ def db_invoice_to_frontend_info(inv: Invoice):
         order_id=inv.order_ref,
         value=inv.value,
         status=inv.finance_status,
+        verified=inv.verified,
         shipping_status=inv.shipment_status,
         receiver_info=PurchaserInfo(
             id=inv.purchaser_id,
@@ -61,9 +63,12 @@ def db_invoice_to_frontend_info(inv: Invoice):
         ),
         payment_details=PaymentDetails(
             request_id=payment_details.get("request_id", "unknown"),
+            loan_id=payment_details.get("loan_id", "unknown"),
+            disbursal_transaction_id=payment_details.get("disbursal_transaction_id", "unknown"),
             repayment_id=payment_details.get("repayment_id", "unknown"),
             interest=payment_details.get("interest", "unknown"),
             collection_date=payment_details.get("collection_date", "unknown"),
             start_date=payment_details.get("start_date", "unknown"),
+            verification_result=payment_details.get("verification_result", ""),
         ),
     )

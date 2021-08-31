@@ -13,7 +13,12 @@ class ShipmentStatus(str, Enum):
 
 
 class FinanceStatus(str, Enum):
-    NONE = "NONE"
+    INITIAL = "INITIAL"
+    # UNVERIFIED = "UNVERIFIED"
+    VERIFIED = "VERIFIED"
+    AWAITING_DELIVERY = "AWAITING_DELIVERY"
+    DISBURSAL_REQUESTED = "DISBURSAL_REQUESTED"
+    ERROR_SENDING_REQUEST = "ERROR_SENDING_REQUEST"
     FINANCED = "FINANCED"
     REPAID = "REPAID"
     DEFAULTED = "DEFAULTED"
@@ -51,6 +56,7 @@ class PurchaserInfo(CamelModel):
 class SupplierInfo(CamelModel):
     id: str = ""
     name: str = ""
+    creditline_id: str = ""
     creditline_size: int = 0
     default_terms: Terms = Terms()
 
@@ -60,7 +66,7 @@ class Invoice(BaseInvoice):
     value: int = 1
     destination: str = ""
     shipping_status: str = ""
-    status: str = "INITIAL"
+    status: FinanceStatus = FinanceStatus.INITIAL
     raw: str = ""
     receiver_info: PurchaserInfo
     # shipping_status: ShipmentStatus = ShipmentStatus.AWAITING_SHIPMENT
@@ -70,6 +76,9 @@ class Invoice(BaseInvoice):
 class PaymentDetails(CamelModel):
     request_id: str = ""
     repayment_id: str = ""
+    loan_id: str = ""
+    disbursal_transaction_id: str = ""
+    verification_result: str = ""
     interest: float = 0
     collection_date: dt.datetime = None
     start_date: dt.datetime = None
@@ -80,9 +89,10 @@ class InvoiceFrontendInfo(CamelModel):
     invoice_id: str
     order_id: str
     value: float = 1
+    verified: bool = False
     destination: str = ""
     shipping_status: str = ""
-    status: str = "INITIAL"
+    status: FinanceStatus = FinanceStatus.INITIAL
     receiver_info: PurchaserInfo
     payment_details: PaymentDetails
     # shipping_status: ShipmentStatus = ShipmentStatus.AWAITING_SHIPMENT
@@ -106,6 +116,7 @@ class Listing(BaseModel):
 
 
 class LoanTerms(BaseModel):
+    loan_id: str
     order_id: str
     principal: float
     invoice_id: str

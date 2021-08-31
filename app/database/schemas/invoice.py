@@ -10,16 +10,6 @@ from utils.common import CamelModel, PurchaserInfo, PaymentDetails
 # shared properties
 class InvoiceBase(BaseModel):
     pass
-    # order_ref: Optional[str] = None
-    # supplier_id: Optional[str] = None
-    # purchaser_id: Optional[str] = None
-    # shipment_status: Optional[str] = None
-    # finance_status: Optional[str] = None
-    # apr: Optional[float] = None
-    # tenor_in_days: Optional[int] = None
-    # data: Optional[str] = None
-    # value: Optional[float] = None
-    # payment_details: Optional[str] = None
 
 # Properties to receive on item creation
 class InvoiceCreate(InvoiceBase):
@@ -44,6 +34,7 @@ class InvoiceInDB(InvoiceBase):
     updated_on: datetime
     delivered_on: datetime
     financed_on: datetime
+    verified: bool
 
     class Config:
         orm_mode = True
@@ -57,6 +48,7 @@ class InvoiceUpdate(InvoiceBase):
     value: Optional[float] = None
     delivered_on: Optional[datetime] = None
     financed_on: Optional[datetime] = None
+    verified: Optional[bool]
     payment_details: Optional[str]
     updated_on: datetime
 

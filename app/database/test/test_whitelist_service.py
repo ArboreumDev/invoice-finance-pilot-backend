@@ -12,7 +12,7 @@ from database.exceptions import DuplicateWhitelistEntryException
 
 
 def test_insert_whitelist_entry(db_session):
-    reset_db(db_session, True)
+    reset_db(db_session)
     whitelisted = whitelist_service.get_whitelisted_locations_for_supplier(db_session, CUSTOMER_ID)
     assert len(whitelisted) == 0
     whitelist_service.insert_whitelist_entry(
