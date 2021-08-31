@@ -80,6 +80,7 @@ class PaymentDetails(CamelModel):
     disbursal_transaction_id: str = ""
     verification_result: str = ""
     interest: float = 0
+    principal: float = 0
     collection_date: dt.datetime = None
     start_date: dt.datetime = None
 
@@ -95,6 +96,7 @@ class InvoiceFrontendInfo(CamelModel):
     status: FinanceStatus = FinanceStatus.INITIAL
     receiver_info: PurchaserInfo
     payment_details: PaymentDetails
+    financed_on: str = ""
     # shipping_status: ShipmentStatus = ShipmentStatus.AWAITING_SHIPMENT
     # status: FinanceStatus = FinanceStatus.NONE
 
@@ -116,11 +118,13 @@ class Listing(BaseModel):
 
 
 class LoanTerms(BaseModel):
-    loan_id: str
-    order_id: str
-    principal: float
     invoice_id: str
+    order_id: str
+    loan_id: str
+    principal: float
     interest: float
+    apr: float
+    tenor_in_days: int
     start_date: dt.datetime
     collection_date: dt.datetime
 

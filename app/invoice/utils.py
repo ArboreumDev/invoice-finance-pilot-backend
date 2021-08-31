@@ -55,6 +55,7 @@ def db_invoice_to_frontend_info(inv: Invoice):
         status=inv.finance_status,
         verified=inv.verified,
         shipping_status=inv.shipment_status,
+        financed_on=str(inv.financed_on) or "", # TODO handle datetime objects properly between backend & frontend
         receiver_info=PurchaserInfo(
             id=inv.purchaser_id,
             name=data.get("rcvr", {}).get("cntct", {}).get("name", "not found"),
@@ -64,9 +65,12 @@ def db_invoice_to_frontend_info(inv: Invoice):
         payment_details=PaymentDetails(
             request_id=payment_details.get("request_id", "unknown"),
             loan_id=payment_details.get("loan_id", "unknown"),
+            apr=payment_details.get("apr", "unknown"),
+            tenor_in_days=payment_details.get("tenor_in_days", "unknown"),
             disbursal_transaction_id=payment_details.get("disbursal_transaction_id", "unknown"),
             repayment_id=payment_details.get("repayment_id", "unknown"),
             interest=payment_details.get("interest", "unknown"),
+            principal=payment_details.get("principal", "unknown"),
             collection_date=payment_details.get("collection_date", "unknown"),
             start_date=payment_details.get("start_date", "unknown"),
             verification_result=payment_details.get("verification_result", ""),
