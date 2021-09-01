@@ -1,4 +1,7 @@
+from database.crud import supplier_service
+from database.crud.invoice_service import invoice_to_terms
 from typing import Dict, List, Tuple
+import datetime as dt
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
@@ -13,7 +16,7 @@ from database.exceptions import (CreditLimitException,
 from invoice.tusker_client import tusker_client
 from invoice.utils import db_invoice_to_frontend_info, raw_order_to_invoice
 from routes.dependencies import get_db
-from utils.common import CamelModel, CreditLineInfo, InvoiceFrontendInfo
+from utils.common import CamelModel, CreditLineInfo, InvoiceFrontendInfo, PaymentDetails
 from utils.logger import get_logger
 from utils.security import check_jwt_token_role
 
@@ -45,7 +48,19 @@ def _get_order(
         if not whitelist_service.location_is_whitelisted(db, supplier_id, target_location_id):
             raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Target not whitelisted for supplier")
         else:
-            return raw_order_to_invoice(raw_order)
+            # get hypothetical terms
+            invoice = raw_order_to_invoice(raw_order)
+            supplier = crud.supplier.get(db, supplier_id)
+            terms = invoice_to_terms(
+                id=invoice.invoice_id,
+                order_id=invoice.order_id,
+                amount=invoice.value,
+                start_date=dt.datetime.now(),
+                apr=supplier.default_apr,
+                tenor_in_days=supplier.default_tenor_in_days
+            )
+            invoice.payment_details = PaymentDetails( principal=terms.principal, interest=terms.interest)
+            return invoice
     raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Unknown order id: Order not found")
 
 

@@ -39,7 +39,7 @@ def raw_order_to_invoice(raw_order: Dict):
                 "city": raw_order.get("rcvr", {}).get("addr", {}).get("city", "not found"),
                 "phone": raw_order.get("rcvr", {}).get("cntct", {}).get("p_mob", "not found"),
             },
-            "payment_details": {},
+            "payment_details": {}
         }
     )
 
