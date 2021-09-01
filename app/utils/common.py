@@ -81,6 +81,8 @@ class PaymentDetails(CamelModel):
     verification_result: str = ""
     interest: float = 0
     principal: float = 0
+    apr: float = 0
+    tenor_in_days: int = 0
     collection_date: dt.datetime = None
     start_date: dt.datetime = None
 

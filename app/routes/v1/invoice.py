@@ -59,7 +59,11 @@ def _get_order(
                 apr=supplier.default_apr,
                 tenor_in_days=supplier.default_tenor_in_days,
             )
-            invoice.payment_details = PaymentDetails(principal=terms.principal, interest=terms.interest)
+            invoice.payment_details = PaymentDetails(
+                principal=terms.principal, interest=terms.interest,
+                apr=terms.apr, tenor_in_days=terms.tenor_in_days
+            )
+            print(invoice.payment_details)
             return invoice
     raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Unknown order id: Order not found")
 
