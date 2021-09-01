@@ -65,7 +65,7 @@ def whitelist_entry(db_session: Session) -> Tuple[PurchaserInfo, str, Session]: 
             creditline_size=400000000,
             default_apr=0.142,
             default_tenor_in_days=90,
-            data=""
+            data="",
         ),
     )
 

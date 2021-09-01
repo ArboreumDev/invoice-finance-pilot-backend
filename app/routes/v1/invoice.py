@@ -1,4 +1,3 @@
-from utils.logger import get_logger
 from typing import Dict, List, Tuple
 
 from fastapi import APIRouter, Depends, HTTPException, Response
@@ -15,6 +14,7 @@ from invoice.tusker_client import tusker_client
 from invoice.utils import db_invoice_to_frontend_info, raw_order_to_invoice
 from routes.dependencies import get_db
 from utils.common import CamelModel, CreditLineInfo, InvoiceFrontendInfo
+from utils.logger import get_logger
 from utils.security import check_jwt_token_role
 
 # ===================== routes ==========================

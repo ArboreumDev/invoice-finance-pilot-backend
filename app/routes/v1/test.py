@@ -1,5 +1,5 @@
-from typing import Tuple
 import datetime as dt
+from typing import Tuple
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -25,18 +25,20 @@ def update_invoice_delivery_status(invoiceId: str, new_status: str, db: Session 
 
 
 @test_app.patch("/update/shipment/{invoiceId}")
-def mark_as_delivered(invoiceId: str,db: Session = Depends(get_db)):
+def mark_as_delivered(invoiceId: str, db: Session = Depends(get_db)):
     # try:
-        # res = tusker_client.mark_test_order_as(invoiceId, "DELIVERED")
+    # res = tusker_client.mark_test_order_as(invoiceId, "DELIVERED")
     invoice = invoice_service.get(db, invoiceId)
-    update = {'delivered_on': dt.datetime.utcnow(),'shipment_status': "DELIVERED" }
+    update = {"delivered_on": dt.datetime.utcnow(), "shipment_status": "DELIVERED"}
     invoice_service.update_and_log(db, invoice, update)
     invoice_service.handle_update(invoice, "DELIVERED", db)
+
+
 #     return {"OK"}
 
-    # except Exception as e:
-    #     print("error trying to mark invoice as delivered")
-    #     raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, str(e))
+# except Exception as e:
+#     print("error trying to mark invoice as delivered")
+#     raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, str(e))
 
 
 @test_app.post("/new/order/{supplier_id}/{purchaser_id}/{value}")
