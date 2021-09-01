@@ -29,7 +29,7 @@ config_keys = [
     "TUSKER_REFERER",
     "TUSKER_TOKEN",
     "TUSKER_BASE_URL",
-    "INVOICE_FUNDING_RATE"
+    "INVOICE_FUNDING_RATE",
 ]
 
 for key in config_keys:
