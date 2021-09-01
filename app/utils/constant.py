@@ -29,6 +29,7 @@ config_keys = [
     "TUSKER_REFERER",
     "TUSKER_TOKEN",
     "TUSKER_BASE_URL",
+    "INVOICE_FUNDING_RATE"
 ]
 
 for key in config_keys:
@@ -90,7 +91,7 @@ MONTHLY_INTEREST = 0.0165
 DEFAULT_LOAN_TENOR = 90  # days
 
 # get this from .env?
-INVOICE_FUNDING_RATE = 0.8 #  = os.getenv("INVOICE_FUNDING_RATE")
+INVOICE_FUNDING_RATE = os.getenv("INVOICE_FUNDING_RATE")
 
 MAX_CREDIT = 50000
 
