@@ -51,19 +51,19 @@ def _get_order(
             # get hypothetical terms
             invoice = raw_order_to_invoice(raw_order)
             supplier = crud.supplier.get(db, supplier_id)
-            terms = invoice_to_terms(
-                id=invoice.invoice_id,
-                order_id=invoice.order_id,
-                amount=invoice.value,
-                start_date=dt.datetime.now(),
-                apr=supplier.default_apr,
-                tenor_in_days=supplier.default_tenor_in_days,
-            )
-            invoice.payment_details = PaymentDetails(
-                principal=terms.principal, interest=terms.interest,
-                apr=terms.apr, tenor_in_days=terms.tenor_in_days
-            )
-            print(invoice.payment_details)
+            if supplier:
+                terms = invoice_to_terms(
+                    id=invoice.invoice_id,
+                    order_id=invoice.order_id,
+                    amount=invoice.value,
+                    start_date=dt.datetime.now(),
+                    apr=supplier.default_apr,
+                    tenor_in_days=supplier.default_tenor_in_days,
+                )
+                invoice.payment_details = PaymentDetails(
+                    principal=terms.principal, interest=terms.interest,
+                    apr=terms.apr, tenor_in_days=terms.tenor_in_days
+                )
             return invoice
     raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Unknown order id: Order not found")
 

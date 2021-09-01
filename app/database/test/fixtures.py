@@ -66,7 +66,7 @@ RAW_ORDER = {
         "wt_act": [],
         "it_sm": 1,
         "it_lg": 0,
-        "val_dcl": 0.0,
+        "val_dcl": 200.0,
         "s_pay": True,
         "ctgry_tgs": [],
         "it_act": 1
