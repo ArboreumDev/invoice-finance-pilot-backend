@@ -5,7 +5,7 @@ dev-api-standalone:
 	docker compose -f docker-compose.yml up -d
 
 dev-api-local:
-	docker compose --profile testing up -d db test-db
+	docker compose --profile testing --profile local-dev up -d db test-db
 	uvicorn main:app --app-dir app/ --reload --port 8000 --host 0.0.0.0
 
 lint:
@@ -18,17 +18,17 @@ lint-format:
 
 test:
 	docker compose --profile testing --profile local-mount up -d
-	docker compose --profile local-mount exec -T backend pytest --workers auto
+	docker compose --profile local-mount exec -T backend pytest
 	docker compose --profile testing rm -s -v test-db
 
 test-standalone:
 	docker compose --profile testing -f docker-compose.yml up -d
-	docker compose exec -T backend pytest --workers auto
+	docker compose exec -T backend pytest
 	docker compose --profile testing rm -s -v test-db
 
 test-local:
 	docker compose --profile testing up -d test-db
-	cd app && python -m pytest --workers auto
+	cd app && python -m pytest
 	docker compose --profile testing rm -s -v test-db
 
 test_db:

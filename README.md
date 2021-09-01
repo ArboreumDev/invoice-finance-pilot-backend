@@ -13,10 +13,40 @@ EMAIL_PASSWORD=""
 
 ## Backend
 
-A very simple backend with [fastAPI](https://fastapi.tiangolo.com/) to pretend connecting to a DB
-it runs at port 8000
+A very simple backend with [fastAPI](https://fastapi.tiangolo.com/) connecting to a DB running at port 8000
 
 ### setup 
+
+#### for local development
+
+creates a test-db, db & backend
+
+> make dev-api-local
+
+seed the db with a user
+> alembic head upgrade
+> cd app
+> python -m database.seed
+
+#### troubleshooting
+
+delete the docker container (-s stops if running)
+> docker-compose rm -s -v db
+
+reset the volume the container is mounted on manuallyk
+> docker-volume ls
+> docker-volume rm <NAME>
+
+get a shell into the 
+> docker-compose --profile local-mount exec backend /bin/bash
+
+to reflect changes from compose file to running containers (e.g port mappings)
+>(tenv) ➜  tusker-pilot-backend git:(docker-setup) ✗ docker-compose --profile testing up
+
+
+###
+
+### virtualenv
 a local virtual env running python version 3.8
 
 e.g. using `virtualenv` -library:

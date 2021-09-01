@@ -17,7 +17,7 @@ from utils.logger import get_logger
 
 TEST_DB_USER = os.getenv("POSTGRES_USER")
 TEST_DB_HOST = os.getenv("POSTGRES_TEST_HOST")
-TEST_DB_PORT = "5432"
+TEST_DB_PORT = os.getenv("POSTGRES_TEST_PORT")
 TEST_DB_PASSWORD = os.getenv("POSTGRES_PASSWORD")
 TEST_DB_NAME = os.getenv("POSTGRES_DB")
 
