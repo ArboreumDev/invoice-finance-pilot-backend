@@ -8,23 +8,19 @@ from fastapi import APIRouter, Depends, HTTPException
 from invoice.tusker_client import tusker_client
 from routes.dependencies import get_db
 from sqlalchemy.orm import Session
-from starlette.status import HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR
+from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR
 from utils.security import check_jwt_token_role
 
 # ===================== routes ==========================
 test_app = APIRouter()
 
 
-# DESC: this is just a very fast hack to have an admin interface so that non-technical
-# people can play around with it without having to use dev-tools like insomnia
-@test_app.post("/update/shipment/{invoiceId}/{new_status}")
-def update_invoice_delivery_status(invoiceId: str, new_status: str, db: Session = Depends(get_db)):
-    invoice_service.update_invoice_shipment_status(invoiceId, new_status, db)
-    return {"OK"}
-
-
 @test_app.patch("/update/shipment/{invoiceId}")
-def mark_as_delivered(invoiceId: str, db: Session = Depends(get_db)):
+def mark_as_delivered(
+    invoiceId: str, db: Session = Depends(get_db), user_info: Tuple[str, str] = Depends(check_jwt_token_role)
+    ):
+    if user_info[1] != "loanAdmin":
+        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED)
     # try:
     # res = tusker_client.mark_test_order_as(invoiceId, "DELIVERED")
     invoice = invoice_service.get(db, invoiceId)
