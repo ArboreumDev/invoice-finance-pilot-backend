@@ -24,6 +24,7 @@ config_keys = [
     "POSTGRES_DB",
     "POSTGRES_PORT",
     "ENVIRONMENT",
+    "MAX_TUSKER_CREDIT",
     "TUSKER_INVOICE_BUCKET_URL",
     "TUSKER_REFERER",
     "TUSKER_TOKEN",
@@ -91,6 +92,7 @@ DEFAULT_LOAN_TENOR = 90  # days
 
 # get this from .env?
 INVOICE_FUNDING_RATE = float(os.getenv("INVOICE_FUNDING_RATE"))
+MAX_TUSKER_CREDIT = os.getenv("MAX_TUSKER_CREDIT")
 
 MAX_CREDIT = 50000
 

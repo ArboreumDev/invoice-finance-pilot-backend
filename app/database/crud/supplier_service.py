@@ -61,5 +61,9 @@ class SupplierService(CRUDBase[Supplier, SupplierCreate, SupplierUpdate]):
             )
         )
 
+    def get_total_extended_credit(self, db: Session):
+        """ sum of credit extended to all suppliers """
+        suppliers = db.query(Supplier).all()
+        return sum(s.creditline_size for s in suppliers)
  
 supplier = SupplierService(Supplier)

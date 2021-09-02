@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from starlette.status import (HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND,
                               HTTP_425_TOO_EARLY)
 from utils.common import CamelModel, SupplierInfo
-from utils.constant import ARBOREUM_DISBURSAL_EMAIL, DISBURSAL_EMAIL
+from utils.constant import ARBOREUM_DISBURSAL_EMAIL, DISBURSAL_EMAIL, MAX_TUSKER_CREDIT
 from utils.email import EmailClient, new_supplier_to_email_body
 from utils.security import check_jwt_token_role
 
@@ -63,6 +63,11 @@ def _insert_new_supplier_entry(
     if exists:
         raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="supplier already exists")
     else:
+        # check against total tusker-credit-limit
+        available_credit = MAX_TUSKER_CREDIT - crud.supplier.get_total_extended_credit(db)
+        print(MAX_TUSKER_CREDIT , crud.supplier.get_total_extended_credit(db))
+        if available_credit < input.creditline_size:
+            raise HTTPException(HTTP_400_BAD_REQUEST, detail=f"Max Credit exceeded: available {available_credit}")
         new_supplier = crud.supplier.create(db=db, obj_in=SupplierCreate(**input.dict()))
         try:
             ec = EmailClient()
