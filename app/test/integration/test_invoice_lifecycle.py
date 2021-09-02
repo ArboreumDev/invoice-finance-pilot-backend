@@ -1,5 +1,4 @@
 import pytest
-
 from database.crud.invoice_service import invoice as invoice_service
 from database.utils import reset_db
 from invoice.tusker_client import tusker_client

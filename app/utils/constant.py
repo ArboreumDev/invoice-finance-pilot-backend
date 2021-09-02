@@ -2,7 +2,6 @@
 import os
 
 from dotenv import load_dotenv
-
 from utils.common import PurchaserInfo
 
 load_dotenv()

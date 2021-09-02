@@ -1,24 +1,20 @@
-from test.integration.conftest import get_auth_header
+from test.integration.conftest import client, get_auth_header
 from typing import Dict, Tuple
 
 import pytest
-from sqlalchemy.orm import Session
-from starlette.status import (HTTP_200_OK, HTTP_400_BAD_REQUEST,
-                              HTTP_404_NOT_FOUND)
-
 from database.crud.invoice_service import invoice as invoice_service
 from database.crud.supplier_service import supplier as supplier_service
 from database.crud.whitelist_service import whitelist as whitelist_service
 from database.schemas.supplier import SupplierCreate
-from database.test.conftest import (db_session, insert_base_user,  # noqa: 401
-                                    )
-from database.utils import reset_db
+from database.test.conftest import insert_base_user  # noqa: 401
 from database.test.fixtures import p1, p2
+from database.utils import reset_db
 from invoice.tusker_client import tusker_client
+from sqlalchemy.orm import Session
+from starlette.status import (HTTP_200_OK, HTTP_400_BAD_REQUEST,
+                              HTTP_404_NOT_FOUND)
 from utils.common import InvoiceFrontendInfo, PurchaserInfo
 from utils.constant import GURUGRUPA_CUSTOMER_ID, LOC_ID4
-from test.integration.conftest import client
-
 
 CUSTOMER_ID = "0001e776-c372-4ec5-8fa4-f30ab74ca631"
 

@@ -1,15 +1,14 @@
 from typing import Dict, List, Optional, Tuple
 
-from fastapi import APIRouter, Body, Depends, HTTPException
-from sqlalchemy.orm import Session
-from starlette.status import (HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND,
-                              HTTP_425_TOO_EARLY)
-
 from database import crud
 from database.exceptions import (DuplicateSupplierEntryException,
                                  SupplierException)
 from database.schemas.supplier import SupplierCreate
+from fastapi import APIRouter, Body, Depends, HTTPException
 from routes.dependencies import get_db
+from sqlalchemy.orm import Session
+from starlette.status import (HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND,
+                              HTTP_425_TOO_EARLY)
 from utils.common import CamelModel, SupplierInfo
 from utils.constant import ARBOREUM_DISBURSAL_EMAIL, DISBURSAL_EMAIL
 from utils.email import EmailClient, new_supplier_to_email_body

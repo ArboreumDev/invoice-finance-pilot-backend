@@ -1,15 +1,12 @@
-from test.integration.conftest import get_auth_header
+from test.integration.conftest import client, get_auth_header
 
 import pytest
-from starlette.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
-
 from database.crud.whitelist_service import whitelist as whitelist_service
 from database.test.conftest import insert_base_user
 from database.utils import reset_db
 from routes.v1.whitelist import WhitelistInput, WhitelistUpdateInput
+from starlette.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
 from utils.common import PurchaserInfo, Terms
-from test.integration.conftest import client
-
 
 new_whitelist_entry = WhitelistInput(
     supplier_id="s1",

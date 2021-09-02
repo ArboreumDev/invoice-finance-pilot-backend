@@ -5,7 +5,6 @@ from typing import List
 
 import requests
 from dotenv import load_dotenv
-
 from utils.common import PurchaserInfo
 from utils.constant import GURUGRUPA_CUSTOMER_ID, TUSKER_DEFAULT_NEW_ORDER
 

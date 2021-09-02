@@ -2,14 +2,13 @@ import time
 from datetime import datetime, timedelta
 
 import jwt
+from database.models import User
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
+from routes.dependencies import get_db
 from sqlalchemy.orm import Session
 from starlette.status import HTTP_401_UNAUTHORIZED
-
-from database.models import User
-from routes.dependencies import get_db
 from utils.common import JWTUser
 from utils.constant import (JWT_ALGORITHM, JWT_EXPIRATION_TIME_MINUTES,
                             JWT_SECRET_KEY)
