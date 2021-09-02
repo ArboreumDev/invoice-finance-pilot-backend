@@ -8,7 +8,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from invoice.tusker_client import tusker_client
 from routes.dependencies import get_db
 from sqlalchemy.orm import Session
-from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR
+from starlette.status import (HTTP_401_UNAUTHORIZED, HTTP_404_NOT_FOUND,
+                              HTTP_500_INTERNAL_SERVER_ERROR)
 from utils.security import check_jwt_token_role
 
 # ===================== routes ==========================
@@ -18,7 +19,7 @@ test_app = APIRouter()
 @test_app.patch("/update/shipment/{invoiceId}")
 def mark_as_delivered(
     invoiceId: str, db: Session = Depends(get_db), user_info: Tuple[str, str] = Depends(check_jwt_token_role)
-    ):
+):
     if user_info[1] != "loanAdmin":
         raise HTTPException(status_code=HTTP_401_UNAUTHORIZED)
     # try:

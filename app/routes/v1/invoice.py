@@ -12,7 +12,7 @@ from invoice.utils import db_invoice_to_frontend_info, raw_order_to_invoice
 from routes.dependencies import get_db
 from sqlalchemy.orm import Session
 from starlette.status import (HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED,
-                              HTTP_404_NOT_FOUND, HTTP_412_PRECONDITION_FAILED,
+                              HTTP_404_NOT_FOUND,
                               HTTP_500_INTERNAL_SERVER_ERROR)
 from utils.common import (CamelModel, CreditLineInfo, InvoiceFrontendInfo,
                           PaymentDetails)

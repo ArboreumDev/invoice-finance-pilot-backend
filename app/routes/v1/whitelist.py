@@ -1,8 +1,8 @@
 from typing import Dict, Optional, Tuple
 
 from database.crud import whitelist as whitelist_service
-from database import crud
-from database.exceptions import (DuplicateWhitelistEntryException, InsufficientCreditException,
+from database.exceptions import (DuplicateWhitelistEntryException,
+                                 InsufficientCreditException,
                                  WhitelistException)
 from database.schemas.whitelist import WhitelistUpdate
 from database.utils import remove_none_entries
