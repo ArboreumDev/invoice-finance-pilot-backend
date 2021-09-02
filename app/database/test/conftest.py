@@ -63,8 +63,20 @@ def whitelisted_invoices(db_session: Session):
     reset_db(db_session)
     insert_base_user(db_session)
 
-    # create two whitelist entry for supplier
     _supplier_id=CUSTOMER_ID
+    crud.supplier.create(
+        db=db_session,
+        obj_in=SupplierCreate(
+            supplier_id=_supplier_id,
+            name="TestSupplier",
+            creditline_size=400000000,
+            default_apr=0.142,
+            default_tenor_in_days=90,
+            data=""
+        ),
+    )
+
+    # create two whitelist entry for supplier
     _purchaser=p1
 
     whitelist_service.insert_whitelist_entry(
@@ -119,6 +131,19 @@ def whitelist_entry(db_session: Session) -> Tuple[PurchaserInfo, str, Session]:
     reset_db(db_session)
     insert_base_user(db_session)
     auth_header = get_auth_header()
+
+    crud.supplier.create(
+        db=db_session,
+        obj_in=SupplierCreate(
+            supplier_id=CUSTOMER_ID,
+            name="TestSupplier",
+            creditline_size=400000000,
+            default_apr=0.142,
+            default_tenor_in_days=90,
+            data=""
+        ),
+    )
+
     whitelist_service.insert_whitelist_entry(
         db_session,
         supplier_id=CUSTOMER_ID,

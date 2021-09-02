@@ -14,6 +14,7 @@ def test_add_supplier(supplier_entry):
     _, db_session = supplier_entry
 
     before = len(crud.supplier.get_all_suppliers(db_session))
+    extended_credit_before = crud.supplier.get_total_extended_credit(db_session)
 
     crud.supplier.create(db_session, obj_in=SupplierCreate(
         supplier_id='supplier2',name='name',default_apr=0.42, default_tenor_in_days=42, creditline_size=42000,
@@ -26,6 +27,10 @@ def test_add_supplier(supplier_entry):
     assert s.default_apr == 0.42
     assert s.default_tenor_in_days == 42
     assert s.creditline_size == 42000
+
+
+    extended_credit_after = crud.supplier.get_total_extended_credit(db_session)
+    assert extended_credit_after == extended_credit_before + 42000
 
     reset_db(db_session)
 

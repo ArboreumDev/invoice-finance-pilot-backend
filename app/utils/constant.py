@@ -92,7 +92,7 @@ DEFAULT_LOAN_TENOR = 90  # days
 
 # get this from .env?
 INVOICE_FUNDING_RATE = float(os.getenv("INVOICE_FUNDING_RATE"))
-MAX_TUSKER_CREDIT = os.getenv("MAX_TUSKER_CREDIT")
+MAX_TUSKER_CREDIT = int(os.getenv("MAX_TUSKER_CREDIT"))
 
 MAX_CREDIT = 50000
 

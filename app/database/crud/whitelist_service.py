@@ -105,7 +105,7 @@ class WhitelistService(CRUDBase[Whitelist, WhitelistCreate, WhitelistUpdate]):
         supplier = crud.supplier.get(db, supplier_id)
 
         # check whether new whitelist entry does not exceed total supplier credit line limit
-        available_credit = supplier.creditline_size - crud.supplier.get_used_creditline(db, supplier_id)
+        available_credit = supplier.creditline_size - crud.supplier.get_extended_creditline(db, supplier_id)
         if (available_credit < creditline_size):
             self._logger.error(f"Insufficient Supplier Credit Limit: Only {available_credit} available.")
             raise InsufficientCreditException(f"Insufficient Supplier Credit Limit: \

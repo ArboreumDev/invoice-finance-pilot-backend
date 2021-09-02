@@ -26,7 +26,8 @@ class SupplierService(CRUDBase[Supplier, SupplierCreate, SupplierUpdate]):
         if self.get(db, supplier_id):
             self.remove(db, supplier_id)
     
-    def get_used_creditline(self, db: Session, supplier_id: str):
+    def get_extended_creditline(self, db: Session, supplier_id: str):
+        """ how much credit has been extended to the entire whitelist of a supplier (not actually given out) """
         current_whitelist = db.query(Whitelist).filter(Whitelist.supplier_id == supplier_id).all()
         return sum(w.creditline_size for w in current_whitelist)
 

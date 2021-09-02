@@ -2,14 +2,14 @@ from test.integration.conftest import client, get_auth_header
 
 import pytest
 from database.crud.whitelist_service import whitelist as whitelist_service
-from database.test.conftest import insert_base_user
+from database.test.conftest import insert_base_user, CUSTOMER_ID
 from database.utils import reset_db
 from routes.v1.whitelist import WhitelistInput, WhitelistUpdateInput
 from starlette.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
 from utils.common import PurchaserInfo, Terms
 
 new_whitelist_entry = WhitelistInput(
-    supplier_id="s1",
+    supplier_id=CUSTOMER_ID,
     purchaser=PurchaserInfo(
         id="p1",
         name="purchaser",
@@ -31,21 +31,24 @@ def auth_user(db_session):
     reset_db(db_session)
 
 
-def test_post_new_whitelist_entry_success(auth_user):
+def test_post_new_whitelist_entry_success(supplier_x_auth_user):
+    _, auth_user, _ = supplier_x_auth_user
     # auth_header = auth_user
     response = client.post("v1/whitelist/new", json={"input": new_whitelist_entry}, headers=auth_user)
     assert response.status_code == HTTP_200_OK
     # TODO verify new entry is in creditline
 
 
-def test_post_new_whitelist_duplicate_entry_failure(auth_user):
+def test_post_new_whitelist_duplicate_entry_failure(supplier_x_auth_user):
+    _, auth_user, _ = supplier_x_auth_user
     response = client.post("v1/whitelist/new", json={"input": new_whitelist_entry}, headers=auth_user)
     assert response.status_code == HTTP_200_OK
     response = client.post("v1/whitelist/new", json={"input": new_whitelist_entry}, headers=auth_user)
     assert response.status_code == HTTP_400_BAD_REQUEST
 
 
-def test_whitelist_update(auth_user, db_session):
+def test_whitelist_update(supplier_x_auth_user):
+    _, auth_user, db_session = supplier_x_auth_user
     response = client.post("v1/whitelist/new", json={"input": new_whitelist_entry}, headers=auth_user)
     assert response.status_code == HTTP_200_OK
 

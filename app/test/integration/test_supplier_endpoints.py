@@ -5,6 +5,7 @@ from database.crud.supplier_service import supplier as supplier_service
 from routes.v1.supplier import SupplierInput, SupplierUpdateInput
 from starlette.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
 from utils.constant import GURUGRUPA_CUSTOMER_DATA
+from utils.constant import MAX_TUSKER_CREDIT
 
 new_supplier_input = SupplierInput(
     supplier_id="s1",
@@ -20,6 +21,17 @@ def test_post_new_supplier_entry_success(auth_user, clean_supplier_table):
 
     response = client.post("v1/supplier/new", json={"input": new_supplier_input}, headers=auth_user)
     assert response.status_code == HTTP_200_OK
+
+def test_post_new_supplier_entry_failure_credit_limit(auth_user, clean_supplier_table):
+    input
+    
+    response = client.post("v1/supplier/new", json={"input": {
+        **new_supplier_input,
+        'creditline_size': MAX_TUSKER_CREDIT +2
+        }}, headers=auth_user)
+    assert response.status_code == HTTP_400_BAD_REQUEST
+    assert "Max Credit" in response.text 
+
 
 
 def test_post_new_supplier_duplicate_entry_failure(auth_user, clean_supplier_table):
