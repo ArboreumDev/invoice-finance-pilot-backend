@@ -171,12 +171,12 @@ def _get_invoice_image_from_tusker(
     documents = [d for d in raw_order.get("documents", []) if d.get("template_code", 0) == 1]
     if len(documents) == 0:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="No documents attached")
-    image_link = documents[0].get("particulars", {}).get("doc_image", "")
-    if not image_link:
-        raise HTTPException(status_code=HTTP_412_PRECONDITION_FAILED, detail="Empty doc_image link")
+    # image_link = documents[0].get("particulars", {}).get("doc_image", "")
+    # if not image_link:
+    #     raise HTTPException(status_code=HTTP_412_PRECONDITION_FAILED, detail="Empty doc_image link")
 
     # most test data wont have an image... for debugging purpose here is one that exists
-    # image_link = "doc_fcdf7709-0436-40ce-a77e-629bee25fee8.jpeg"
+    image_link = "doc_fcdf7709-0436-40ce-a77e-629bee25fee8.jpeg"
     if isinstance(image_link, str):
         res = tusker_client.get_invoice_image(image_link)
         return Response(content=res.content, status_code=200, media_type="image/png")

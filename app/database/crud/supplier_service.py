@@ -5,7 +5,7 @@ from os import name
 from typing import Dict, List
 from sqlalchemy.orm import Session
 from database.db import session
-from database.models import Supplier, Invoice
+from database.models import Supplier, Invoice, Whitelist
 from database.crud.base import CRUDBase
 from database.schemas import SupplierCreate, SupplierUpdate
 
@@ -25,6 +25,10 @@ class SupplierService(CRUDBase[Supplier, SupplierCreate, SupplierUpdate]):
     def remove_if_there(self, db: Session, supplier_id: str):
         if self.get(db, supplier_id):
             self.remove(db, supplier_id)
+    
+    def get_used_creditline(self, db: Session, supplier_id: str):
+        current_whitelist = db.query(Whitelist).filter(Whitelist.supplier_id == supplier_id).all()
+        return sum(w.creditline_size for w in current_whitelist)
 
     def update( self, db: Session, update: SupplierUpdateInput):
         supplier_entry = self.get(db, supplier_id=update.supplier_id)
