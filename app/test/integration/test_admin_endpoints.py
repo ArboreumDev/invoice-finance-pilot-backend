@@ -3,8 +3,8 @@ from typing import Dict, Tuple
 
 import pytest
 from database.crud.invoice_service import invoice as invoice_service
-from database.crud.whitelist_service import whitelist as whitelist_service
 from database.crud.supplier_service import supplier as supplier_service
+from database.crud.whitelist_service import whitelist as whitelist_service
 from database.models import User
 from database.schemas.supplier import SupplierCreate
 from database.test.conftest import (db_session, insert_base_user,  # noqa: 401
@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 from starlette.status import HTTP_200_OK, HTTP_401_UNAUTHORIZED
 from starlette.testclient import TestClient
 from utils.common import PurchaserInfo
-from utils.constant import GURUGRUPA_CUSTOMER_DATA, GURUGRUPA_CUSTOMER_ID
+from utils.constant import GURUGRUPA_CUSTOMER_ID
 
 client = TestClient(app)
 CUSTOMER_ID = "0001e776-c372-4ec5-8fa4-f30ab74ca631"
@@ -40,7 +40,7 @@ def whitelist_and_invoices(db_session) -> Tuple[Tuple, Tuple, str, PurchaserInfo
     reset_db(db_session)
     insert_admin_user(db_session)
     auth_header = get_auth_header(username="admin", password="tusker")
-    supplier_in_db = supplier_service.create(
+    supplier_service.create(
         db=db_session,
         obj_in=SupplierCreate(
             supplier_id=GURUGRUPA_CUSTOMER_ID,
