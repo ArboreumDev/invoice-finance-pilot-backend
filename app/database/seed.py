@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 import os
 from utils.constant import GURUGRUPA_CUSTOMER_DATA
 
-from database.test.conftest import reset_db
+from database.utils import reset_db
 from database.db import SessionLocal
 from database import crud
 from utils.logger import  get_logger

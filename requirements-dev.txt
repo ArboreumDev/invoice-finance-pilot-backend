@@ -1,0 +1,3 @@
+pytest==6.2.2
+pytest-parallel==0.1.0
+flake8==3.9.2

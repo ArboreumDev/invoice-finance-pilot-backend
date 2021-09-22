@@ -1,22 +1,19 @@
 # %%
 import pytest
 import time
-import copy
 from database import crud
 from database.crud.invoice_service import invoice_to_terms
-from database.crud.whitelist_service import whitelist as whitelistService
 from database.models import Invoice
 from database.exceptions import DuplicateInvoiceException
-from database.test.fixtures import NEW_RAW_ORDER, RAW_ORDER, get_new_raw_order
-from database.db import SessionLocal, metadata, engine, session
+from database.test.fixtures import NEW_RAW_ORDER
 from sqlalchemy.orm import Session
-from invoice.tusker_client import code_to_order_status, tusker_client
 from typing import Tuple
-import contextlib
 import json
-from utils.constant import MAX_CREDIT, RECEIVER_ID1, GURUGRUPA_CUSTOMER_ID
-from database.test.conftest import db_session, reset_db
+from database.test.conftest import db_session
+from database.utils import reset_db
+from test.integration.conftest import TestingSessionLocal
 import datetime as dt
+from utils.constant import MAX_CREDIT, RECEIVER_ID1, GURUGRUPA_CUSTOMER_ID
 from utils.common import FinanceStatus
 
 invoice_service = crud.invoice
@@ -35,7 +32,6 @@ def test_reset_db(db_session):
 def test_internal_insert_invoice(invoice1):
     _, db_session = invoice1
     before = invoice_service.get_all_invoices(db_session)
-
     invoice_id = invoice_service._insert_new_invoice_for_purchaser_x_supplier(
         NEW_RAW_ORDER,
         purchaser_id="testP",
@@ -44,7 +40,6 @@ def test_internal_insert_invoice(invoice1):
     )
 
     after = invoice_service.get_all_invoices(db_session)
-
     # verify there is an extra invoice and its the one newly added
     assert len(after) == len(before) + 1
     assert invoice_id in [i.id for i in after]
@@ -76,7 +71,7 @@ def test_update_invoice_shipment_status(invoice1):
     invoice1, db_session = invoice1
     invoice_service.update_invoice_shipment_status(invoice1.id, "NEW_STATUS", db_session)
     after = invoice_service.get(db_session, invoice1.id)
-    assert  after.shipment_status == "NEW_STATUS"
+    assert after.shipment_status == "NEW_STATUS"
     reset_db(db_session)
 
 
@@ -106,13 +101,14 @@ def test_delete_invoice(invoice1):
 
 
 def test_get_all_invoices(invoices):
-    [invoice1, invoice2], db = invoices
+    [invoice1, invoice2], db_session = invoices
 
-    _invoices = invoice_service.get_all_invoices(db)
+    _invoices = invoice_service.get_all_invoices(db_session)
 
     ids_from_db = [i.id for i in _invoices]
     assert invoice1.id in ids_from_db
     assert invoice2.id in ids_from_db
+
 
 def test_update_db(invoice_x_supplier):
     invoice1, db_session = invoice_x_supplier
@@ -129,7 +125,6 @@ def test_update_db(invoice_x_supplier):
     assert updated[0][0] == invoice1.id
     assert updated[0][1] == tmp
 
-
     # TODO this chcek should pass
     after = invoice_service.get_all_invoices(db_session)[0]
     # assert before.updated_on < after.updated_on
@@ -137,23 +132,23 @@ def test_update_db(invoice_x_supplier):
     # TODO move this into its own test
     assert after.delivered_on is not None
 
-@pytest.mark.xfail()
-def test_update_db_stores_update_timestamp_and_delivered_on(invoice1):
+
+def test_update_db_stores_update_timestamp_and_delivered_on(invoice_x_supplier):
     # save current status (same as what is on tusker-api)
-    tmp = invoice1.shipment_status
-    assert invoice1.shipment_status == "DELIVERED"
+    invoice, db_session = invoice_x_supplier
+    assert invoice.shipment_status == "DELIVERED"
 
     # change status on db so that whatever is pulled from tusker will be new
-    invoice1.shipment_status = "somestatus"
-    before = invoice_service.get_all_invoices()[0]
-
-    updated, errored = invoice_service.update_invoice_db()
+    invoice_service.update_invoice_shipment_status(invoice.id, "somestatus", db_session)
+    before = invoice_service.get_all_invoices(db_session)[0]
+    last_updated = before.updated_on
+    updated, errored = invoice_service.update_invoice_db(db_session)
 
     assert not errored
 
-    after = invoice_service.get_all_invoices()[0]
-    # TODO issue#32
-    assert before.updated_on < after.updated_on
+    after = invoice_service.get_all_invoices(db_session)[0]
+
+    assert last_updated < after.updated_on
 
     assert after.delivered_on is not None
 

@@ -1,9 +1,6 @@
 import pytest
-import copy
 from database import crud
-from database.crud.invoice_service import invoice_to_terms
 from database.exceptions import UnknownPurchaserException, WhitelistException
-from database.models import Invoice
 from utils.common import PurchaserInfo
 from typing import Tuple
 from database.test.fixtures import get_new_raw_order, OTHER_CUSTOMER_ID, OTHER_PURCHASER_ID
@@ -25,6 +22,7 @@ def test_insert_whitelisted_invoice_success(whitelist_entry: Tuple[PurchaserInfo
     )
     after = len(invoice_service.get_all_invoices(db))
     assert after == before + 1
+
 
 def test_insert_whitelisted_fail_unknown_purchaser(whitelist_entry: Tuple[PurchaserInfo, str, Session]):
     _p1, _supplier_id, db = whitelist_entry

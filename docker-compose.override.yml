@@ -1,0 +1,32 @@
+services:
+  backend:
+    profiles:
+      - local-mount
+    image: ghcr.io/arboreumdev/tusker-pilot-backend:docker
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app:/app
+  test-db:
+    profiles:
+      - testing
+    image: postgres:12
+    env_file:
+      - .env
+    ports:
+      # - "5432:5432"
+      - "${POSTGRES_TEST_PORT-5432}:${POSTGRES_PORT}"
+  db:
+    profiles:
+      - local-dev
+    image: postgres:12
+    env_file:
+      - .env
+    ports:
+      # - "5444:5432"
+      - "${POSTGRES_PORT}:${POSTGRES_PORT}"

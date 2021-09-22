@@ -1,13 +1,11 @@
 import pytest
 from starlette.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
-from starlette.testclient import TestClient
 
 from database.crud.supplier_service import supplier as supplier_service
-from main import app
 from routes.v1.supplier import SupplierInput, SupplierUpdateInput
+from test.integration.conftest import client
 from utils.constant import GURUGRUPA_CUSTOMER_DATA
 
-client = TestClient(app)
 
 new_supplier_input = SupplierInput(
     supplier_id="s1",

@@ -35,13 +35,12 @@ class Invoice(Base):
 
     delivered_on = Column(DateTime, nullable=True)
     financed_on = Column(DateTime, nullable=True)
-    # these should be different: one should be only on the beginning, the other every time
-    # updated_on = Column(DateTime, nullable=True, onupdate=func.utcnow())
-    updated_on = Column(DateTime, nullable=True, default=datetime.now())
-    created_on = Column(DateTime, default=datetime.now())
+    updated_on = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+    created_on = Column(DateTime, default=datetime.now)
 
     # TODO (maybe) add relationships
     # supplier = relationship("Supplier", back_populates="invoices")
+
 
 class Whitelist(Base):
     """ keeps track of the receivers whose invoices can be financed for each customer """

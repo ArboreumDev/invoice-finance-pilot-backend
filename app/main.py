@@ -2,7 +2,6 @@ from utils.logger import get_logger
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
-# from routes.v1.mapping import mapping_app
 from routes.v1.invoice import invoice_app
 from routes.v1.whitelist import whitelist_app
 from routes.v1.supplier import supplier_app
@@ -13,8 +12,6 @@ from utils.common import JWTUser
 from utils.constant import TOKEN_DESCRIPTION, FRONTEND_URL
 from utils.security import authenticate_user, create_jwt_token, check_jwt_token_role
 from sqlalchemy.orm import Session
-from typing import Generator
-from database.db import SessionLocal
 from routes.dependencies import get_db, log_request
 
 
