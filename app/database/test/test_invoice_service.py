@@ -28,6 +28,12 @@ def test_reset_db(db_session):
     after = invoice_service.get_all_invoices(db_session)
     assert len(after) == 0
 
+    # with tables-parameter
+    invoice_service._insert_new_invoice_for_purchaser_x_supplier(NEW_RAW_ORDER, "p", "s", db_session)
+    reset_db(db_session, tables=["invoice"])
+    after = invoice_service.get_all_invoices(db_session)
+    assert len(after) == 0
+
 
 def test_internal_insert_invoice(invoice1):
     _, db_session = invoice1

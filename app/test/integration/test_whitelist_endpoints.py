@@ -2,14 +2,15 @@ from test.integration.conftest import client, get_auth_header
 
 import pytest
 from database.crud.whitelist_service import whitelist as whitelist_service
-from database.test.conftest import CUSTOMER_ID, insert_base_user
+from database.test.conftest import insert_base_user
 from database.utils import reset_db
 from routes.v1.whitelist import WhitelistInput, WhitelistUpdateInput
 from starlette.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
 from utils.common import PurchaserInfo, Terms
+from utils.constant import GURUGRUPA_CUSTOMER_ID
 
 new_whitelist_entry = WhitelistInput(
-    supplier_id=CUSTOMER_ID,
+    supplier_id=GURUGRUPA_CUSTOMER_ID,
     purchaser=PurchaserInfo(
         id="p1",
         name="purchaser",
