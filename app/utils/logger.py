@@ -10,5 +10,6 @@ config.fileConfig(
     disable_existing_loggers=False,
 )
 
+
 def get_logger(name):
     return logging.getLogger(name)

@@ -5,8 +5,8 @@ import pytest
 from database.crud.invoice_service import invoice as invoice_service
 from database.crud.supplier_service import supplier as supplier_service
 from database.crud.whitelist_service import whitelist as whitelist_service
-from database.schemas.supplier import SupplierCreate
 from database.models import Supplier
+from database.schemas.supplier import SupplierCreate
 from database.test.conftest import insert_base_user  # noqa: 401
 from database.test.fixtures import p1, p2
 from database.utils import reset_db
@@ -15,16 +15,18 @@ from sqlalchemy.orm import Session
 from starlette.status import (HTTP_200_OK, HTTP_400_BAD_REQUEST,
                               HTTP_404_NOT_FOUND)
 from utils.common import InvoiceFrontendInfo, PurchaserInfo
-from utils.constant import GURUGRUPA_CUSTOMER_ID, LOC_ID4
+from utils.constant import LOC_ID4
 
 CUSTOMER_ID = "0001e776-c372-4ec5-8fa4-f30ab74ca631"
 
 
 # TODO figure out why these fixtures can not be imported from the other conftest file
 @pytest.fixture(scope="function")
-def whitelist_and_invoices(supplier_x_auth_user: Tuple[Supplier, Session, Dict], db_session: Session) -> Tuple[Tuple, Tuple, str, PurchaserInfo, Session, Dict]:  # noqa: F811
+def whitelist_and_invoices(
+    supplier_x_auth_user: Tuple[Supplier, Session, Dict], db_session: Session
+) -> Tuple[Tuple, Tuple, str, PurchaserInfo, Session, Dict]:  # noqa: F811
     supplier, auth_header = supplier_x_auth_user
-    reset_db(db_session, tables=['whitelist', 'invoice'])
+    reset_db(db_session, tables=["whitelist", "invoice"])
 
     whitelist_service.insert_whitelist_entry(
         db=db_session, supplier_id=supplier.supplier_id, purchaser=p1, creditline_size=50000, apr=0.1, tenor_in_days=90
@@ -33,9 +35,7 @@ def whitelist_and_invoices(supplier_x_auth_user: Tuple[Supplier, Session, Dict],
         db=db_session, supplier_id=supplier.supplier_id, purchaser=p2, creditline_size=50000, apr=0.1, tenor_in_days=90
     )
 
-    inv_id, order_ref, _ = tusker_client.create_test_order(
-        supplier_id=supplier.supplier_id, location_id=p1.location_id
-    )
+    inv_id, order_ref, _ = tusker_client.create_test_order(supplier_id=supplier.supplier_id, location_id=p1.location_id)
 
     yield (inv_id, order_ref), supplier.supplier_id, p1, db_session, auth_header
 
@@ -57,7 +57,7 @@ def whitelist_entry(db_session: Session) -> Tuple[PurchaserInfo, str, Session]: 
             creditline_size=400000000,
             default_apr=0.142,
             default_tenor_in_days=90,
-            data=""
+            data="",
         ),
     )
 
