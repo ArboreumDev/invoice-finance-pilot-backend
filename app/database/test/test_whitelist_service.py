@@ -1,5 +1,5 @@
-from app.database import crud
-from app.database.schemas import whitelist
+from database import crud
+from database.schemas import whitelist
 import pytest
 from typing import Tuple
 

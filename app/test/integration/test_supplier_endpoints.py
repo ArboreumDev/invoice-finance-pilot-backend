@@ -41,8 +41,8 @@ def test_post_new_supplier_duplicate_entry_failure(auth_user, clean_supplier_tab
     assert response.status_code == HTTP_400_BAD_REQUEST
 
 
-def test_supplier_update(supplier_x_auth_user):
-    supplier_in_db, auth_user, db_session = supplier_x_auth_user
+def test_supplier_update(supplier_x_auth_user, db_session):
+    supplier_in_db, auth_user = supplier_x_auth_user
 
     supplier_id = supplier_in_db.supplier_id
     new_creditline_size = 40000

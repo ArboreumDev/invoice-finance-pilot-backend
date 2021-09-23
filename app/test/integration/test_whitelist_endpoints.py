@@ -33,7 +33,7 @@ def auth_user(db_session):
 
 
 def test_post_new_whitelist_entry_success(supplier_x_auth_user):
-    _, auth_user, _ = supplier_x_auth_user
+    _, auth_user = supplier_x_auth_user
     # auth_header = auth_user
     response = client.post("v1/whitelist/new", json={"input": new_whitelist_entry}, headers=auth_user)
     assert response.status_code == HTTP_200_OK
@@ -41,15 +41,15 @@ def test_post_new_whitelist_entry_success(supplier_x_auth_user):
 
 
 def test_post_new_whitelist_duplicate_entry_failure(supplier_x_auth_user):
-    _, auth_user, _ = supplier_x_auth_user
+    _, auth_user = supplier_x_auth_user
     response = client.post("v1/whitelist/new", json={"input": new_whitelist_entry}, headers=auth_user)
     assert response.status_code == HTTP_200_OK
     response = client.post("v1/whitelist/new", json={"input": new_whitelist_entry}, headers=auth_user)
     assert response.status_code == HTTP_400_BAD_REQUEST
 
 
-def test_whitelist_update(supplier_x_auth_user):
-    _, auth_user, db_session = supplier_x_auth_user
+def test_whitelist_update(supplier_x_auth_user, db_session):
+    _, auth_user = supplier_x_auth_user
     response = client.post("v1/whitelist/new", json={"input": new_whitelist_entry}, headers=auth_user)
     assert response.status_code == HTTP_200_OK
 
