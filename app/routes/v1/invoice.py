@@ -1,4 +1,3 @@
-import datetime as dt
 from typing import Dict, List, Tuple
 
 from database import crud
