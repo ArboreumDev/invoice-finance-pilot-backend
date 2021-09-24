@@ -90,7 +90,7 @@ def test_update_invoice_with_payment_terms(invoice1):
 
     terms = invoice_to_terms(
         id=_id, order_id=invoice1.order_ref, amount=invoice1.value,
-        start_date=dt.datetime.now(), apr=.16, tenor_in_days=90, loan_id="loanId1"
+        apr=.16, tenor_in_days=90, loan_id="loanId1"
     )
     terms.interest = 1000
     invoice_service.update_invoice_with_loan_terms(before, terms, db_session)

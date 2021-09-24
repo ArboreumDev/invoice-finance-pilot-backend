@@ -12,7 +12,7 @@ from invoice.utils import db_invoice_to_frontend_info, raw_order_to_invoice
 from routes.dependencies import get_db
 from sqlalchemy.orm import Session
 from starlette.status import (HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED,
-                              HTTP_404_NOT_FOUND, HTTP_412_PRECONDITION_FAILED,
+                              HTTP_404_NOT_FOUND,
                               HTTP_500_INTERNAL_SERVER_ERROR)
 from utils.common import (CamelModel, CreditLineInfo, InvoiceFrontendInfo,
                           PaymentDetails)
@@ -55,7 +55,6 @@ def _get_order(
                     id=invoice.invoice_id,
                     order_id=invoice.order_id,
                     amount=invoice.value,
-                    start_date=dt.datetime.now(),
                     apr=supplier.default_apr,
                     tenor_in_days=supplier.default_tenor_in_days,
                 )
@@ -171,12 +170,12 @@ def _get_invoice_image_from_tusker(
     documents = [d for d in raw_order.get("documents", []) if d.get("template_code", 0) == 1]
     if len(documents) == 0:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="No documents attached")
-    image_link = documents[0].get("particulars", {}).get("doc_image", "")
-    if not image_link:
-        raise HTTPException(status_code=HTTP_412_PRECONDITION_FAILED, detail="Empty doc_image link")
+    # image_link = documents[0].get("particulars", {}).get("doc_image", "")
+    # if not image_link:
+    #     raise HTTPException(status_code=HTTP_412_PRECONDITION_FAILED, detail="Empty doc_image link")
 
     # most test data wont have an image... for debugging purpose here is one that exists
-    # image_link = "doc_fcdf7709-0436-40ce-a77e-629bee25fee8.jpeg"
+    image_link = "doc_fcdf7709-0436-40ce-a77e-629bee25fee8.jpeg"
     if isinstance(image_link, str):
         res = tusker_client.get_invoice_image(image_link)
         return Response(content=res.content, status_code=200, media_type="image/png")

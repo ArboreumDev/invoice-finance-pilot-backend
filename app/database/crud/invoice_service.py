@@ -8,7 +8,7 @@ from invoice.tusker_client import code_to_order_status, tusker_client
 from utils.email import EmailClient, terms_to_email_body
 from sqlalchemy.orm import Session
 import json
-from utils.common import LoanTerms, CreditLineInfo, PaymentDetails, PurchaserInfo
+from utils.common import LoanTerms, CreditLineInfo, PaymentDetails, PurchaserInfo, RealizedTerms
 from utils.constant import DISBURSAL_EMAIL, ARBOREUM_DISBURSAL_EMAIL
 from invoice.utils import raw_order_to_price
 import uuid
@@ -28,10 +28,9 @@ def invoice_to_terms(
     id: str,
     order_id: str,
     amount: float, 
-    start_date: dt.datetime,
     apr: float,
     tenor_in_days: int,
-    loan_id: str = "TBD"
+    loan_id: str = "TBD",
     ):
     funded_invoice_amount = INVOICE_FUNDING_RATE * amount
     return LoanTerms(
@@ -42,10 +41,7 @@ def invoice_to_terms(
         tenor_in_days=tenor_in_days,
         principal=funded_invoice_amount,
         interest=principal_to_interest(funded_invoice_amount, apr,tenor_in_days),
-        start_date=start_date,
-        collection_date=start_date + dt.timedelta(days=90),
     )
-
 
 class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
     def insert_new_invoice_from_raw_order(self, raw_order: Dict, db: Session):
@@ -108,20 +104,28 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         invoice = self.get(db, invoice_id)
         self.update_and_log(db, invoice, { "value": new_value })
 
-    def update_invoice_payment_status(self,db: Session, invoice_id: str, new_status: FinanceStatus, loan_id: str = "", tx_id: str = ""):
+    def update_invoice_payment_status(
+        self,db: Session, invoice_id: str, new_status: FinanceStatus,
+        loan_id: str = "", tx_id: str = "", disbursal_time: int = 0
+    ):
         invoice = self.get(db, invoice_id)
         update = {}
         if (new_status == "FINANCED"):
+            if not all([loan_id, tx_id, disbursal_time]):
+                raise AssertionError("All extra finance info must be there")
+            financed_on = dt.datetime.fromtimestamp(disbursal_time)
+            update['financed_on'] = financed_on 
             update = {
                 'payment_details': json.dumps({
                     **json.loads(invoice.payment_details),
                     'loan_id': loan_id,
-                    'disbursal_transaction_id': tx_id
+                    'disbursal_transaction_id': tx_id,
+                    'collection_date': str((financed_on + dt.timedelta(days=invoice.tenor_in_days)).date())
                 }),
                 'financed_on': dt.datetime.utcnow()
             }
-        print('up', update)
         update['finance_status'] = new_status
+        print('up', update)
         return self.update_and_log(db, invoice, update)
 
     # def update_invoice_with_loan_id(self, invoice: Invoice, loan_id: str, db: Session):
@@ -135,8 +139,6 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         payment_details = json.loads(invoice.payment_details)
         # TODO use pydantic json helpers
         payment_details['loan_id'] = terms.loan_id 
-        payment_details['start_date'] = str(terms.start_date)
-        payment_details['collection_date'] = str(terms.collection_date)
         payment_details['interest'] = terms.interest
         payment_details['apr'] = terms.apr
         payment_details['tenor_in_days'] = terms.tenor_in_days
@@ -213,14 +215,12 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         pass
 
     def prepare_disbursal(self, invoice: Invoice, db: Session):
-        # TODO get actual invoice start date
-        start_date = dt.datetime.utcnow()
         supplier = crud.supplier.get(db, invoice.supplier_id)
         if not supplier:
             raise UnknownInvoiceException("Invoice must belong to a supplier")
         terms = invoice_to_terms(
-            invoice.id, invoice.order_ref, invoice.value,
-            start_date, supplier.default_apr, supplier.default_tenor_in_days
+            id=invoice.id, order_id=invoice.order_ref, amount=invoice.value,
+            apr=supplier.default_apr, tenor_in_days=supplier.default_tenor_in_days
         )
         self.update_invoice_with_loan_terms(invoice, terms, db)
 

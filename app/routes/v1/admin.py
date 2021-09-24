@@ -1,5 +1,6 @@
 from typing import Optional, Tuple
 
+import pendulum
 from database.crud.invoice_service import invoice as invoice_service
 from fastapi import APIRouter, Body, Depends, HTTPException
 from routes.dependencies import get_db
@@ -18,6 +19,7 @@ class InvoiceUpdateInput(CamelModel):
     new_value: Optional[str]
     loan_id: Optional[str]
     tx_id: Optional[str]
+    disbursal_date: Optional[str]
     signature_verification_result: Optional[str]
 
 
@@ -40,13 +42,35 @@ def update_invoice_finance_status(
         )
 
     if update.new_status:
-        if update.new_status == "FINANCED" and not update.loan_id:
-            raise HTTPException(HTTP_400_BAD_REQUEST, "Missing value for loan_id")
-        invoice_service.update_invoice_payment_status(
-            db=db,
-            invoice_id=update.invoice_id,
-            new_status=update.new_status,
-            loan_id=update.loan_id,
-            tx_id=update.tx_id,
-        )
-    return {"OK"}
+        if update.new_status == "FINANCED":
+            if not update.loan_id:
+                raise HTTPException(HTTP_400_BAD_REQUEST, "Missing value for loan_id")
+
+            if not update.disbursal_date:
+                raise HTTPException(HTTP_400_BAD_REQUEST, "Missing value for disbursal_date")
+
+            try:
+                as_timestamp = pendulum.parse(update.disbursal_date, strict=False, tz="Asia/Kolkata").int_timestamp
+                if as_timestamp > pendulum.now().int_timestamp:
+                    raise HTTPException(HTTP_400_BAD_REQUEST, "Disbursal date can not be from the future")
+
+                invoice_service.update_invoice_payment_status(
+                    db=db,
+                    invoice_id=update.invoice_id,
+                    new_status=update.new_status,
+                    loan_id=update.loan_id,
+                    tx_id=update.tx_id,
+                    disbursal_time=as_timestamp,
+                )
+                return {"OK"}
+            except pendulum.parsing.exceptions.ParserError:
+                raise HTTPException(HTTP_400_BAD_REQUEST, "Invalid date format")
+        else:
+            invoice_service.update_invoice_payment_status(
+                db=db,
+                invoice_id=update.invoice_id,
+                new_status=update.new_status,
+                loan_id=update.loan_id,
+                tx_id=update.tx_id,
+            )
+            return {"OK"}
