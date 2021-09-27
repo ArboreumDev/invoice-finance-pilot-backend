@@ -80,8 +80,8 @@ def _get_invoices_from_db(db: Session = Depends(get_db)):
         db_invoice_to_frontend_info(
             inv=inv,
             purchaser=whitelist_service.get(db, inv.supplier_id, inv.purchaser_id),
-            supplier=crud.supplier.get(db, inv.supplier_id)
-            )
+            supplier=crud.supplier.get(db, inv.supplier_id),
+        )
         for inv in invoices
     ]
 

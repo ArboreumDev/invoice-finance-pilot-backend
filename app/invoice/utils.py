@@ -1,7 +1,7 @@
 import json
 from typing import Dict
 
-from database.models import Invoice, Whitelist, Supplier
+from database.models import Invoice, Supplier, Whitelist
 from invoice.tusker_client import code_to_order_status
 from utils.common import (FinanceStatus, InvoiceFrontendInfo, PaymentDetails,
                           PurchaserInfo, Terms)
@@ -65,7 +65,9 @@ def db_invoice_to_frontend_info(inv: Invoice, purchaser: Whitelist, supplier: Su
             location_id=purchaser.location_id,
             terms=Terms(
                 # apr=purchaser.apr, tenor_in_days=purchaser.tenor_in_days, creditline_size=purchaser.creditline_size
-                apr=supplier.default_apr, tenor_in_days=supplier.default_tenor_in_days, creditline_size=purchaser.creditline_size
+                apr=supplier.default_apr,
+                tenor_in_days=supplier.default_tenor_in_days,
+                creditline_size=purchaser.creditline_size,
             ),
         ),
         payment_details=PaymentDetails(
