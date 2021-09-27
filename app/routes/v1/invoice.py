@@ -49,11 +49,14 @@ def _get_order(
             # get hypothetical terms
             invoice = raw_order_to_invoice(raw_order)
             supplier = crud.supplier.get(db, supplier_id)
+            # whitelist_entry = crud.whitelist.get_whitelist_entry(db, supplier_id, target_location_id)
             if supplier:
                 terms = invoice_to_terms(
                     id=invoice.invoice_id,
                     order_id=invoice.order_id,
                     amount=invoice.value,
+                    # apr=whitelist_entry.apr,
+                    # tenor_in_days=whitelist_entry.tenor_in_days,
                     apr=supplier.default_apr,
                     tenor_in_days=supplier.default_tenor_in_days,
                 )
@@ -74,7 +77,11 @@ def _get_invoices_from_db(db: Session = Depends(get_db)):
     invoices = invoice_service.get_all_invoices(db)
     print("found", len(invoices))
     return [
-        db_invoice_to_frontend_info(inv=inv, purchaser=whitelist_service.get(db, inv.supplier_id, inv.purchaser_id))
+        db_invoice_to_frontend_info(
+            inv=inv,
+            purchaser=whitelist_service.get(db, inv.supplier_id, inv.purchaser_id),
+            supplier=crud.supplier.get(db, inv.supplier_id)
+            )
         for inv in invoices
     ]
 

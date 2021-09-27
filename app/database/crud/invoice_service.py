@@ -1,3 +1,5 @@
+from app.database.crud import whitelist_service
+from app.database.schemas import whitelist
 from database.schemas import InvoiceCreate
 from database.exceptions import CreditLimitException, DuplicateInvoiceException, UnknownInvoiceException
 from database.db import SessionLocal, session
@@ -58,6 +60,10 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         if exists:
             self._logger.error(f"Duplicate Invoice Entry: Order {_id} already in db. Raw Order: {raw_order}")
             raise DuplicateInvoiceException(f"invoice with {_id} already exists")
+        
+        # use this if we wanted to derive terms from whitelist
+        # whitelist_entry = crud.whitelist.get_whitelist_entry(db, supplier_id, purchaser_id)
+        supplier = crud.supplier.get(db, supplier_id)
 
         new_invoice = InvoiceCreate(
             id=raw_order.get("id"),
@@ -66,9 +72,10 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
             purchaser_id=purchaser_id,
             shipment_status=code_to_order_status(raw_order.get('status')),
             finance_status=FinanceStatus.INITIAL,
-            # TODO add default apr & tenor from whitelist-entry
-            apr=0.42,
-            tenor_in_days=42,
+            # apr=whitelist_entry.apr,
+            # tenor_in_days=whitelist_entry.tenor_in_days,
+            apr=supplier.default_apr,
+            tenor_in_days=supplier.default_tenor_in_days,
             value=raw_order_to_price(raw_order),
             data=json.dumps(raw_order),
             payment_details=json.dumps(PaymentDetails(
@@ -114,7 +121,6 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
             if not all([loan_id, tx_id, disbursal_time]):
                 raise AssertionError("All extra finance info must be there")
             financed_on = dt.datetime.fromtimestamp(disbursal_time)
-            update['financed_on'] = financed_on 
             update = {
                 'payment_details': json.dumps({
                     **json.loads(invoice.payment_details),
@@ -122,10 +128,11 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
                     'disbursal_transaction_id': tx_id,
                     'collection_date': str((financed_on + dt.timedelta(days=invoice.tenor_in_days)).date())
                 }),
-                'financed_on': dt.datetime.utcnow()
             }
+            update['financed_on'] = financed_on 
         update['finance_status'] = new_status
         print('up', update)
+        print('timedelta', invoice.tenor_in_days)
         return self.update_and_log(db, invoice, update)
 
     # def update_invoice_with_loan_id(self, invoice: Invoice, loan_id: str, db: Session):
