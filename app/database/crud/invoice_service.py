@@ -135,13 +135,6 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         print('timedelta', invoice.tenor_in_days)
         return self.update_and_log(db, invoice, update)
 
-    # def update_invoice_with_loan_id(self, invoice: Invoice, loan_id: str, db: Session):
-    #     payment_details = json.loads(invoice.payment_details)
-    #     # TODO use pydantic json helpers
-    #     payment_details['loan_id'] = loan_id
-    #     self.update_and_log(db, invoice, {'payment_details': json.dumps(payment_details)})
-
-
     def update_invoice_with_loan_terms(self, invoice: Invoice, terms: LoanTerms, db: Session):
         payment_details = json.loads(invoice.payment_details)
         # TODO use pydantic json helpers
@@ -190,7 +183,7 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
                 self._logger.info(f"{invoice.shipment_status} -> {new_shipment_status}")
                 update = {}
                 try:
-                    self.handle_update(invoice, new_shipment_status, db)
+                    self.handle_update(invoice, new_shipment_status, db, order)
                     update['shipment_status'] = new_shipment_status
                     if new_shipment_status == "DELIVERED":
                         update['delivered_on'] = dt.datetime.utcnow()
@@ -205,9 +198,12 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
 
         return updated, errored
 
-    def handle_update(self, invoice: Invoice, new_status: str, db: Session):
+    def handle_update(self, invoice: Invoice, new_status: str, db: Session, order: Dict):
         error = ""
         if new_status == "DELIVERED":
+            # TODO get deliveredOn from raw-order
+            deliveredOn = dt.datetime.utcnow()
+            self.update_and_log(db, invoice, {'deliveredOn': deliveredOn})
             self._logger.info(f"{invoice.id} DELIVERED")
         elif new_status == "PAID_BACK":
             self._logger.info('invoice marked as repaid')

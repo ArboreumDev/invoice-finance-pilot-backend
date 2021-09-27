@@ -96,6 +96,7 @@ class InvoiceFrontendInfo(CamelModel):
     receiver_info: PurchaserInfo
     payment_details: PaymentDetails
     financed_on: str = ""
+    delivered_on: str = ""
     # shipping_status: ShipmentStatus = ShipmentStatus.AWAITING_SHIPMENT
     # status: FinanceStatus = FinanceStatus.NONE
 

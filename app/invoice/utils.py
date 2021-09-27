@@ -56,6 +56,7 @@ def db_invoice_to_frontend_info(inv: Invoice, purchaser: Whitelist, supplier: Su
         verified=inv.verified,
         shipping_status=inv.shipment_status,
         financed_on=str(inv.financed_on) or "",  # TODO handle datetime objects properly between backend & frontend
+        delivered_on=str(inv.delivered_on) or "",  # TODO handle datetime objects properly between backend & frontend
         receiver_info=PurchaserInfo(
             id=inv.purchaser_id,
             name=data.get("rcvr", {}).get("cntct", {}).get("name", "not found"),
