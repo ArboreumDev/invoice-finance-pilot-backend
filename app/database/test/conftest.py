@@ -27,29 +27,16 @@ def clean_db(db_session: Session) -> Session:
 
 
 @pytest.fixture(scope="function")
-def invoice1(db_session: Session) -> Tuple[Invoice, Session]:
-    """ will only insert into invoices table, there will be no connected entries"""
-    reset_db(db_session)
-    invoice_id = invoice_service._insert_new_invoice_for_purchaser_x_supplier(RAW_ORDER, "testP", "testS", db_session)
-    invoice = invoice_service.get(db_session, id=invoice_id)
+def invoices(supplier_entry) -> Tuple[List[Invoice], Session]:
+    supplier, db_session = supplier_entry
 
-    yield invoice, db_session
-
-    reset_db(db_session)
-
-
-
-@pytest.fixture(scope="function")
-def invoices(db_session: Session) -> Tuple[List[Invoice], Session]:
-
-    reset_db(db_session)
     insert_base_user(db_session)
     auth_header = get_auth_header()
     invoice_service._insert_new_invoice_for_purchaser_x_supplier(
-        get_new_raw_order(purchaser_name='p1', purchaser_location_id='l1'), 'p1', 's1', db_session
+        get_new_raw_order(purchaser_name='p1', purchaser_location_id='l1'), 'p1', supplier.supplier_id, 0.33, 90,db_session
     )
     invoice_service._insert_new_invoice_for_purchaser_x_supplier(
-        get_new_raw_order(purchaser_name='p2', purchaser_location_id='l2'), 'p1', 's1', db_session
+        get_new_raw_order(purchaser_name='p2', purchaser_location_id='l2'), 'p1', supplier.supplier_id, 0.33, 90,db_session
     )
     invoices = db_session.query(Invoice).all()
 
@@ -186,7 +173,9 @@ def invoice_x_supplier(supplier_entry) -> Tuple[Invoice, Session]:
     _purchaser=p1
 
     invoice_id = invoice_service._insert_new_invoice_for_purchaser_x_supplier(
-        RAW_ORDER, _purchaser.id, supplier_in_db.supplier_id, db_session)
+        RAW_ORDER, _purchaser.id, supplier_in_db.supplier_id,
+        supplier_in_db.default_apr, supplier_in_db.default_tenor_in_days, db_session
+    )
 
     invoice = invoice_service.get(db_session, id=invoice_id)
 

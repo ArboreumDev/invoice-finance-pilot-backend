@@ -51,9 +51,19 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         supplier_id=raw_order.get('cust').get('id')
         location_id = raw_order.get('rcvr').get('id')
         purchaser_id = crud.whitelist.get_whitelisted_purchaser_from_location_id(db, supplier_id, location_id)
-        return self._insert_new_invoice_for_purchaser_x_supplier(raw_order, purchaser_id, supplier_id, db)
+        # use this if we wanted to derive terms from whitelist
+        # whitelist_entry = crud.whitelist.get_whitelist_entry(db, supplier_id, purchaser_id)
+        # apr=whitelist_entry.apr,
+        # tenor_in_days=whitelist_entry.tenor_in_days,
+        # for now draw from supplier
+        supplier = crud.supplier.get(db, supplier_id)
+        apr=supplier.default_apr
+        tenor_in_days=supplier.default_tenor_in_days
+        return self._insert_new_invoice_for_purchaser_x_supplier(raw_order, purchaser_id, supplier_id, apr, tenor_in_days, db)
 
-    def _insert_new_invoice_for_purchaser_x_supplier(self, raw_order: Dict, purchaser_id: str, supplier_id: str, db: Session):
+    def _insert_new_invoice_for_purchaser_x_supplier(
+        self, raw_order: Dict, purchaser_id: str, supplier_id: str, apr: float, tenor_in_days: int, db: Session
+    ):
         _id = raw_order.get('id')
         exists = self.get(db, id=_id) is not None
 
@@ -61,10 +71,6 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
             self._logger.error(f"Duplicate Invoice Entry: Order {_id} already in db. Raw Order: {raw_order}")
             raise DuplicateInvoiceException(f"invoice with {_id} already exists")
         
-        # use this if we wanted to derive terms from whitelist
-        # whitelist_entry = crud.whitelist.get_whitelist_entry(db, supplier_id, purchaser_id)
-        supplier = crud.supplier.get(db, supplier_id)
-
         new_invoice = InvoiceCreate(
             id=raw_order.get("id"),
             order_ref=raw_order.get('ref_no'),
@@ -72,10 +78,8 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
             purchaser_id=purchaser_id,
             shipment_status=code_to_order_status(raw_order.get('status')),
             finance_status=FinanceStatus.INITIAL,
-            # apr=whitelist_entry.apr,
-            # tenor_in_days=whitelist_entry.tenor_in_days,
-            apr=supplier.default_apr,
-            tenor_in_days=supplier.default_tenor_in_days,
+            apr=apr,
+            tenor_in_days=tenor_in_days,
             value=raw_order_to_price(raw_order),
             data=json.dumps(raw_order),
             payment_details=json.dumps(PaymentDetails(
@@ -183,7 +187,7 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
                 self._logger.info(f"{invoice.shipment_status} -> {new_shipment_status}")
                 update = {}
                 try:
-                    self.handle_update(invoice, new_shipment_status, db, order)
+                    self.handle_update(db, invoice, new_shipment_status, order)
                     update['shipment_status'] = new_shipment_status
                     if new_shipment_status == "DELIVERED":
                         update['delivered_on'] = dt.datetime.utcnow()
@@ -198,7 +202,7 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
 
         return updated, errored
 
-    def handle_update(self, invoice: Invoice, new_status: str, db: Session, order: Dict):
+    def handle_update(self, db: Session, invoice: Invoice, new_status: str, order: Dict):
         error = ""
         if new_status == "DELIVERED":
             # TODO get deliveredOn from raw-order

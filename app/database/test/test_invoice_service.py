@@ -21,27 +21,31 @@ invoice_service = crud.invoice
 
 # %%
 # @pytest.mark.skip()
-def test_reset_db(db_session):
-    reset_db(db_session)
-    invoice_service._insert_new_invoice_for_purchaser_x_supplier(NEW_RAW_ORDER, "p", "s", db_session)
+def test_reset_db(supplier_entry):
+    supplier, db_session = supplier_entry
+    invoice_service._insert_new_invoice_for_purchaser_x_supplier(NEW_RAW_ORDER, "p", supplier.supplier_id, 0.32, 90, db_session)
     reset_db(db_session)
     after = invoice_service.get_all_invoices(db_session)
     assert len(after) == 0
 
+def test_reset_db_specific(supplier_entry):
+    supplier, db_session = supplier_entry
     # with tables-parameter
-    invoice_service._insert_new_invoice_for_purchaser_x_supplier(NEW_RAW_ORDER, "p", "s", db_session)
+    invoice_service._insert_new_invoice_for_purchaser_x_supplier(NEW_RAW_ORDER, "p", supplier.supplier_id,0.32, 90, db_session)
     reset_db(db_session, tables=["invoice"])
     after = invoice_service.get_all_invoices(db_session)
     assert len(after) == 0
 
 
-def test_internal_insert_invoice(invoice1):
-    _, db_session = invoice1
+def test_internal_insert_invoice(invoice_x_supplier):
+    invoice, db_session = invoice_x_supplier
     before = invoice_service.get_all_invoices(db_session)
     invoice_id = invoice_service._insert_new_invoice_for_purchaser_x_supplier(
         NEW_RAW_ORDER,
         purchaser_id="testP",
-        supplier_id="testS",
+        supplier_id=invoice.supplier_id,
+        apr=.33,
+        tenor_in_days=90,
         db=db_session
     )
 
@@ -62,27 +66,29 @@ def test_internal_insert_invoice(invoice1):
     reset_db(db_session)
 
 
-def test_insert_invoice_that_exists_fail(invoice1: Tuple[Invoice, Session]):
-    invoice1, db_session = invoice1
+def test_insert_invoice_that_exists_fail(invoice_x_supplier: Tuple[Invoice, Session]):
+    invoice1, db_session = invoice_x_supplier
     with pytest.raises(DuplicateInvoiceException):
         invoice_service._insert_new_invoice_for_purchaser_x_supplier(
             raw_order = json.loads(invoice1.data),
             purchaser_id=invoice1.purchaser_id,
             supplier_id=invoice1.supplier_id,
+            apr=.3,
+            tenor_in_days=90,
             db=db_session
         )
 
 
-def test_update_invoice_shipment_status(invoice1):
-    invoice1, db_session = invoice1
+def test_update_invoice_shipment_status(invoice_x_supplier):
+    invoice1, db_session = invoice_x_supplier
     invoice_service.update_invoice_shipment_status(invoice1.id, "NEW_STATUS", db_session)
     after = invoice_service.get(db_session, invoice1.id)
     assert after.shipment_status == "NEW_STATUS"
     reset_db(db_session)
 
 
-def test_update_invoice_with_payment_terms(invoice1):
-    invoice1, db_session = invoice1
+def test_update_invoice_with_payment_terms(invoice_x_supplier):
+    invoice1, db_session = invoice_x_supplier
     _id = invoice1.id
 
     before = invoice_service.get(db_session, id=_id)
@@ -99,8 +105,8 @@ def test_update_invoice_with_payment_terms(invoice1):
     assert json.loads(after.payment_details)['interest'] == 1000
 
 
-def test_delete_invoice(invoice1):
-    invoice1, db_session = invoice1
+def test_delete_invoice(invoice_x_supplier):
+    invoice1, db_session = invoice_x_supplier
     _id = invoice1.id
 
     invoice_service.remove(db_session, id=_id)
@@ -162,8 +168,8 @@ def test_update_db_stores_update_timestamp_and_delivered_on(invoice_x_supplier):
     assert after.delivered_on is not None
 
 
-def test_update_invoices(invoice1):
-    invoice1, db_session = invoice1
+def test_update_invoices(invoice_x_supplier):
+    invoice1, db_session = invoice_x_supplier
     assert invoice1.finance_status == FinanceStatus.INITIAL
     assert invoice1.shipment_status == "DELIVERED"
 
