@@ -1,10 +1,10 @@
 import json
 from typing import Dict
 
-from database.models import Invoice
+from database.models import Invoice, Whitelist
 from invoice.tusker_client import code_to_order_status
 from utils.common import (FinanceStatus, InvoiceFrontendInfo, PaymentDetails,
-                          PurchaserInfo)
+                          PurchaserInfo, Terms)
 
 
 def raw_order_to_price(raw_order: Dict):
@@ -44,7 +44,7 @@ def raw_order_to_invoice(raw_order: Dict):
     )
 
 
-def db_invoice_to_frontend_info(inv: Invoice):
+def db_invoice_to_frontend_info(inv: Invoice, purchaser: Whitelist):
     data = json.loads(inv.data)
     payment_details = json.loads(inv.payment_details)
     return InvoiceFrontendInfo(
@@ -61,6 +61,10 @@ def db_invoice_to_frontend_info(inv: Invoice):
             name=data.get("rcvr", {}).get("cntct", {}).get("name", "not found"),
             city=data.get("rcvr", {}).get("addr", {}).get("city", "not found"),
             phone=data.get("rcvr", {}).get("cntct", {}).get("p_mob", "not found"),
+            location_id=purchaser.location_id,
+            terms=Terms(
+                apr=purchaser.apr, tenor_in_days=purchaser.tenor_in_days, creditline_size=purchaser.creditline_size
+            ),
         ),
         payment_details=PaymentDetails(
             request_id=payment_details.get("request_id", "unknown"),

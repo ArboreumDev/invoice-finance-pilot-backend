@@ -64,14 +64,6 @@ def _get_order(
     raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Unknown order id: Order not found")
 
 
-# @invoice_app.get("/order", response_model=List[Invoice], tags=["orders"])
-# def _get_orders(input: OrderRequest):
-#     """ read raw order data from tusker for multiple orders"""
-#     # TODO implement caching layer to not hit Tusker API  too often
-#     raw_orders = tusker_client.track_orders(input.order_ids)
-#     return [raw_order_to_invoice(order) for order in raw_orders]
-
-
 # @invoice_app.get("/invoice", response_model=List[InvoiceFrontendInfo], tags=["invoice"])
 @invoice_app.get("/invoice", tags=["invoice"])
 def _get_invoices_from_db(db: Session = Depends(get_db)):
@@ -81,7 +73,10 @@ def _get_invoices_from_db(db: Session = Depends(get_db)):
     # TODO filter by customer once we have more than one
     invoices = invoice_service.get_all_invoices(db)
     print("found", len(invoices))
-    return [db_invoice_to_frontend_info(inv) for inv in invoices]
+    return [
+        db_invoice_to_frontend_info(inv=inv, purchaser=whitelist_service.get(db, inv.supplier_id, inv.purchaser_id))
+        for inv in invoices
+    ]
 
 
 @invoice_app.post("/invoice/update", response_model=Dict, tags=["invoice"])

@@ -53,7 +53,3 @@ def test_update_supplier(supplier_entry):
     assert s.default_tenor_in_days == 41
     assert s.creditline_size == 41000
 
-
-
-
-

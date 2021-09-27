@@ -77,7 +77,7 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
             ).dict())
         )
         invoice = self.create(db, obj_in=new_invoice)
-        self._logger.info(f"Duplicate Invoice Entry: Order {_id} already in db. Raw Order: {raw_order}")
+        self.prepare_disbursal(invoice, db)
         return invoice.id
 
     def update_invoice_shipment_status(self, invoice_id: str, new_status: str, db: Session):
@@ -201,8 +201,7 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
     def handle_update(self, invoice: Invoice, new_status: str, db: Session):
         error = ""
         if new_status == "DELIVERED":
-            self._logger.info(f"DELIVERED: calculate terms for delivered invoice {invoice.id}:")
-            self.prepare_disbursal(invoice, db)
+            self._logger.info(f"{invoice.id} DELIVERED")
         elif new_status == "PAID_BACK":
             self._logger.info('invoice marked as repaid')
         elif new_status == "DEFAULTED":
@@ -215,6 +214,7 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         pass
 
     def prepare_disbursal(self, invoice: Invoice, db: Session):
+        self._logger.info(f"Updating Invoice {invoice.id} with calculated terms...")
         supplier = crud.supplier.get(db, invoice.supplier_id)
         if not supplier:
             raise UnknownInvoiceException("Invoice must belong to a supplier")

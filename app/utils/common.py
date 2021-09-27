@@ -64,7 +64,6 @@ class SupplierInfo(CamelModel):
 class Invoice(BaseInvoice):
     order_id: str
     value: int = 1
-    destination: str = ""
     shipping_status: str = ""
     status: FinanceStatus = FinanceStatus.INITIAL
     raw: str = ""
@@ -92,7 +91,6 @@ class InvoiceFrontendInfo(CamelModel):
     order_id: str
     value: float = 1
     verified: bool = False
-    destination: str = ""
     shipping_status: str = ""
     status: FinanceStatus = FinanceStatus.INITIAL
     receiver_info: PurchaserInfo
