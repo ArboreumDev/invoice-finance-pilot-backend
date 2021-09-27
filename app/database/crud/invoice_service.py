@@ -1,5 +1,5 @@
-from app.database.crud import whitelist_service
-from app.database.schemas import whitelist
+from database.crud import whitelist_service
+from database.schemas import whitelist
 from database.schemas import InvoiceCreate
 from database.exceptions import CreditLimitException, DuplicateInvoiceException, UnknownInvoiceException
 from database.db import SessionLocal, session
