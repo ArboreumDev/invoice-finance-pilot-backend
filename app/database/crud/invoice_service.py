@@ -85,6 +85,8 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
             payment_details=json.dumps(PaymentDetails(
                 requestId=str(uuid.uuid4()),
                 repaymentId=str(uuid.uuid4()),
+                apr=apr,
+                tenor_in_days=tenor_in_days
             ).dict())
         )
         invoice = self.create(db, obj_in=new_invoice)
