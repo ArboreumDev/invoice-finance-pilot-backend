@@ -28,7 +28,7 @@ def mark_as_delivered(
     update = {"shipment_status": "DELIVERED"}
     invoice_service.update_and_log(db, invoice, update)
     order = tusker_client.track_orders([invoice.order_ref])[0]
-    order['s_updt'] = dt.datetime.utcnow().timestamp()
+    order["s_updt"] = dt.datetime.utcnow().timestamp()
     invoice_service.handle_update(db, invoice, "DELIVERED", order)
 
 

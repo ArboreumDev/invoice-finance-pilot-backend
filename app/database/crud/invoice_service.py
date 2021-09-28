@@ -208,7 +208,7 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         error = ""
         if new_status == "DELIVERED":
             deliveredOn = order.get('s_updt', order.get('eta', ''))
-            self.update_and_log(db, invoice, {'deliveredOn': dt.datetime.fromtimestamp(deliveredOn)})
+            self.update_and_log(db, invoice, {'delivered_on': dt.datetime.fromtimestamp(deliveredOn)})
             self._logger.info(f"{invoice.id} DELIVERED")
         elif new_status == "PAID_BACK":
             self._logger.info('invoice marked as repaid')
