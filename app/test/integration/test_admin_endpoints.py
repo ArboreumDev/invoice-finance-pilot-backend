@@ -2,18 +2,19 @@ from test.integration.conftest import get_auth_header
 from typing import Dict, Tuple
 
 import pytest
-from sqlalchemy.orm import Session
-from starlette.status import HTTP_200_OK, HTTP_401_UNAUTHORIZED
-from starlette.testclient import TestClient
-
 from database.crud.invoice_service import invoice as invoice_service
+from database.crud.supplier_service import supplier as supplier_service
 from database.crud.whitelist_service import whitelist as whitelist_service
 from database.models import User
+from database.schemas.supplier import SupplierCreate
 from database.test.conftest import (db_session, insert_base_user,  # noqa: 401
                                     reset_db)
 from database.test.fixtures import p1
 from invoice.tusker_client import tusker_client
 from main import app
+from sqlalchemy.orm import Session
+from starlette.status import HTTP_200_OK, HTTP_401_UNAUTHORIZED
+from starlette.testclient import TestClient
 from utils.common import PurchaserInfo
 from utils.constant import GURUGRUPA_CUSTOMER_ID
 
@@ -39,6 +40,18 @@ def whitelist_and_invoices(db_session) -> Tuple[Tuple, Tuple, str, PurchaserInfo
     reset_db(db_session)
     insert_admin_user(db_session)
     auth_header = get_auth_header(username="admin", password="tusker")
+    supplier_service.create(
+        db=db_session,
+        obj_in=SupplierCreate(
+            supplier_id=GURUGRUPA_CUSTOMER_ID,
+            name="TestSupplier",
+            creditline_size=400000000,
+            default_apr=0.142,
+            default_tenor_in_days=90,
+            data="",
+        ),
+    )
+
     whitelist_service.insert_whitelist_entry(
         db=db_session, supplier_id=GURUGRUPA_CUSTOMER_ID, purchaser=p1, creditline_size=50000, apr=0.1, tenor_in_days=90
     )

@@ -18,17 +18,30 @@ from database.crud.base import CRUDBase
 from database.models import Invoice
 from database.schemas import InvoiceCreate, InvoiceUpdate
 from utils.common import FinanceStatus
+from utils.loan import principal_to_interest
+from utils.constant import INVOICE_FUNDING_RATE
 
 
 
 
-def invoice_to_terms(id: str, order_id: str, loan_id: str, amount: float, start_date: dt.datetime):
+def invoice_to_terms(
+    id: str,
+    order_id: str,
+    amount: float, 
+    start_date: dt.datetime,
+    apr: float,
+    tenor_in_days: int,
+    loan_id: str = "TBD"
+    ):
+    funded_invoice_amount = INVOICE_FUNDING_RATE * amount
     return LoanTerms(
         order_id=order_id,
         invoice_id=id,
         loan_id=loan_id,
-        principal=amount,
-        interest=amount * 0.05,
+        apr=apr,
+        tenor_in_days=tenor_in_days,
+        principal=funded_invoice_amount,
+        interest=principal_to_interest(funded_invoice_amount, apr,tenor_in_days),
         start_date=start_date,
         collection_date=start_date + dt.timedelta(days=90),
     )
@@ -121,10 +134,13 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
     def update_invoice_with_loan_terms(self, invoice: Invoice, terms: LoanTerms, db: Session):
         payment_details = json.loads(invoice.payment_details)
         # TODO use pydantic json helpers
+        payment_details['loan_id'] = terms.loan_id 
         payment_details['start_date'] = str(terms.start_date)
         payment_details['collection_date'] = str(terms.collection_date)
         payment_details['interest'] = terms.interest
-        payment_details['loan_id'] = terms.loan_id 
+        payment_details['apr'] = terms.apr
+        payment_details['tenor_in_days'] = terms.tenor_in_days
+        payment_details['principal'] = terms.principal
         self.update_and_log(db, invoice, {'payment_details': json.dumps(payment_details)})
     
     def update_invoice_payment_details(self, invoice_id: str, new_data: Dict, db: Session):
@@ -183,8 +199,8 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
     def handle_update(self, invoice: Invoice, new_status: str, db: Session):
         error = ""
         if new_status == "DELIVERED":
-            self._logger.info('disbursal manager notified')
-            self.request_disbursal(invoice, db)
+            self._logger.info(f"DELIVERED: calculate terms for delivered invoice {invoice.id}:")
+            self.prepare_disbursal(invoice, db)
         elif new_status == "PAID_BACK":
             self._logger.info('invoice marked as repaid')
         elif new_status == "DEFAULTED":
@@ -196,26 +212,17 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         # mark as paid and reduce
         pass
 
-    def request_disbursal(self, invoice: Invoice, db: Session):
-        # ============== get loan terms ==========
-        # calculate repayment info
+    def prepare_disbursal(self, invoice: Invoice, db: Session):
         # TODO get actual invoice start date
         start_date = dt.datetime.utcnow()
-        terms = invoice_to_terms(invoice.id, invoice.order_ref, "TO_BE_ENTERED", invoice.value, start_date)
-        self.update_invoice_with_loan_terms(invoice, terms, db)
         supplier = crud.supplier.get(db, invoice.supplier_id)
         if not supplier:
             raise UnknownInvoiceException("Invoice must belong to a supplier")
-        msg = terms_to_email_body(terms, supplier) 
-
-        # ================= send email to Tusker with FundRequest
-        try:
-            ec = EmailClient()
-            ec.send_email(body=msg, subject="Arboreum Disbursal Request", targets=[DISBURSAL_EMAIL, ARBOREUM_DISBURSAL_EMAIL])
-            self.update_and_log(db, invoice, {'finance_status': FinanceStatus.DISBURSAL_REQUESTED})
-        except Exception as e:
-            self.update_and_log(db, invoice, {'finance_status': "ERROR_SENDING_REQUEST"})
-            raise AssertionError(f"Could not send email: {str(e)}") # TODO add custom exception
+        terms = invoice_to_terms(
+            invoice.id, invoice.order_ref, invoice.value,
+            start_date, supplier.default_apr, supplier.default_tenor_in_days
+        )
+        self.update_invoice_with_loan_terms(invoice, terms, db)
 
 
     def check_credit_limit(self, raw_order, db: Session):

@@ -1,18 +1,16 @@
 import os
 
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
-from starlette.testclient import TestClient
-
 from database import crud
-from database.models import Base
-from database.models import User
+from database.models import Base, User
 from database.schemas.supplier import SupplierCreate
 from database.utils import reset_db
 from main import app
 from routes.dependencies import get_db
-from utils.constant import GURUGRUPA_CUSTOMER_DATA
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
+from starlette.testclient import TestClient
+from utils.constant import GURUGRUPA_CUSTOMER_DATA, GURUGRUPA_CUSTOMER_ID
 from utils.logger import get_logger
 
 TEST_DB_USER = os.getenv("POSTGRES_USER")
@@ -21,13 +19,9 @@ TEST_DB_PORT = os.getenv("POSTGRES_TEST_PORT")
 TEST_DB_PASSWORD = os.getenv("POSTGRES_PASSWORD")
 TEST_DB_NAME = os.getenv("POSTGRES_DB")
 
-TEST_DB_URL = (
-    f"postgresql://{TEST_DB_USER}:{TEST_DB_PASSWORD}@{TEST_DB_HOST}:{TEST_DB_PORT}/{TEST_DB_NAME}"
-)
+TEST_DB_URL = f"postgresql://{TEST_DB_USER}:{TEST_DB_PASSWORD}@{TEST_DB_HOST}:{TEST_DB_PORT}/{TEST_DB_NAME}"
 
-engine = create_engine(
-    TEST_DB_URL
-)
+engine = create_engine(TEST_DB_URL)
 Base.metadata.create_all(bind=engine)
 
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -53,7 +47,7 @@ app.dependency_overrides[get_db] = override_get_db
 
 
 client = TestClient(app)
-CUSTOMER_ID = "0001e776-c372-4ec5-8fa4-f30ab74ca631"
+CUSTOMER_ID = GURUGRUPA_CUSTOMER_ID
 
 
 @pytest.fixture(scope="function")
@@ -119,7 +113,7 @@ def supplier_x_auth_user(db_session, auth_user):
             data=GURUGRUPA_CUSTOMER_DATA,
         ),
     )
-    yield supplier_in_db, auth_user, db_session
+    yield supplier_in_db, auth_user
 
     crud.supplier.remove_if_there(db_session, CUSTOMER_ID)
     reset_db(db_session)

@@ -89,7 +89,7 @@ test_supplier = SupplierCreate(
 	supplier_id=OTHER_CUSTOMER_ID,
 	name='TEST Supplier',
 	creditline_size=30000 * 5,
-	default_apr=0.1,
+	default_apr=0.2,
 	default_tenor_in_days=180,
 	data="moreInfo"
 )

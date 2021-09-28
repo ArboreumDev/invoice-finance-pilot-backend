@@ -1,49 +1,43 @@
-from test.integration.conftest import get_auth_header
+from test.integration.conftest import client, get_auth_header
 from typing import Dict, Tuple
 
 import pytest
-from sqlalchemy.orm import Session
-from starlette.status import (HTTP_200_OK, HTTP_400_BAD_REQUEST,
-                              HTTP_404_NOT_FOUND)
-
 from database.crud.invoice_service import invoice as invoice_service
 from database.crud.supplier_service import supplier as supplier_service
 from database.crud.whitelist_service import whitelist as whitelist_service
+from database.models import Supplier
 from database.schemas.supplier import SupplierCreate
-from database.test.conftest import (db_session, insert_base_user,  # noqa: 401
-                                    )
-from database.utils import reset_db
+from database.test.conftest import insert_base_user  # noqa: 401
 from database.test.fixtures import p1, p2
+from database.utils import reset_db
 from invoice.tusker_client import tusker_client
+from sqlalchemy.orm import Session
+from starlette.status import (HTTP_200_OK, HTTP_400_BAD_REQUEST,
+                              HTTP_404_NOT_FOUND)
 from utils.common import InvoiceFrontendInfo, PurchaserInfo
-from utils.constant import GURUGRUPA_CUSTOMER_ID, LOC_ID4
-from test.integration.conftest import client
-
+from utils.constant import LOC_ID4
 
 CUSTOMER_ID = "0001e776-c372-4ec5-8fa4-f30ab74ca631"
 
 
 # TODO figure out why these fixtures can not be imported from the other conftest file
 @pytest.fixture(scope="function")
-def whitelist_and_invoices(db_session) -> Tuple[Tuple, Tuple, str, PurchaserInfo, Session, Dict]:  # noqa: F811
-    reset_db(db_session)
-    insert_base_user(db_session)
-    auth_header = get_auth_header()
+def whitelist_and_invoices(
+    supplier_x_auth_user: Tuple[Supplier, Session, Dict], db_session: Session
+) -> Tuple[Tuple, Tuple, str, PurchaserInfo, Session, Dict]:  # noqa: F811
+    supplier, auth_header = supplier_x_auth_user
+    reset_db(db_session, tables=["whitelist", "invoice"])
+
     whitelist_service.insert_whitelist_entry(
-        db=db_session, supplier_id=GURUGRUPA_CUSTOMER_ID, purchaser=p1, creditline_size=50000, apr=0.1, tenor_in_days=90
+        db=db_session, supplier_id=supplier.supplier_id, purchaser=p1, creditline_size=50000, apr=0.1, tenor_in_days=90
     )
     whitelist_service.insert_whitelist_entry(
-        db=db_session, supplier_id=GURUGRUPA_CUSTOMER_ID, purchaser=p2, creditline_size=50000, apr=0.1, tenor_in_days=90
+        db=db_session, supplier_id=supplier.supplier_id, purchaser=p2, creditline_size=50000, apr=0.1, tenor_in_days=90
     )
 
-    inv_id1, order_ref1, _ = tusker_client.create_test_order(
-        supplier_id=GURUGRUPA_CUSTOMER_ID, location_id=p1.location_id
-    )
-    inv_id2, order_ref2, _ = tusker_client.create_test_order(
-        supplier_id=GURUGRUPA_CUSTOMER_ID, location_id=p2.location_id
-    )
+    inv_id, order_ref, _ = tusker_client.create_test_order(supplier_id=supplier.supplier_id, location_id=p1.location_id)
 
-    yield (inv_id1, order_ref1), (inv_id2, order_ref2), GURUGRUPA_CUSTOMER_ID, p1, db_session, auth_header
+    yield (inv_id, order_ref), supplier.supplier_id, p1, db_session, auth_header
 
     reset_db(db_session)
 
@@ -54,10 +48,8 @@ def whitelist_entry(db_session: Session) -> Tuple[PurchaserInfo, str, Session]: 
 
     insert_base_user(db_session)
     auth_header = get_auth_header()
-    whitelist_service.insert_whitelist_entry(
-        db_session, supplier_id=CUSTOMER_ID, purchaser=p1, creditline_size=50000, apr=0.1, tenor_in_days=90
-    )
-    supplier_service.create(
+
+    supplier = supplier_service.create(
         db=db_session,
         obj_in=SupplierCreate(
             supplier_id=CUSTOMER_ID,
@@ -65,11 +57,15 @@ def whitelist_entry(db_session: Session) -> Tuple[PurchaserInfo, str, Session]: 
             creditline_size=400000000,
             default_apr=0.142,
             default_tenor_in_days=90,
-            data=""
+            data="",
         ),
     )
 
-    yield p1, CUSTOMER_ID, db_session, auth_header
+    whitelist_service.insert_whitelist_entry(
+        db_session, supplier_id=supplier.supplier_id, purchaser=p1, creditline_size=50000, apr=0.1, tenor_in_days=90
+    )
+
+    yield p1, supplier.supplier_id, db_session, auth_header
 
     reset_db(db_session)
 
@@ -89,8 +85,9 @@ def test_invalid_credential():
 # TODO all negative endpoint results
 def test_insert_existing_invoice_failure(whitelist_and_invoices):
     _, order_ref1 = whitelist_and_invoices[0]
-    db, auth_header = whitelist_and_invoices[4], whitelist_and_invoices[5]
+    db, auth_header = whitelist_and_invoices[3], whitelist_and_invoices[4]
 
+    db.connection().execute("delete from invoice")
     assert len(invoice_service.get_all_invoices(db)) == 0
     # should add new invoice to db
     res = client.post(f"v1/invoice/{order_ref1}", headers=auth_header)
@@ -103,7 +100,7 @@ def test_insert_existing_invoice_failure(whitelist_and_invoices):
 
 
 def test_get_order(whitelist_and_invoices):
-    _, (_, order_ref), _, _, _, auth_header = whitelist_and_invoices
+    (_, order_ref), _, _, _, auth_header = whitelist_and_invoices
     response = client.get(f"v1/order/{order_ref}", headers=auth_header)
     order = InvoiceFrontendInfo(**response.json())
     assert order.shipping_status == "PLACED_AND_VALID"
@@ -111,7 +108,7 @@ def test_get_order(whitelist_and_invoices):
 
 def test_whitelist_failure(whitelist_and_invoices):
     # create order for customer that is not whitelisted
-    _, _, supplier_id, purchaser, _, auth_header = whitelist_and_invoices
+    _, supplier_id, purchaser, _, auth_header = whitelist_and_invoices
     assert LOC_ID4 != purchaser.id
 
     _, order_ref, _ = tusker_client.create_test_order(supplier_id=supplier_id, location_id=LOC_ID4)
@@ -123,7 +120,7 @@ def test_whitelist_failure(whitelist_and_invoices):
 
 
 def test_whitelist_success(whitelist_and_invoices):
-    _, (inv_id, order_ref), supplier_id, purchaser, _, auth_header = whitelist_and_invoices
+    (inv_id, order_ref), supplier_id, purchaser, _, auth_header = whitelist_and_invoices
     response = client.get(f"v1/order/{order_ref}", headers=auth_header)
     assert response.status_code == 200
 
@@ -136,16 +133,15 @@ def test_get_order_invalid_order_id(whitelist_entry):
 
 
 def test_add_new_invoice_success(whitelist_and_invoices):
-    auth_header = whitelist_and_invoices[5]
-    db = whitelist_and_invoices[4]
-    assert len(invoice_service.get_all_invoices(db)) == 0
+    auth_header = whitelist_and_invoices[4]
+    db_session = whitelist_and_invoices[3]
+    assert len(invoice_service.get_all_invoices(db_session)) == 0
     # should add new invoice to db
     _, order_ref1 = whitelist_and_invoices[0]
     res = client.post(f"v1/invoice/{order_ref1}", headers=auth_header)
-    print(res)
 
     assert res.status_code == HTTP_200_OK
-    assert len(invoice_service.get_all_invoices(db)) == 1
+    assert len(invoice_service.get_all_invoices(db_session)) == 1
 
 
 @pytest.mark.xfail()
@@ -170,15 +166,17 @@ def test_add_new_invoice_failures(invoices):
     assert res.status_code == HTTP_404_NOT_FOUND and "order id" in res.json()["detail"]
 
 
-def test_get_invoices_from_db(whitelist_and_invoices):
+def test_get_invoices_from_db(whitelist_and_invoices, db_session):
     # add invoice with order_ref to db
-    inv_id1, order_ref1 = whitelist_and_invoices[0]
-    auth_header = whitelist_and_invoices[5]
+    _, order_ref1 = whitelist_and_invoices[0]
+    auth_header = whitelist_and_invoices[4]
     client.post(f"v1/invoice/{order_ref1}", headers=auth_header)
 
     res = client.get("v1/invoice/", headers=auth_header)
     assert res.status_code == HTTP_200_OK
-    assert res.json()[0]["orderId"] == order_ref1
+    invoices = res.json()
+    assert len(invoices) == 1
+    assert invoices[0]["orderId"] == order_ref1
 
 
 # canno longer change invoice status
@@ -223,7 +221,7 @@ def test_credit(whitelist_entry: Tuple[PurchaserInfo, str, Session, Dict]):
 
 def test_verify_invoice(whitelist_and_invoices):
     inv_id, order_ref = whitelist_and_invoices[0]
-    auth_header = whitelist_and_invoices[5]
+    auth_header = whitelist_and_invoices[4]
     # request invoice for financing:
     client.post(f"v1/invoice/{order_ref}", headers=auth_header)
     res = client.get("v1/invoice/", headers=auth_header)
@@ -245,7 +243,7 @@ def test_verify_invoice(whitelist_and_invoices):
 @pytest.mark.xfail()
 def test_invoice_image_download(whitelist_and_invoices):
     invoice_id, order_ref = whitelist_and_invoices[0]
-    auth_header = whitelist_and_invoices[5]
+    auth_header = whitelist_and_invoices[4]
 
     # insert invoice
     client.post(f"v1/invoice/{order_ref}", headers=auth_header)

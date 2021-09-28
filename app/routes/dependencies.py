@@ -1,8 +1,7 @@
 from typing import Generator
 
-from fastapi import Request
-
 from database.db import SessionLocal
+from fastapi import Request
 from utils.logger import get_logger
 
 

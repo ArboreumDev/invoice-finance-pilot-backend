@@ -4,7 +4,6 @@ from typing import Any, Dict
 
 import numpy as np
 import scipy as sp
-
 from utils.fullfill_loan import fulfill
 
 

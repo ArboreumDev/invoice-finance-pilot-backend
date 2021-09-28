@@ -28,6 +28,12 @@ def test_reset_db(db_session):
     after = invoice_service.get_all_invoices(db_session)
     assert len(after) == 0
 
+    # with tables-parameter
+    invoice_service._insert_new_invoice_for_purchaser_x_supplier(NEW_RAW_ORDER, "p", "s", db_session)
+    reset_db(db_session, tables=["invoice"])
+    after = invoice_service.get_all_invoices(db_session)
+    assert len(after) == 0
+
 
 def test_internal_insert_invoice(invoice1):
     _, db_session = invoice1
@@ -82,7 +88,10 @@ def test_update_invoice_with_payment_terms(invoice1):
     before = invoice_service.get(db_session, id=_id)
     assert json.loads(before.payment_details)['interest'] != 1000
 
-    terms = invoice_to_terms(_id, invoice1.order_ref, 'loanId1', invoice1.value, dt.datetime.now())
+    terms = invoice_to_terms(
+        id=_id, order_id=invoice1.order_ref, amount=invoice1.value,
+        start_date=dt.datetime.now(), apr=.16, tenor_in_days=90, loan_id="loanId1"
+    )
     terms.interest = 1000
     invoice_service.update_invoice_with_loan_terms(before, terms, db_session)
 

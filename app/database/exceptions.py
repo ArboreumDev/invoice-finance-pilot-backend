@@ -33,6 +33,9 @@ class UnknownInvoiceException(BaseException):
 class DuplicateWhitelistEntryException(BaseException):
     pass
 
+class InsufficientCreditException(BaseException):
+    pass
+
 
 class DuplicateSupplierEntryException(BaseException):
     pass

@@ -1,16 +1,16 @@
 from typing import Dict, Optional, Tuple
 
-from fastapi import APIRouter, Body, Depends, HTTPException
-from sqlalchemy.orm import Session
-from starlette.status import HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND
-
 from database.crud import whitelist as whitelist_service
 from database.exceptions import (DuplicateWhitelistEntryException,
+                                 InsufficientCreditException,
                                  WhitelistException)
 from database.schemas.whitelist import WhitelistUpdate
 from database.utils import remove_none_entries
+from fastapi import APIRouter, Body, Depends, HTTPException
 from invoice.tusker_client import tusker_client
 from routes.dependencies import get_db
+from sqlalchemy.orm import Session
+from starlette.status import HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND
 from utils.common import CamelModel, PurchaserInfo
 from utils.security import check_jwt_token_role
 
@@ -49,6 +49,9 @@ def _insert_new_whitelist_entry(
         )
     except DuplicateWhitelistEntryException:
         raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="receiver already whitelisted")
+
+    except InsufficientCreditException as e:
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Insufficient supplier credit" + e.msg)
 
 
 @whitelist_app.post("/whitelist/update", response_model=Dict, tags=["invoice"])

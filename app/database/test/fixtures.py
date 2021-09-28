@@ -20,13 +20,16 @@ p2 = PurchaserInfo(id='bda26d12-aee7-45e0-9686-1b173b839004', name='New Shri man
 def get_new_raw_order(
     purchaser_name: str,
     purchaser_location_id: str,
-    supplier_id: str = ""
+    supplier_id: str = "",
+    value: int = -1 
     ):
     """ create a new order as it would be returned by the tusker create order api"""
     order = copy.deepcopy(RAW_ORDER)
     order['rcvr']['id'] = purchaser_location_id
     order['rcvr']['cntct']['name'] = purchaser_name
     order['id'] = str(uuid.uuid4())
+    if value > 0:
+        order['consgt']['val_dcl'] = value
     if supplier_id:
         order['cust']['id'] = supplier_id
     return order
@@ -66,7 +69,7 @@ RAW_ORDER = {
         "wt_act": [],
         "it_sm": 1,
         "it_lg": 0,
-        "val_dcl": 0.0,
+        "val_dcl": 200.0,
         "s_pay": True,
         "ctgry_tgs": [],
         "it_act": 1

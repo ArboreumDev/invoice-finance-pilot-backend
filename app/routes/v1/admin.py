@@ -1,11 +1,10 @@
 from typing import Optional, Tuple
 
+from database.crud.invoice_service import invoice as invoice_service
 from fastapi import APIRouter, Body, Depends, HTTPException
+from routes.dependencies import get_db
 from sqlalchemy.orm import Session
 from starlette.status import HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED
-
-from database.crud.invoice_service import invoice as invoice_service
-from routes.dependencies import get_db
 from utils.common import CamelModel
 from utils.security import check_jwt_token_role
 

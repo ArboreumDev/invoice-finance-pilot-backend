@@ -2,7 +2,6 @@
 import os
 
 from dotenv import load_dotenv
-
 from utils.common import PurchaserInfo
 
 load_dotenv()
@@ -25,10 +24,12 @@ config_keys = [
     "POSTGRES_DB",
     "POSTGRES_PORT",
     "ENVIRONMENT",
+    "MAX_TUSKER_CREDIT",
     "TUSKER_INVOICE_BUCKET_URL",
     "TUSKER_REFERER",
     "TUSKER_TOKEN",
     "TUSKER_BASE_URL",
+    "INVOICE_FUNDING_RATE",
 ]
 
 for key in config_keys:
@@ -86,8 +87,12 @@ receiver4 = PurchaserInfo(id=RECEIVER_ID4, location_id=LOC_ID4, name="new jeewan
 DISBURSAL_EMAIL = os.getenv("DISBURSAL_EMAIL")
 ARBOREUM_DISBURSAL_EMAIL = os.getenv("ARBOREUM_DISBURSAL_EMAIL")
 GP_CONFIRMATION_MAIL = "julius@arboreum.dev"
-MONTHLY_INTEREST = 0.0165
+MONTHLY_INTEREST = 0.165
 DEFAULT_LOAN_TENOR = 90  # days
+
+# get this from .env?
+INVOICE_FUNDING_RATE = float(os.getenv("INVOICE_FUNDING_RATE"))
+MAX_TUSKER_CREDIT = int(os.getenv("MAX_TUSKER_CREDIT"))
 
 MAX_CREDIT = 50000
 

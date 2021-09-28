@@ -71,7 +71,7 @@ class Supplier(Base):
     supplier_id = Column(String(50), primary_key=True) # matches customer_id in tuskers system 
     creditline_id = Column(String(50), nullable=True) # used to interface with liquiloans ID
     name = Column(String(50), nullable=False)
-    creditline_size = Column(Integer, nullable=False)
+    creditline_size = Column(Integer, nullable=False) # total credit line size
     default_apr = Column(Float, nullable=True)
     default_tenor_in_days=Column(Integer, nullable=True)
     data = Column(Text, nullable=True)

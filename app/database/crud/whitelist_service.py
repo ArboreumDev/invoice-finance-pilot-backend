@@ -1,7 +1,7 @@
 from os import name
 from utils.common import PurchaserInfo, WhiteListEntry, Terms
 from typing import Dict, List
-from database.exceptions import (DuplicateWhitelistEntryException, UnknownPurchaserException, WhitelistException)
+from database.exceptions import (DuplicateWhitelistEntryException, InsufficientCreditException, UnknownPurchaserException, WhitelistException)
 
 from sqlalchemy.orm import Session
 from database import crud
@@ -103,7 +103,14 @@ class WhitelistService(CRUDBase[Whitelist, WhitelistCreate, WhitelistUpdate]):
 
         # get default args from supplier-table
         supplier = crud.supplier.get(db, supplier_id)
-        _creditline_size = creditline_size if creditline_size else supplier.creditline_size
+
+        # check whether new whitelist entry does not exceed total supplier credit line limit
+        available_credit = supplier.creditline_size - crud.supplier.get_extended_creditline(db, supplier_id)
+        if (available_credit < creditline_size):
+            self._logger.error(f"Insufficient Supplier Credit Limit: Only {available_credit} available.")
+            raise InsufficientCreditException(f"Insufficient Supplier Credit Limit: \
+                new({creditline_size})>available({available_credit})")
+
         _apr = apr if apr else supplier.apr
         _tenor_in_days = tenor_in_days if tenor_in_days else supplier.tenor_in_days
 
@@ -114,7 +121,7 @@ class WhitelistService(CRUDBase[Whitelist, WhitelistCreate, WhitelistUpdate]):
             name=purchaser.name,
             phone=purchaser.phone,
             city=purchaser.city,
-            creditline_size=_creditline_size,
+            creditline_size=creditline_size,
             apr=_apr,
             tenor_in_days=_tenor_in_days
         )

@@ -1,5 +1,4 @@
 import pytest
-
 from invoice.tusker_client import (TUSKER_BASE_URL, TUSKER_TOKEN, TuskerClient,
                                    order_status_to_code, tusker_client)
 from utils.constant import GURUGRUPA_CUSTOMER_ID, LOC_ID1

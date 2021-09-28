@@ -1,38 +1,40 @@
+import datetime as dt
 from typing import Tuple
-
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from starlette.status import HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR
 
 from database.crud import whitelist as whitelist_service
 from database.crud.invoice_service import invoice as invoice_service
 from database.exceptions import UnknownPurchaserException
+from fastapi import APIRouter, Depends, HTTPException
 from invoice.tusker_client import tusker_client
 from routes.dependencies import get_db
+from sqlalchemy.orm import Session
+from starlette.status import (HTTP_401_UNAUTHORIZED, HTTP_404_NOT_FOUND,
+                              HTTP_500_INTERNAL_SERVER_ERROR)
 from utils.security import check_jwt_token_role
 
 # ===================== routes ==========================
 test_app = APIRouter()
 
 
-# DESC: this is just a very fast hack to have an admin interface so that non-technical
-# people can play around with it without having to use dev-tools like insomnia
-@test_app.post("/update/shipment/{invoiceId}/{new_status}")
-def update_invoice_delivery_status(invoiceId: str, new_status: str, db: Session = Depends(get_db)):
-    invoice_service.update_invoice_shipment_status(invoiceId, new_status, db)
-    return {"OK"}
-
-
 @test_app.patch("/update/shipment/{invoiceId}")
-def mark_as_delivered(invoiceId: str):
-    try:
-        res = tusker_client.mark_test_order_as(invoiceId, "DELIVERED")
-        if res:
-            return {"OK"}
+def mark_as_delivered(
+    invoiceId: str, db: Session = Depends(get_db), user_info: Tuple[str, str] = Depends(check_jwt_token_role)
+):
+    if user_info[1] != "loanAdmin":
+        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED)
+    # try:
+    # res = tusker_client.mark_test_order_as(invoiceId, "DELIVERED")
+    invoice = invoice_service.get(db, invoiceId)
+    update = {"delivered_on": dt.datetime.utcnow(), "shipment_status": "DELIVERED"}
+    invoice_service.update_and_log(db, invoice, update)
+    invoice_service.handle_update(invoice, "DELIVERED", db)
 
-    except Exception as e:
-        print("error trying to mark invoice as delivered")
-        raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, str(e))
+
+#     return {"OK"}
+
+# except Exception as e:
+#     print("error trying to mark invoice as delivered")
+#     raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, str(e))
 
 
 @test_app.post("/new/order/{supplier_id}/{purchaser_id}/{value}")

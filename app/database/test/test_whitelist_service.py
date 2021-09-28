@@ -1,3 +1,5 @@
+from database import crud
+from database.schemas import whitelist
 import pytest
 from typing import Tuple
 
@@ -8,12 +10,15 @@ from utils.common import PurchaserInfo
 from database.test.conftest import db_session
 from database.utils import reset_db
 from database.test.fixtures import CUSTOMER_ID, p1, OTHER_CUSTOMER_ID, OTHER_PURCHASER_ID, OTHER_LOCATION_ID
-from database.exceptions import DuplicateWhitelistEntryException
+from database.exceptions import DuplicateWhitelistEntryException, InsufficientCreditException
 
 
-def test_insert_whitelist_entry(db_session):
-    reset_db(db_session)
+def test_insert_whitelist_entry(supplier_entry):
+    supplier, db_session = supplier_entry
     whitelisted = whitelist_service.get_whitelisted_locations_for_supplier(db_session, CUSTOMER_ID)
+
+    extended_credit_before = crud.supplier.get_extended_creditline(db_session, CUSTOMER_ID)
+
     assert len(whitelisted) == 0
     whitelist_service.insert_whitelist_entry(
         db_session,
@@ -27,10 +32,22 @@ def test_insert_whitelist_entry(db_session):
     whitelisted = whitelist_service.get_whitelisted_locations_for_supplier(db_session, CUSTOMER_ID)
     assert len(whitelisted) == 1
 
+    extended_credit_after = crud.supplier.get_extended_creditline(db_session, CUSTOMER_ID)
+    assert extended_credit_after == extended_credit_before + 50000
 
-@pytest.mark.skip()
-def test_optional_parameter_entry():
-    pass
+def test_insert_whitelist_entry_failure_credit_limit(supplier_entry):
+    supplier, db_session = supplier_entry
+
+    with pytest.raises(InsufficientCreditException):
+        whitelist_service.insert_whitelist_entry(
+            db_session,
+            supplier_id=CUSTOMER_ID,
+            purchaser=p1,
+            creditline_size=supplier.creditline_size + 1,
+            apr=0.1,
+            tenor_in_days=90
+        )
+
 
 
 def test_insert_duplicate_whitelist_entry_fails(whitelist_entry: Tuple[PurchaserInfo, str, Session]):
@@ -44,7 +61,6 @@ def test_insert_duplicate_whitelist_entry_fails(whitelist_entry: Tuple[Purchaser
             apr=0.1,
             tenor_in_days=90
         )
-
 
 def test_whitelist_okay(whitelist_entry: Tuple[PurchaserInfo, str, Session]):
     _p1, _supplier_id, db = whitelist_entry
