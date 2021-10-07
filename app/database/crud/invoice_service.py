@@ -207,7 +207,7 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
     def handle_update(self, db: Session, invoice: Invoice, new_status: str, order: Dict):
         error = ""
         if new_status == "DELIVERED":
-            deliveredOn = order.get('s_updt', order.get('eta', ''))
+            deliveredOn = int(order.get('s_updt', order.get('eta', ''))) / 1000
             self.update_and_log(db, invoice, {'delivered_on': dt.datetime.fromtimestamp(deliveredOn)})
             self._logger.info(f"{invoice.id} DELIVERED")
         elif new_status == "PAID_BACK":
