@@ -22,8 +22,7 @@ def mark_as_delivered(
 ):
     if user_info[1] != "loanAdmin":
         raise HTTPException(status_code=HTTP_401_UNAUTHORIZED)
-    # try:
-    # res = tusker_client.mark_test_order_as(invoiceId, "DELIVERED")
+
     invoice = invoice_service.get(db, invoiceId)
     update = {"shipment_status": "DELIVERED"}
     invoice_service.update_and_log(db, invoice, update)
@@ -31,13 +30,6 @@ def mark_as_delivered(
     # tusker api is in milliseconds
     order["s_updt"] = int(dt.datetime.utcnow().timestamp()) * 1000
     invoice_service.handle_update(db, invoice, "DELIVERED", order)
-
-
-#     return {"OK"}
-
-# except Exception as e:
-#     print("error trying to mark invoice as delivered")
-#     raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, str(e))
 
 
 @test_app.post("/new/order/{supplier_id}/{purchaser_id}/{value}")

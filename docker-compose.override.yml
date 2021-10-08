@@ -6,6 +6,8 @@ services:
     build:
       context: ./
       dockerfile: Dockerfile
+    command:
+      uvicorn main:app --app-dir /app/ --reload --port 8000 --host 0.0.0.0
     env_file:
       - .env
     ports:

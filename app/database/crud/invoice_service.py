@@ -123,7 +123,7 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
     ):
         invoice = self.get(db, invoice_id)
         update = {}
-        if (new_status == "FINANCED"):
+        if new_status == "FINANCED":
             if not all([loan_id, tx_id, disbursal_time]):
                 raise AssertionError("All extra finance info must be there")
             financed_on = dt.datetime.fromtimestamp(disbursal_time)
@@ -135,10 +135,8 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
                     'collection_date': str((financed_on + dt.timedelta(days=invoice.tenor_in_days)).date())
                 }),
             }
-            update['financed_on'] = financed_on 
+            update['financed_on'] = financed_on
         update['finance_status'] = new_status
-        print('up', update)
-        print('timedelta', invoice.tenor_in_days)
         return self.update_and_log(db, invoice, update)
 
     def update_invoice_with_loan_terms(self, invoice: Invoice, terms: LoanTerms, db: Session):
@@ -160,7 +158,6 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
     def get_all_invoices(self, db: Session):
         # TODO use skip & limit for pagination
         return self.get_multi(db)
-        # return db.query(Invoice).all()
 
     def update_invoice_db(self, db: Session):
         """ get latest data for all invoices in db from tusker, compare shipment status,

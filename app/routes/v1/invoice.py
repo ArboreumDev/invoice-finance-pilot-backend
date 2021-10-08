@@ -17,6 +17,7 @@ from utils.common import (CamelModel, CreditLineInfo, InvoiceFrontendInfo,
                           PaymentDetails)
 from utils.logger import get_logger
 from utils.security import check_jwt_token_role
+from utils.image import image_blob_to_base64_html
 
 # ===================== routes ==========================
 invoice_app = APIRouter()
@@ -30,9 +31,9 @@ class OrderRequest(CamelModel):
 
 @invoice_app.get("/order/{order_reference_number}", response_model=InvoiceFrontendInfo, tags=["orders"])
 def _get_order(
-    order_reference_number: str,
-    user_info: Tuple[str, str] = Depends(check_jwt_token_role),
-    db: Session = Depends(get_db),
+        order_reference_number: str,
+        user_info: Tuple[str, str] = Depends(check_jwt_token_role),
+        db: Session = Depends(get_db),
 ):
     """ read raw order data from tusker """
     username, role = user_info
@@ -141,10 +142,10 @@ def _get_creditSummary(user_info: Tuple[str, str] = Depends(check_jwt_token_role
 
 @invoice_app.post("/invoice/verification/{invoice_id}/{verified}", tags=["invoice"])
 def _mark_invoice_verification_status(
-    invoice_id: str,
-    verified: bool,
-    user_info: Tuple[str, str] = Depends(check_jwt_token_role),
-    db: Session = Depends(get_db),
+        invoice_id: str,
+        verified: bool,
+        user_info: Tuple[str, str] = Depends(check_jwt_token_role),
+        db: Session = Depends(get_db),
 ):
     username, role = user_info
     # if role != 'tusker':
@@ -156,9 +157,9 @@ def _mark_invoice_verification_status(
     return {"status": "OK"}
 
 
-@invoice_app.get("/invoice/image/{invoice_id}", response_class=Response)
+@invoice_app.get("/invoice/image/{invoice_id}")
 def _get_invoice_image_from_tusker(
-    invoice_id: str, db: Session = Depends(get_db), user_info: Tuple[str, str] = Depends(check_jwt_token_role)
+        invoice_id: str, db: Session = Depends(get_db), user_info: Tuple[str, str] = Depends(check_jwt_token_role)
 ):
     if user_info[1] != "loanAdmin":
         raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Invalid Credentials")
@@ -171,15 +172,17 @@ def _get_invoice_image_from_tusker(
     documents = [d for d in raw_order.get("documents", []) if d.get("template_code", 0) == 1]
     if len(documents) == 0:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="No documents attached")
-    image_link = documents[0].get("particulars", {}).get("doc_image", "")
-    if not image_link:
+    image_filenames = documents[0].get("particulars", {}).get("doc_image", "")
+    if not image_filenames:
         raise HTTPException(status_code=HTTP_412_PRECONDITION_FAILED, detail="Empty doc_image link")
 
     # most test data wont have an image... for debugging purpose here is one that exists
     # image_link = "doc_fcdf7709-0436-40ce-a77e-629bee25fee8.jpeg"
-    if isinstance(image_link, str):
-        res = tusker_client.get_invoice_image(image_link)
-        return Response(content=res.content, status_code=200, media_type="image/png")
-
+    if isinstance(image_filenames, str):
+        image_filenames_list = image_filenames.split(",")
+        # TODO: Needs tests and some error handling
+        images = [image_blob_to_base64_html(tusker_client.get_invoice_image(filename.strip()).content) for filename in
+                  image_filenames_list]
+        return {"images": images}
     else:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Invalid image link")
