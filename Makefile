@@ -1,5 +1,5 @@
 dev-api:
-	docker compose --profile testing --profile local-mount up -d
+	docker compose --profile testing --profile local-mount --profile local-dev  up -d
 
 dev-api-standalone:
 	docker compose -f docker-compose.yml up -d

@@ -4,6 +4,7 @@ from database import crud
 from database.exceptions import (DuplicateSupplierEntryException,
                                  SupplierException)
 from database.schemas.supplier import SupplierCreate
+from database.schemas.whitelist import WhitelistUpdate
 from fastapi import APIRouter, Body, Depends, HTTPException
 from routes.dependencies import get_db
 from sqlalchemy.orm import Session
@@ -35,6 +36,7 @@ class SupplierUpdateInput(CamelModel):
     creditline_size: Optional[int]
     apr: Optional[float]
     tenor_in_days: Optional[int]
+    cascade: bool = True
 
 
 @supplier_app.get("/supplier", response_model=List[SupplierInfo])
@@ -97,6 +99,12 @@ def _update_supplier_entry(
 
     try:
         crud.supplier.update(db, update=update)
+        if update.cascade and (update.tenor_in_days or update.apr):
+            u = update.dict()
+            if "creditline_size" in u:
+                del u["creditline_size"]  # those need to be set manually
+            crud.whitelist.update_from_supplier_terms(db, update.supplier_id, WhitelistUpdate(**u))
+
     except DuplicateSupplierEntryException:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Supplier entry not found")
 

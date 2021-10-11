@@ -1,3 +1,5 @@
+from database.crud import whitelist_service
+from database.schemas import whitelist
 from database.schemas import InvoiceCreate
 from database.exceptions import CreditLimitException, DuplicateInvoiceException, UnknownInvoiceException
 from database.db import SessionLocal, session
@@ -8,7 +10,7 @@ from invoice.tusker_client import code_to_order_status, tusker_client
 from utils.email import EmailClient, terms_to_email_body
 from sqlalchemy.orm import Session
 import json
-from utils.common import LoanTerms, CreditLineInfo, PaymentDetails, PurchaserInfo
+from utils.common import LoanTerms, CreditLineInfo, PaymentDetails, PurchaserInfo, RealizedTerms
 from utils.constant import DISBURSAL_EMAIL, ARBOREUM_DISBURSAL_EMAIL
 from invoice.utils import raw_order_to_price
 import uuid
@@ -28,10 +30,9 @@ def invoice_to_terms(
     id: str,
     order_id: str,
     amount: float, 
-    start_date: dt.datetime,
     apr: float,
     tenor_in_days: int,
-    loan_id: str = "TBD"
+    loan_id: str = "TBD",
     ):
     funded_invoice_amount = INVOICE_FUNDING_RATE * amount
     return LoanTerms(
@@ -42,10 +43,7 @@ def invoice_to_terms(
         tenor_in_days=tenor_in_days,
         principal=funded_invoice_amount,
         interest=principal_to_interest(funded_invoice_amount, apr,tenor_in_days),
-        start_date=start_date,
-        collection_date=start_date + dt.timedelta(days=90),
     )
-
 
 class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
     def insert_new_invoice_from_raw_order(self, raw_order: Dict, db: Session):
@@ -53,16 +51,26 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         supplier_id=raw_order.get('cust').get('id')
         location_id = raw_order.get('rcvr').get('id')
         purchaser_id = crud.whitelist.get_whitelisted_purchaser_from_location_id(db, supplier_id, location_id)
-        return self._insert_new_invoice_for_purchaser_x_supplier(raw_order, purchaser_id, supplier_id, db)
+        # use this if we wanted to derive terms from whitelist
+        # whitelist_entry = crud.whitelist.get_whitelist_entry(db, supplier_id, purchaser_id)
+        # apr=whitelist_entry.apr,
+        # tenor_in_days=whitelist_entry.tenor_in_days,
+        # for now draw from supplier
+        supplier = crud.supplier.get(db, supplier_id)
+        apr=supplier.default_apr
+        tenor_in_days=supplier.default_tenor_in_days
+        return self._insert_new_invoice_for_purchaser_x_supplier(raw_order, purchaser_id, supplier_id, apr, tenor_in_days, db)
 
-    def _insert_new_invoice_for_purchaser_x_supplier(self, raw_order: Dict, purchaser_id: str, supplier_id: str, db: Session):
+    def _insert_new_invoice_for_purchaser_x_supplier(
+        self, raw_order: Dict, purchaser_id: str, supplier_id: str, apr: float, tenor_in_days: int, db: Session
+    ):
         _id = raw_order.get('id')
         exists = self.get(db, id=_id) is not None
 
         if exists:
             self._logger.error(f"Duplicate Invoice Entry: Order {_id} already in db. Raw Order: {raw_order}")
             raise DuplicateInvoiceException(f"invoice with {_id} already exists")
-
+        
         new_invoice = InvoiceCreate(
             id=raw_order.get("id"),
             order_ref=raw_order.get('ref_no'),
@@ -70,18 +78,19 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
             purchaser_id=purchaser_id,
             shipment_status=code_to_order_status(raw_order.get('status')),
             finance_status=FinanceStatus.INITIAL,
-            # TODO add default apr & tenor from whitelist-entry
-            apr=0.42,
-            tenor_in_days=42,
+            apr=apr,
+            tenor_in_days=tenor_in_days,
             value=raw_order_to_price(raw_order),
             data=json.dumps(raw_order),
             payment_details=json.dumps(PaymentDetails(
                 requestId=str(uuid.uuid4()),
                 repaymentId=str(uuid.uuid4()),
+                apr=apr,
+                tenor_in_days=tenor_in_days
             ).dict())
         )
         invoice = self.create(db, obj_in=new_invoice)
-        self._logger.info(f"Duplicate Invoice Entry: Order {_id} already in db. Raw Order: {raw_order}")
+        self.prepare_disbursal(invoice, db)
         return invoice.id
 
     def update_invoice_shipment_status(self, invoice_id: str, new_status: str, db: Session):
@@ -108,35 +117,32 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         invoice = self.get(db, invoice_id)
         self.update_and_log(db, invoice, { "value": new_value })
 
-    def update_invoice_payment_status(self,db: Session, invoice_id: str, new_status: FinanceStatus, loan_id: str = "", tx_id: str = ""):
+    def update_invoice_payment_status(
+        self,db: Session, invoice_id: str, new_status: FinanceStatus,
+        loan_id: str = "", tx_id: str = "", disbursal_time: int = 0
+    ):
         invoice = self.get(db, invoice_id)
         update = {}
-        if (new_status == "FINANCED"):
+        if new_status == "FINANCED":
+            if not all([loan_id, tx_id, disbursal_time]):
+                raise AssertionError("All extra finance info must be there")
+            financed_on = dt.datetime.fromtimestamp(disbursal_time)
             update = {
                 'payment_details': json.dumps({
                     **json.loads(invoice.payment_details),
                     'loan_id': loan_id,
-                    'disbursal_transaction_id': tx_id
+                    'disbursal_transaction_id': tx_id,
+                    'collection_date': str((financed_on + dt.timedelta(days=invoice.tenor_in_days)).date())
                 }),
-                'financed_on': dt.datetime.utcnow()
             }
-        print('up', update)
+            update['financed_on'] = financed_on
         update['finance_status'] = new_status
         return self.update_and_log(db, invoice, update)
-
-    # def update_invoice_with_loan_id(self, invoice: Invoice, loan_id: str, db: Session):
-    #     payment_details = json.loads(invoice.payment_details)
-    #     # TODO use pydantic json helpers
-    #     payment_details['loan_id'] = loan_id
-    #     self.update_and_log(db, invoice, {'payment_details': json.dumps(payment_details)})
-
 
     def update_invoice_with_loan_terms(self, invoice: Invoice, terms: LoanTerms, db: Session):
         payment_details = json.loads(invoice.payment_details)
         # TODO use pydantic json helpers
         payment_details['loan_id'] = terms.loan_id 
-        payment_details['start_date'] = str(terms.start_date)
-        payment_details['collection_date'] = str(terms.collection_date)
         payment_details['interest'] = terms.interest
         payment_details['apr'] = terms.apr
         payment_details['tenor_in_days'] = terms.tenor_in_days
@@ -152,7 +158,6 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
     def get_all_invoices(self, db: Session):
         # TODO use skip & limit for pagination
         return self.get_multi(db)
-        # return db.query(Invoice).all()
 
     def update_invoice_db(self, db: Session):
         """ get latest data for all invoices in db from tusker, compare shipment status,
@@ -181,7 +186,7 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
                 self._logger.info(f"{invoice.shipment_status} -> {new_shipment_status}")
                 update = {}
                 try:
-                    self.handle_update(invoice, new_shipment_status, db)
+                    self.handle_update(db, invoice, new_shipment_status, order)
                     update['shipment_status'] = new_shipment_status
                     if new_shipment_status == "DELIVERED":
                         update['delivered_on'] = dt.datetime.utcnow()
@@ -196,11 +201,12 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
 
         return updated, errored
 
-    def handle_update(self, invoice: Invoice, new_status: str, db: Session):
+    def handle_update(self, db: Session, invoice: Invoice, new_status: str, order: Dict):
         error = ""
         if new_status == "DELIVERED":
-            self._logger.info(f"DELIVERED: calculate terms for delivered invoice {invoice.id}:")
-            self.prepare_disbursal(invoice, db)
+            deliveredOn = int(order.get('s_updt', order.get('eta', ''))) / 1000
+            self.update_and_log(db, invoice, {'delivered_on': dt.datetime.fromtimestamp(deliveredOn)})
+            self._logger.info(f"{invoice.id} DELIVERED")
         elif new_status == "PAID_BACK":
             self._logger.info('invoice marked as repaid')
         elif new_status == "DEFAULTED":
@@ -213,14 +219,13 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         pass
 
     def prepare_disbursal(self, invoice: Invoice, db: Session):
-        # TODO get actual invoice start date
-        start_date = dt.datetime.utcnow()
+        self._logger.info(f"Updating Invoice {invoice.id} with calculated terms...")
         supplier = crud.supplier.get(db, invoice.supplier_id)
         if not supplier:
             raise UnknownInvoiceException("Invoice must belong to a supplier")
         terms = invoice_to_terms(
-            invoice.id, invoice.order_ref, invoice.value,
-            start_date, supplier.default_apr, supplier.default_tenor_in_days
+            id=invoice.id, order_id=invoice.order_ref, amount=invoice.value,
+            apr=supplier.default_apr, tenor_in_days=supplier.default_tenor_in_days
         )
         self.update_invoice_with_loan_terms(invoice, terms, db)
 

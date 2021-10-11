@@ -147,6 +147,16 @@ class WhitelistService(CRUDBase[Whitelist, WhitelistCreate, WhitelistUpdate]):
             obj_in=update
         )
 
+    def update_from_supplier_terms(
+        self, db: Session, supplier_id: str, update: WhitelistUpdate
+    ):
+        """ change apr/tenor/creditline_size for all whitelist entries associated to a supplier """
+        # do not allow changes to the creditline size 
+        del update.creditline_size
+        for whitelist_entry in self.get_whitelist(db, supplier_id):
+            self.update_whitelist_entry( db, supplier_id, whitelist_entry.purchaser_id, update)
+
+
 
 
 whitelist = WhitelistService(Whitelist)

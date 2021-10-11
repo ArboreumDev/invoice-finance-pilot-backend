@@ -64,7 +64,6 @@ class SupplierInfo(CamelModel):
 class Invoice(BaseInvoice):
     order_id: str
     value: int = 1
-    destination: str = ""
     shipping_status: str = ""
     status: FinanceStatus = FinanceStatus.INITIAL
     raw: str = ""
@@ -78,13 +77,12 @@ class PaymentDetails(CamelModel):
     repayment_id: str = ""
     loan_id: str = ""
     disbursal_transaction_id: str = ""
-    verification_result: str = ""
+    signature_verification_result: str = ""  # whether the signature on the invoice has been verified by the loan-admin
     interest: float = 0
     principal: float = 0
     apr: float = 0
     tenor_in_days: int = 0
-    collection_date: dt.datetime = None
-    start_date: dt.datetime = None
+    collection_date: dt.date = None
 
 
 class InvoiceFrontendInfo(CamelModel):
@@ -93,12 +91,12 @@ class InvoiceFrontendInfo(CamelModel):
     order_id: str
     value: float = 1
     verified: bool = False
-    destination: str = ""
     shipping_status: str = ""
     status: FinanceStatus = FinanceStatus.INITIAL
     receiver_info: PurchaserInfo
     payment_details: PaymentDetails
     financed_on: str = ""
+    delivered_on: str = ""
     # shipping_status: ShipmentStatus = ShipmentStatus.AWAITING_SHIPMENT
     # status: FinanceStatus = FinanceStatus.NONE
 
@@ -127,6 +125,9 @@ class LoanTerms(BaseModel):
     interest: float
     apr: float
     tenor_in_days: int
+
+
+class RealizedTerms(LoanTerms):
     start_date: dt.datetime
     collection_date: dt.datetime
 

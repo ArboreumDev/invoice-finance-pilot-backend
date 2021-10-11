@@ -13,7 +13,8 @@ from database.test.fixtures import p1
 from invoice.tusker_client import tusker_client
 from main import app
 from sqlalchemy.orm import Session
-from starlette.status import HTTP_200_OK, HTTP_401_UNAUTHORIZED
+from starlette.status import (HTTP_200_OK, HTTP_400_BAD_REQUEST,
+                              HTTP_401_UNAUTHORIZED)
 from starlette.testclient import TestClient
 from utils.common import PurchaserInfo
 from utils.constant import GURUGRUPA_CUSTOMER_ID
@@ -84,7 +85,19 @@ def test_admin_update_value_success(whitelist_and_invoices):
     assert after.value == 42 != value_before
 
 
-def test_admin_update_status_success(whitelist_and_invoices):
+def to_financed_update(inv_id):
+    return {
+        "update": {
+            "invoice_id": inv_id,
+            "new_status": "FINANCED",
+            "loan_id": "l1",
+            "tx_id": "tx1",
+            "disbursal_date": "2021-09-24T17:21:59.738443+02:00",
+        }
+    }
+
+
+def test_admin_updates_to_financed_success(whitelist_and_invoices):
     (inv_id1, order_ref1), GURUGRUPA_CUSTOMER_ID, p1, db, auth_header = whitelist_and_invoices
 
     # should add new invoice to db
@@ -93,7 +106,7 @@ def test_admin_update_status_success(whitelist_and_invoices):
 
     res = client.post(
         "v1/admin/update",
-        json={"update": {"invoice_id": inv_id1, "new_status": "FINANCED", "loan_id": "l1", "tx_id": "tx1"}},
+        json=to_financed_update(inv_id1),
         headers=auth_header,
     )
     assert res.status_code == HTTP_200_OK
@@ -103,6 +116,24 @@ def test_admin_update_status_success(whitelist_and_invoices):
     assert after.finance_status == "FINANCED"
     assert "l1" in after.payment_details
     assert "tx1" in after.payment_details
+
+
+def test_admin_updates_to_financed_invalid_date_failure(whitelist_and_invoices):
+    (inv_id1, order_ref1), GURUGRUPA_CUSTOMER_ID, p1, db, auth_header = whitelist_and_invoices
+
+    # should add new invoice to db
+    invoices = invoice_service.get_all_invoices(db)
+    assert len(invoices) == 1
+
+    update = to_financed_update(inv_id1)
+    update["update"]["disbursal_date"] = "deadbeef"
+
+    res = client.post(
+        "v1/admin/update",
+        json={"update": {"invoice_id": inv_id1, "new_status": "FINANCED", "loan_id": "l1", "tx_id": "tx1"}},
+        headers=auth_header,
+    )
+    assert res.status_code == HTTP_400_BAD_REQUEST
 
 
 def test_only_admin_can_update(db_session: Session):  # noqa: F811
