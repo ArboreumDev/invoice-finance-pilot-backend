@@ -89,7 +89,8 @@ def _create_new_asset_for_loan_id(
     try: 
         algo_service.tokenize_loan(loan_id, db)
     except Exception as e:
-        raise HTTPException(HTTP_400_BAD_REQUEST, "Loan already tokenized")
+        print(e)
+        raise HTTPException(HTTP_400_BAD_REQUEST, str(e))
 
 
 

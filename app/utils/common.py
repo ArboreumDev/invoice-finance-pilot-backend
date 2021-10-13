@@ -4,6 +4,23 @@ from typing import Dict, List
 
 from humps import camelize
 from pydantic import BaseModel
+import re
+
+# https://stackoverflow.com/questions/17156078/converting-identifier-naming-between-camelcase-and-underscores-during-json-seria/21742678
+camel_pat = re.compile(r'([A-Z])')
+under_pat = re.compile(r'_([a-z])')
+
+def camel_to_underscore(name):
+    return camel_pat.sub(lambda x: '_' + x.group(1).lower(), name)
+
+def underscore_to_camel(name):
+    return under_pat.sub(lambda x: x.group(1).upper(), name)
+
+def convert_json(d, convert):
+    new_d = {}
+    for k, v in d.items():
+        new_d[convert(k)] = convert_json(v,convert) if isinstance(v,dict) else v
+    return new_d
 
 
 class ShipmentStatus(str, Enum):
@@ -163,7 +180,7 @@ class FundedInvoice(BaseModel):
     transaction_ref: str
 
 # dataFormat to hit asset-creation endpoint
-class NewAssetCreationInput(CamelModel):
+class NewLoanParams(BaseModel):
     loan_id: str
     borrower_info: str
     principal: float
@@ -173,3 +190,10 @@ class NewAssetCreationInput(CamelModel):
     collection_frequency: str  # "daily | monthly | weekly"
     # this is a stringified object of loan-specific data: for the tusker model it will be: List[FundedInvoice]
     data: str
+
+class NewLogAssetInput(BaseModel):
+    asset_name: str
+    loan_params: NewLoanParams
+
+    def to_camelized_dict(self):
+        return convert_json(self.dict(), underscore_to_camel)
