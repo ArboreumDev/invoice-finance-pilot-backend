@@ -154,3 +154,22 @@ class CreditLineInfo(CamelModel):
     total: float = 0
     requested: float = 0
     invoices: int = 0
+
+class FundedInvoice(BaseModel):
+    invoice_id: str
+    order_id: str
+    value: float
+    financed_on: str
+    transaction_ref: str
+
+# dataFormat to hit asset-creation endpoint
+class NewAssetCreationInput(CamelModel):
+    loan_id: str
+    borrower_info: str
+    principal: float
+    apr: float
+    tenor_in_days: int
+    start_date: int
+    collection_frequency: str  # "daily | monthly | weekly"
+    # this is a stringified object of loan-specific data: for the tusker model it will be: List[FundedInvoice]
+    data: str

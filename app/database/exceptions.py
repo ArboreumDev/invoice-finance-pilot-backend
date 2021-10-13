@@ -40,3 +40,17 @@ class InsufficientCreditException(BaseException):
 class DuplicateSupplierEntryException(BaseException):
     pass
 
+class NoInvoicesToBeTokenized(BaseException):
+    pass
+
+class InvoicesAlreadyTokenized(BaseException):
+    pass
+
+
+class InvoicesNotFinancable(BaseException):
+    pass
+
+
+
+
+

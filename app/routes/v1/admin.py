@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from starlette.status import HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED
 from utils.common import CamelModel
 from utils.security import check_jwt_token_role
+from algorand.algo_service import algo_service
 
 # ===================== routes ==========================
 admin_app = APIRouter()
@@ -74,3 +75,21 @@ def update_invoice_finance_status(
                 tx_id=update.tx_id,
             )
             return {"OK"}
+
+@admin_app.post("/asset/new/{loan_id}")
+def _create_new_asset_for_loan_id(
+    loan_id: str,
+    db: Session = Depends(get_db),
+    user_info: Tuple[str, str] = Depends(check_jwt_token_role),
+):
+    _, role = user_info
+    if role != "loanAdmin":
+        raise HTTPException(HTTP_401_UNAUTHORIZED, "Missing admin credentials")
+
+    try: 
+        algo_service.tokenize_loan(loan_id, db)
+    except Exception as e:
+        raise HTTPException(HTTP_400_BAD_REQUEST, "Loan already tokenized")
+
+
+
