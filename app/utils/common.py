@@ -1,6 +1,6 @@
 import datetime as dt
 from enum import Enum
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from humps import camelize
 from pydantic import BaseModel
@@ -100,6 +100,7 @@ class PaymentDetails(CamelModel):
     apr: float = 0
     tenor_in_days: int = 0
     collection_date: dt.date = None
+    tokenization: Optional[Dict] = {}
 
 
 class InvoiceFrontendInfo(CamelModel):
@@ -197,3 +198,19 @@ class NewLogAssetInput(BaseModel):
 
     def to_camelized_dict(self):
         return convert_json(self.dict(), underscore_to_camel)
+
+
+class LogData(BaseModel):
+    data: Dict
+
+
+class NewLogEntryInput(BaseModel):
+    log_data: LogData
+
+class NewAssetResponse(CamelModel):
+    assetId: int
+    txId: str
+
+class AssetLogResponse(CamelModel):
+    txId: str
+    data: Dict

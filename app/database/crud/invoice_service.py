@@ -22,7 +22,7 @@ from database.schemas import InvoiceCreate, InvoiceUpdate
 from utils.common import FinanceStatus
 from utils.loan import principal_to_interest
 from utils.constant import INVOICE_FUNDING_RATE
-
+from algorand.algo_service import algo_service
 
 
 
@@ -123,7 +123,7 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
     ):
         invoice = self.get(db, invoice_id)
         update = {}
-        if new_status == "FINANCED":
+        if new_status == FinanceStatus.FINANCED:
             if not all([loan_id, tx_id, disbursal_time]):
                 raise AssertionError("All extra finance info must be there")
             financed_on = dt.datetime.fromtimestamp(disbursal_time)
@@ -136,6 +136,27 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
                 }),
             }
             update['financed_on'] = financed_on
+
+        if new_status == FinanceStatus.REPAID:
+
+            self._logger.info(f"trying to log repayment of {invoice_id} on algorand chain")
+            new_tx_entry = algo_service.log_invoice_repayment(invoice_id, tx_id, db)
+            # update the list of transactions associated with the asset
+            # NOTE storing all that in the payment-details is starting to get messy
+            # we should start using pydantics JSON-support or create a proper table for this
+            # (or maybe just its own entry in the table)
+            tokenization_info = json.loads(invoice.payment_details).get('tokenization', {}) # this should not empty
+            # print('current tokenization', tokenization_info)
+            print('old tokenization', len(tokenization_info['transactions']))
+            print('new tx', new_tx_entry)
+            tokenization_info.get('transactions').update(new_tx_entry)
+            print('new tokenization', tokenization_info)
+            print('new tokenization', len(tokenization_info['transactions']))
+            crud.invoice.update_invoice_payment_details(
+                invoice_id=invoice_id, new_data={"tokenization": tokenization_info}, db=db
+                )
+            print('logged', new_tx_entry)
+
         update['finance_status'] = new_status
         return self.update_and_log(db, invoice, update)
 

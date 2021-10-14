@@ -18,6 +18,7 @@ from starlette.status import (HTTP_200_OK, HTTP_400_BAD_REQUEST,
 from starlette.testclient import TestClient
 from utils.common import PurchaserInfo
 from utils.constant import GURUGRUPA_CUSTOMER_ID
+from routes.dependencies import get_db
 
 client = TestClient(app)
 CUSTOMER_ID = "0001e776-c372-4ec5-8fa4-f30ab74ca631"
@@ -144,3 +145,8 @@ def test_only_admin_can_update(db_session: Session):  # noqa: F811
     res = client.post("v1/admin/update", json={"update": {"invoice_id": "id1"}}, headers=auth_header)
 
     assert res.status_code == HTTP_401_UNAUTHORIZED
+
+
+@pytest.mark.skip()
+def test_tokenize_loan():
+    db_session = get_db()

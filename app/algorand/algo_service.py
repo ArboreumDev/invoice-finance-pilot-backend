@@ -4,10 +4,13 @@ from typing import List
 from sqlalchemy.orm import Session
 from database import crud
 from database.exceptions import (
-    NoInvoicesToBeTokenized, InvoicesAlreadyTokenized, InvoicesNotFinancable
+    AssetCreationException, AssetLogException, NoInvoicesToBeTokenized, InvoicesAlreadyTokenized, InvoicesNotFinancable, TokenizationException
 )
-from utils.common import FinanceStatus, FundedInvoice, NewLoanParams, NewLogAssetInput
+from utils.common import AssetLogResponse, FinanceStatus, FundedInvoice, LogData, NewLoanParams, NewLogAssetInput, NewAssetResponse, NewLogEntryInput
 from database.models import Invoice
+
+from starlette.status import (HTTP_200_OK, HTTP_400_BAD_REQUEST)
+from utils.logger import get_logger
 
 class AlgoService():
     def __init__(self, base_url: str, password: str):
@@ -15,6 +18,7 @@ class AlgoService():
         self.base_url = base_url
         self.headers = {"Authorization": f"Bearer {password}"}
         # TODO add logging
+        self._logger = get_logger(self.__class__.__name__)
 
     def get_invoices_to_be_tokenized(self, loan_id, db):
         """
@@ -33,7 +37,7 @@ class AlgoService():
             raise NoInvoicesToBeTokenized()
         
         # verify no invoice is already tokenized
-        invoices_already_tokenized = [i.order_ref for i in invoices_from_loan if "asset_id" in json.loads(i.payment_details).keys()]
+        invoices_already_tokenized = [i.order_ref for i in invoices_from_loan if "tokenization" in json.loads(i.payment_details).keys()]
         print(invoices_already_tokenized)
         if invoices_already_tokenized:
             raise InvoicesAlreadyTokenized(
@@ -70,6 +74,7 @@ class AlgoService():
         throws if there is an issue with the invoices (see self.get_invoices_to_be_tokenized)
         """
         invoices_to_be_tokenized = self.get_invoices_to_be_tokenized(loan_id, db)
+        self._logger.info(f"Tokenizing {len(invoices_to_be_tokenized)} invoices for loan ID {loan_id}")
        
         # summarize financable invoices
         compact_invoice_info = [
@@ -100,26 +105,78 @@ class AlgoService():
                 data=str([i.dict() for i in compact_invoice_info])
             )
         )
-        input_camelized = new_asset_input.to_camelized_dict()
-        # input = new_asset_input.dict()
-        print('in', input)
+        self._logger.info(f"Summarized for asset metadata like this: {new_asset_input}")
 
         url = self.base_url + "/v1/log/new"
-        print('url', url)
-        # response = requests.request("POST", url, json={"investor_id": investor_ids})
-        response = requests.request("POST", url, json=input_camelized, headers=self.headers)
+        response = requests.request("POST", url, json=new_asset_input.to_camelized_dict(), headers=self.headers)
         print('resp', response)
-        # TODO check status code
-        # TODO write asset_id into each invoice.payment_details
-        data = response.json()
-        print('new asset data', data)
-        return data
+        if response.status_code != HTTP_200_OK:
+            err_msg = str(response.json())
+            self._logger.exception(f"request to Algorand-logger API failed with {err_msg}")
+            raise TokenizationException(msg=err_msg)
+        
+        try:
+            raw_response = response.json()
+            self._logger.info(f"Tokenization success! Response: {raw_response}")
+            # write asset_id into each invoice.payment_details
+            data = NewAssetResponse(**raw_response)
+            new_asset_info = {
+                'asset_id': data.assetId,
+                'transactions': {data.txId: "creation"}
+            }
+            for inv in invoices_to_be_tokenized:
+                crud.invoice.update_invoice_payment_details(
+                    invoice_id=inv.id, new_data={"tokenization": new_asset_info}, db=db
+                )
+            print('new asset data', new_asset_info)
+            return data
+        except Exception as e:
+            err_msg = f"Error storing created asset {str(e)}"
+            self._logger.exception(err_msg)
+            raise AssetCreationException(err_msg)
 
         # if not data["flag"]:
         #     raise AttributeError(data["message"])  # TODO define exception
         # else:
         #     balances = response.json()["data"]
         #     return {inv: result_to_balance(val) for inv, val in balances.items()}
+
+    def log_invoice_repayment(self, invoice_id: str, tx_ref: str, db: Session):
+        """
+        Creates a log-tx for on the invoice's loan-asset assuming full repayment
+        """
+        try:
+            invoice = crud.invoice.get(db=db, id=invoice_id)
+            payment_details = json.loads(invoice.payment_details)
+            asset_id = payment_details.get('tokenization', {}).get('asset_id', False)
+            if not asset_id:
+                raise TokenizationException(f"Invoice not tokenized, no asset-id found.")
+            url = self.base_url + f"/v1/log/{asset_id}"
+            # log_data = NewLogEntryInput(
+            log_data=LogData(
+                data={
+                'type': 'repay',
+                'subtype': 'full',
+                'amount': invoice.value,
+                'tx_ref': tx_ref
+            }).dict()
+            # )
+            response = requests.request("POST", url, json=log_data, headers=self.headers)
+            raw_response = response.json()
+            self._logger.info(f"Result:{raw_response}")
+            if response.status_code != HTTP_200_OK:
+                raise AssertionError(str(raw_response))
+
+            # store reference to blockchain tx on invoice
+            log_response = AssetLogResponse(**raw_response)
+            new_tx_entry = { log_response.txId: { 'log_data': log_data, 'tx_info': log_response.data } }
+            return new_tx_entry
+ 
+        except Exception as e:
+            # TODO more fine-grained handling here
+            raise AssetLogException(str(e))
+
+    
 
 
 # TODO load from env

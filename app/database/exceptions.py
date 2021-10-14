@@ -50,6 +50,17 @@ class InvoicesAlreadyTokenized(BaseException):
 class InvoicesNotFinancable(BaseException):
     pass
 
+class TokenizationException(BaseException):
+    pass
+
+class AssetLogException(BaseException):
+    pass
+
+class AssetCreationException(BaseException):
+    pass
+
+
+
 
 
 

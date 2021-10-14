@@ -81,5 +81,6 @@ def db_invoice_to_frontend_info(inv: Invoice, purchaser: Whitelist, supplier: Su
             principal=payment_details.get("principal", "unknown"),
             collection_date=payment_details.get("collection_date", "TBD"),
             signature_verification_result=payment_details.get("signature_verification_result", ""),
+            tokenization=payment_details.get("tokenization", ""),
         ),
     )
