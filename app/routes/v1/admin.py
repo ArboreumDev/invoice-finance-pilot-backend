@@ -1,6 +1,7 @@
 from typing import Optional, Tuple
 
 import pendulum
+from algorand.algo_service import algo_service
 from database.crud.invoice_service import invoice as invoice_service
 from fastapi import APIRouter, Body, Depends, HTTPException
 from routes.dependencies import get_db
@@ -8,7 +9,6 @@ from sqlalchemy.orm import Session
 from starlette.status import HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED
 from utils.common import CamelModel, FinanceStatus
 from utils.security import check_jwt_token_role
-from algorand.algo_service import algo_service
 
 # ===================== routes ==========================
 admin_app = APIRouter()
@@ -76,6 +76,7 @@ def update_invoice_finance_status(
             )
             return {"OK"}
 
+
 @admin_app.post("/asset/new/{loan_id}")
 def _create_new_asset_for_loan_id(
     loan_id: str,
@@ -86,11 +87,8 @@ def _create_new_asset_for_loan_id(
     if role != "loanAdmin":
         raise HTTPException(HTTP_401_UNAUTHORIZED, "Missing admin credentials")
 
-    try: 
+    try:
         return algo_service.tokenize_loan(loan_id, db)
     except Exception as e:
         print(e)
         raise HTTPException(HTTP_400_BAD_REQUEST, str(e))
-
-
-

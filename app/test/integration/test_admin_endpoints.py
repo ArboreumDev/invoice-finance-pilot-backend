@@ -12,13 +12,13 @@ from database.test.conftest import (db_session, insert_base_user,  # noqa: 401
 from database.test.fixtures import p1
 from invoice.tusker_client import tusker_client
 from main import app
+from routes.dependencies import get_db
 from sqlalchemy.orm import Session
 from starlette.status import (HTTP_200_OK, HTTP_400_BAD_REQUEST,
                               HTTP_401_UNAUTHORIZED)
 from starlette.testclient import TestClient
 from utils.common import PurchaserInfo
 from utils.constant import GURUGRUPA_CUSTOMER_ID
-from routes.dependencies import get_db
 
 client = TestClient(app)
 CUSTOMER_ID = "0001e776-c372-4ec5-8fa4-f30ab74ca631"
@@ -149,4 +149,4 @@ def test_only_admin_can_update(db_session: Session):  # noqa: F811
 
 @pytest.mark.skip()
 def test_tokenize_loan():
-    db_session = get_db()
+    get_db()
