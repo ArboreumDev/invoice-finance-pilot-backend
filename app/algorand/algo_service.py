@@ -37,8 +37,14 @@ class AlgoService():
             raise NoInvoicesToBeTokenized()
         
         # verify no invoice is already tokenized
-        invoices_already_tokenized = [i.order_ref for i in invoices_from_loan if "tokenization" in json.loads(i.payment_details).keys()]
-        print(invoices_already_tokenized)
+        def is_tokenized(i: Invoice):
+            details = json.loads(i.payment_details)
+            if 'tokenization' in details.keys() and details['tokenization'] != {}:
+                return True
+            return False
+
+        invoices_already_tokenized = [i.order_ref for i in invoices_from_loan if is_tokenized(i)]
+        # print('already', invoices_already_tokenized_details)
         if invoices_already_tokenized:
             raise InvoicesAlreadyTokenized(
                 msg=f"Invoices already tokenized with order ref: {str(invoices_already_tokenized)}"
@@ -101,7 +107,7 @@ class AlgoService():
                 apr=sample_invoice.apr,
                 tenor_in_days=sample_invoice.tenor_in_days,
                 start_date=sample_invoice.financed_on.timestamp(),
-                collection_frequency="daily",
+                compounding_frequency="daily",
                 data=str([i.dict() for i in compact_invoice_info])
             )
         )
