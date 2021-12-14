@@ -173,7 +173,8 @@ def test_update_invoices(invoice_x_supplier):
     assert invoice1.finance_status == FinanceStatus.INITIAL
     assert invoice1.shipment_status == "DELIVERED"
 
-    invoice_service.update_invoice_payment_status(db_session, invoice1.id, FinanceStatus.REPAID)
+    # NOTE this does not expect to log the transaction to chain as our tests do not have a local algorand chain running
+    invoice_service.update_invoice_payment_status(db_session, invoice1.id, FinanceStatus.REPAID, tx_id='tx1')
     invoice_service.update_invoice_shipment_status(invoice1.id, "IN_TRANSIT", db_session)
 
     assert invoice1.finance_status == FinanceStatus.REPAID

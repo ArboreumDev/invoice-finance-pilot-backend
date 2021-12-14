@@ -137,24 +137,28 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
             }
             update['financed_on'] = financed_on
 
-        if new_status == FinanceStatus.REPAID and tx_id:
+        if new_status == FinanceStatus.REPAID:
             self._logger.info(f"trying to log repayment of {invoice_id} on algorand chain")
-            new_tx_entry = algo_service.log_invoice_repayment(invoice_id, tx_id, db)
-            # update the list of transactions associated with the asset
-            # NOTE storing all that in the payment-details is starting to get messy
-            # we should start using pydantics JSON-support or create a proper table for this
-            # (or maybe just its own entry in the table)
-            tokenization_info = json.loads(invoice.payment_details).get('tokenization', {}) # this should not empty
-            # print('current tokenization', tokenization_info)
-            # print('old tokenization', len(tokenization_info['transactions']))
-            # print('new tx', new_tx_entry)
-            tokenization_info.get('transactions').update(new_tx_entry)
-            # print('new tokenization', tokenization_info)
-            # print('new tokenization', len(tokenization_info['transactions']))
-            crud.invoice.update_invoice_payment_details(
-                invoice_id=invoice_id, new_data={"tokenization": tokenization_info}, db=db
+            if not tx_id:
+                raise AssertionError("All extra finance info must be there")
+            try:
+                new_tx_entry = algo_service.log_invoice_repayment(invoice_id, tx_id, db)
+                # update the list of transactions associated with the asset
+                # NOTE storing all that in the payment-details is starting to get messy
+                # we should start using pydantics JSON-support or create a proper table for this
+                # (or maybe just its own entry in the table)
+                tokenization_info = json.loads(invoice.payment_details).get('tokenization', {}) # this should not empty
+                # print('current tokenization', tokenization_info)
+                # print('old tokenization', len(tokenization_info['transactions']))
+                # print('new tx', new_tx_entry)
+                tokenization_info.get('transactions').update(new_tx_entry)
+                # print('new tokenization', tokenization_info)
+                # print('new tokenization', len(tokenization_info['transactions']))
+                crud.invoice.update_invoice_payment_details(
+                    invoice_id=invoice_id, new_data={"tokenization": tokenization_info}, db=db
                 )
-            # print('logged', new_tx_entry)
+            except Exception as e:
+                self._logger.exception(f"ERROR logging payment to chain: {str(e)}")
 
         update['finance_status'] = new_status
         return self.update_and_log(db, invoice, update)
@@ -173,6 +177,7 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         invoice = self.get(db, invoice_id)
         payment_details = json.loads(invoice.payment_details)
         payment_details.update(new_data)
+        print('new data', new_data)
         self.update_and_log(db, invoice, {'payment_details': json.dumps(payment_details)})
 
     def get_all_invoices(self, db: Session):

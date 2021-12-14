@@ -1,4 +1,5 @@
 import requests
+import os
 import json
 from typing import List
 from sqlalchemy.orm import Session
@@ -11,6 +12,13 @@ from database.models import Invoice
 
 from starlette.status import (HTTP_200_OK, HTTP_400_BAD_REQUEST)
 from utils.logger import get_logger
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
+ALGO_LOG_BASE_URL = os.getenv("ALGO_LOG_BASE_URL")
+ALGO_LOG_API_SECRET= os.getenv("ALGO_LOG_API_SECRET")
 
 class AlgoService():
     def __init__(self, base_url: str, password: str):
@@ -182,12 +190,6 @@ class AlgoService():
             # TODO more fine-grained handling here
             raise AssetLogException(str(e))
 
-    
-
-
-# TODO load from env
-ALGO_LOG_BASE_URL='http://localhost:8001'
-ALGO_LOG_API_SECRET="sWUCzK7ZaT5E8zgWY95wUL1e6cNpJli5DzcwAYXsRpw="
 
 algo_service = AlgoService(
     base_url=ALGO_LOG_BASE_URL,
