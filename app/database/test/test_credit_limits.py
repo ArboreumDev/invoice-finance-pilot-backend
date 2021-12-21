@@ -5,6 +5,13 @@ from database import crud
 from sqlalchemy.orm import Session
 from database.crud.invoice_service import InvoiceService
 from database.crud.whitelist_service import WhitelistService
+from invoice.utils import invoice_to_principal
+from database.test.fixtures import get_new_raw_order
+from routes.v1.supplier import SupplierUpdateInput
+from utils.constant import DEFAULT_PURCHASER_LIMIT
+from app.database.exceptions import (
+    RelationshipLimitException, SupplierLimitException, PurchaserLimitException, CreditLimitException
+)
 
 invoice_service: InvoiceService = crud.invoice
 whitelist_service: WhitelistService = crud.whitelist
@@ -25,7 +32,7 @@ def test_credit_line_breakdown(whitelisted_invoices):
     # verify invoices with disbursed status are deducted from available credit
     after =  invoice_service.get_credit_line_info(supplier_id, db)
 
-    assert after[in1.purchaser_id].used  == before[in1.purchaser_id].used + in1.value
+    assert after[in1.purchaser_id].used  == before[in1.purchaser_id].used + invoice_to_principal(in1)
 
     # verify second credit line is unaffected
     other_purchaser = whitelist_ids[1 if whitelist_ids[0] == in1.purchaser_id else 0]
@@ -46,6 +53,100 @@ def test_credit_line_breakdown(whitelisted_invoices):
 
 def test_credit_line_breakdown_invalid_customer_id(db_session: Session):
     assert invoice_service.get_credit_line_info("deadbeef", db_session) == {}
+
+@pytest.mark.xfail(raises=RelationshipLimitException)
+def test_relationship_limit(whitelisted_purchasers):
+    supplier, p1, p2, db_session = whitelisted_purchasers
+
+    new_invoice_value =p1.creditline_size + 1 
+    # first assert that the new invoice value will be
+    # ... below the supplier limit:
+    assert supplier.creditline_size > new_invoice_value
+    # ... below the (hardcoded (TODO)) purchaser limit
+    assert DEFAULT_PURCHASER_LIMIT > new_invoice_value
+
+    # try create invoice that breaks relationship limit
+    with pytest.raises(RelationshipLimitException):
+        invoice_service.check_credit_limit(
+            get_new_raw_order(
+                purchaser_name=p1.name,
+                purchaser_location_id=p1.location_id,
+                supplier_id=supplier.supplier_id,
+                value=new_invoice_value
+            ),
+            db_session
+        )
+
+
+def test_supplier_limit(whitelisted_purchasers):
+    supplier, p1, p2, db_session = whitelisted_purchasers
+
+    # update supplier limit to something too small
+    supplier = crud.supplier.update(
+        db_session, SupplierUpdateInput(supplier_id=supplier.supplier_id, creditline_size=300)
+    )
+
+    # try create invoice that breaks supplier limit
+    new_invoice_value =supplier.creditline_size + 1 
+    with pytest.raises(SupplierLimitException):
+        invoice_service.check_credit_limit(
+            get_new_raw_order(
+                purchaser_name=p1.name,
+                purchaser_location_id=p1.location_id,
+                supplier_id=supplier.supplier_id,
+                value=new_invoice_value
+            ),
+            db_session
+        )
+    # also assert that the new invoice value would have been
+    # ... below the relationship limit:
+    assert p1.creditline_size > new_invoice_value
+    # ... below the (hardcoded (TODO)) purchaser limit
+    assert DEFAULT_PURCHASER_LIMIT > new_invoice_value
+
+
+
+def test_purchaser_limit(whitelisted_purchasers):
+    supplier, p1, p2, db_session = whitelisted_purchasers
+
+    # update relationship limit to something very big
+    supplier = crud.whitelist.update(
+        db_session, purchaser_id=p1.purchaser_id, supplier_id=supplier.supplier_id, creditline_size=300000
+    )
+
+    # insert once invoice that is below the limit
+    invoice_value = DEFAULT_PURCHASER_LIMIT / 2
+
+    invoice_service.insert_new_invoice_from_raw_order(
+        get_new_raw_order(
+            purchaser_name=p1.name,
+            purchaser_location_id=p1.location_id,
+            supplier_id=supplier.supplier_id,
+            value = invoice_value
+        ),
+        db_session
+    )
+
+    # try create another invoice that breaks limit
+    new_invoice_value = invoice_value + 1
+    # before though, assert that the new invoice value will
+    # ... be below the relationship limit:
+    assert p1.creditline_size > invoice_value + new_invoice_value
+    # ... be below the supplier limit:
+    assert supplier.creditline_size > invoice_value + new_invoice_value
+    # ...but be above the (hardcoded (TODO)) purchaser limit
+    assert DEFAULT_PURCHASER_LIMIT < invoice_value + new_invoice_value
+
+    with pytest.raises(PurchaserLimitException):
+        invoice_service.check_credit_limit(
+            get_new_raw_order(
+                purchaser_name=p1.name,
+                purchaser_location_id=p1.location_id,
+                supplier_id=supplier.supplier_id,
+                value=invoice_value + 1
+            ),
+            db_session
+        )
 
 
 @pytest.mark.skip()

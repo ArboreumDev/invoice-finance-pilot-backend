@@ -1,7 +1,9 @@
 from database.crud import whitelist_service
 from database.schemas import whitelist
 from database.schemas import InvoiceCreate
-from database.exceptions import CreditLimitException, DuplicateInvoiceException, UnknownInvoiceException
+from database.exceptions import (
+    RelationshipLimitException, PurchaserLimitException, SupplierLimitException, 
+    DuplicateInvoiceException, UnknownInvoiceException, CreditLimitException)
 from database.db import SessionLocal, session
 import datetime as dt
 from database.models import Invoice, User, Supplier
@@ -12,7 +14,7 @@ from sqlalchemy.orm import Session
 import json
 from utils.common import LoanTerms, CreditLineInfo, PaymentDetails, PurchaserInfo, RealizedTerms
 from utils.constant import DISBURSAL_EMAIL, ARBOREUM_DISBURSAL_EMAIL
-from invoice.utils import raw_order_to_price
+from invoice.utils import raw_order_to_price, invoice_to_principal
 import uuid
 from database.crud.whitelist_service import  whitelist_entry_to_receiverInfo
 from database import crud
@@ -183,6 +185,12 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
     def get_all_invoices(self, db: Session):
         # TODO use skip & limit for pagination
         return self.get_multi(db)
+    
+    def get_all_invoices_from_purchaser(self, purchaser_id: str, db: Session):
+        return db.query(Invoice).filter(Invoice.purchaser_id == purchaser_id).all()
+
+    def get_all_invoices_from_supplier(self, supplier_id: str, db: Session):
+        return db.query(Invoice).filter(Invoice.supplier_id == supplier_id).all()
 
     def update_invoice_db(self, db: Session):
         """ get latest data for all invoices in db from tusker, compare shipment status,
@@ -256,16 +264,45 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
 
 
     def check_credit_limit(self, raw_order, db: Session):
+        """
+        verify that:
+        1) Relationship limit is not crossed
+        2) receiver limit is not crossed
+        2) purchaser limit is not crossed
+        """
         target_location_id=raw_order.get('rcvr').get('id')
         supplier_id=raw_order.get('cust').get('id')
         purchaser_id = crud.whitelist.get_whitelisted_purchaser_from_location_id(db, supplier_id, target_location_id)
 
         value=raw_order_to_price(raw_order)
-        credit = self.get_credit_line_info(supplier_id, db)
+        supplier_relationships = self.get_credit_line_info(supplier_id, db)
 
-        if credit[purchaser_id].available < value:
-            raise CreditLimitException(
-                f"Not enough Credit available {credit[purchaser_id].available} to fund invoice of value {value}"
+        # 1) relationship limit
+        if supplier_relationships[purchaser_id].available < value:
+            # raise RelationshipLimitException(
+            raise RelationshipLimitException(
+                f"Relationship limit exceeded: {supplier_relationships[purchaser_id].available} not enough \
+                    to fund invoice of value {value}"
+            )
+
+        # 2) receiver limit not crossed
+        purchaser_invoices = crud.invoice.get_all_invoices_from_purchaser(purchaser_id, db)
+        total_value_financed = sum(invoice_to_principal(i) for i in purchaser_invoices if i.finance_status == FinanceStatus.FINANCED)
+        purchaser = crud.whitelist.get(db, supplier_id, purchaser_id)
+        if purchaser.creditline_size < value + total_value_financed:
+            raise PurchaserLimitException(
+                f"Purchaser limit exceeded: Funded ({total_value_financed}) and invoice of value {value} \
+                    exceed limit ({purchaser.creditline_size})."
+            )
+
+         # 3) supplier limit not crossed
+        supplier_invoices = crud.invoice.get_all_invoices_from_supplier(supplier_id, db)
+        total_value_financed = sum(invoice_to_principal(i) for i in supplier_invoices if i.finance_status == FinanceStatus.FINANCED)
+        supplier = crud.supplier.get(db, supplier_id)
+        if supplier.creditline_size < value + total_value_financed:
+            raise SupplierLimitException(
+                f"Supplier limit exceeded: Funded ({total_value_financed}) and invoice of value {value} \
+                    exceed limit ({supplier.creditline_size})."
             )
 
         return True
@@ -278,8 +315,8 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
             credit_line_size  = w_entry.creditline_size if w_entry.creditline_size != 0 else 0
 
             invoices = db.query(Invoice).filter(Invoice.purchaser_id == w_entry.purchaser_id).all()
-            to_be_repaid = sum(i.value for i in invoices if i.finance_status == FinanceStatus.FINANCED)
-            requested = sum(i.value for i in invoices if i.finance_status in [ FinanceStatus.DISBURSAL_REQUESTED, FinanceStatus.INITIAL])
+            to_be_repaid = sum(invoice_to_principal(i) for i in invoices if i.finance_status == FinanceStatus.FINANCED)
+            requested = sum(invoice_to_principal(i) for i in invoices if i.finance_status in [ FinanceStatus.DISBURSAL_REQUESTED, FinanceStatus.INITIAL])
             n_of_invoices = len(invoices)
 
             credit_line_breakdown[w_entry.purchaser_id] = CreditLineInfo(**{

@@ -84,3 +84,7 @@ def db_invoice_to_frontend_info(inv: Invoice, purchaser: Whitelist, supplier: Su
             tokenization=payment_details.get("tokenization", ""),
         ),
     )
+
+def invoice_to_principal(inv: Invoice):
+    payment_details = json.loads(inv.payment_details)
+    return payment_details['principal']

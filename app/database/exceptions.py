@@ -22,6 +22,15 @@ class UnknownPurchaserException(BaseException):
 class CreditLimitException(BaseException):
     pass
 
+class SupplierLimitException(CreditLimitException):
+    pass
+
+class PurchaserLimitException(CreditLimitException):
+    pass
+
+class RelationshipLimitException(CreditLimitException):
+    pass
+
 class DuplicateInvoiceException(BaseException):
     pass
 

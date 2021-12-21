@@ -56,6 +56,11 @@ class Whitelist(Base):
     tenor_in_days = Column(Integer, nullable=True)
 
 
+# TODO move purchaser into its own table
+# class Purchaser(Base):
+#     purchaser_id = Column(String(50), primary_key=True)
+#     credit_limit = Column(Integer, nullable=False)
+
 class User(Base): #TUSKER
     """ used to look up usernames and their passwords """
     __tablename__ = "users"
