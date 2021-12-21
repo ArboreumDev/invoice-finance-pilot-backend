@@ -23,7 +23,7 @@ from database.models import Invoice
 from database.schemas import InvoiceCreate, InvoiceUpdate
 from utils.common import FinanceStatus
 from utils.loan import principal_to_interest
-from utils.constant import INVOICE_FUNDING_RATE
+from utils.constant import INVOICE_FUNDING_RATE, DEFAULT_PURCHASER_LIMIT
 from algorand.algo_service import algo_service
 
 
@@ -249,7 +249,7 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
 
     def mark_as_paid(self, order_id: str):
         # mark as paid and reduce
-        pass
+        raise NotImplementedError('TODO')
 
     def prepare_disbursal(self, invoice: Invoice, db: Session):
         self._logger.info(f"Updating Invoice {invoice.id} with calculated terms...")
@@ -280,30 +280,31 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         # 1) relationship limit
         if supplier_relationships[purchaser_id].available < value:
             # raise RelationshipLimitException(
-            raise RelationshipLimitException(
-                f"Relationship limit exceeded: {supplier_relationships[purchaser_id].available} not enough \
+            msg = f"Relationship limit exceeded: {supplier_relationships[purchaser_id].available} not enough \
                     to fund invoice of value {value}"
-            )
+            assert False, msg
+            # raise RelationshipLimitException(msg) # TODO
 
         # 2) receiver limit not crossed
         purchaser_invoices = crud.invoice.get_all_invoices_from_purchaser(purchaser_id, db)
         total_value_financed = sum(invoice_to_principal(i) for i in purchaser_invoices if i.finance_status == FinanceStatus.FINANCED)
         purchaser = crud.whitelist.get(db, supplier_id, purchaser_id)
-        if purchaser.creditline_size < value + total_value_financed:
-            raise PurchaserLimitException(
-                f"Purchaser limit exceeded: Funded ({total_value_financed}) and invoice of value {value} \
-                    exceed limit ({purchaser.creditline_size})."
-            )
+        print('pl', DEFAULT_PURCHASER_LIMIT)
+        if DEFAULT_PURCHASER_LIMIT < value + total_value_financed:
+            msg = f"Purchaser limit exceeded: Funded ({total_value_financed}) and invoice of value {value} \
+                exceed limit ({purchaser.creditline_size})."
+            assert False, msg
+            raise PurchaserLimitException(msg=msg)
 
          # 3) supplier limit not crossed
         supplier_invoices = crud.invoice.get_all_invoices_from_supplier(supplier_id, db)
         total_value_financed = sum(invoice_to_principal(i) for i in supplier_invoices if i.finance_status == FinanceStatus.FINANCED)
         supplier = crud.supplier.get(db, supplier_id)
         if supplier.creditline_size < value + total_value_financed:
-            raise SupplierLimitException(
-                f"Supplier limit exceeded: Funded ({total_value_financed}) and invoice of value {value} \
-                    exceed limit ({supplier.creditline_size})."
-            )
+            msg = f"Supplier limit exceeded: Funded ({total_value_financed}) and invoice of value {value} \
+                exceed limit ({supplier.creditline_size})."
+            assert False, msg
+            raise SupplierLimitException(msg)
 
         return True
 

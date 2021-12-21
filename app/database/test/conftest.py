@@ -190,7 +190,7 @@ def whitelisted_purchasers(db_session: Session):
     create one supplier with two receivers with one invoice each
     """
     purchaser_limit = 2000
-    supplier_limit = 3000
+    supplier_limit = 5000
 
     reset_db(db_session)
     insert_base_user(db_session)

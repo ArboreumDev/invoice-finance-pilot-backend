@@ -28,7 +28,7 @@ class SupplierLimitException(CreditLimitException):
 class PurchaserLimitException(CreditLimitException):
     pass
 
-class RelationshipLimitException(CreditLimitException):
+class RelationshipLimitException(BaseException):
     pass
 
 class DuplicateInvoiceException(BaseException):
