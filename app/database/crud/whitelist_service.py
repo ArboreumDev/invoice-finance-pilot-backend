@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from database import crud
 from database.models import Whitelist
 from database.crud.base import CRUDBase
-from database.schemas import WhitelistCreate, WhitelistUpdate
+from database.schemas import WhitelistCreate, WhitelistUpdate, PurchaserCreate, PurchaserUpdate
 
 def whitelist_entry_to_receiverInfo(entry: Whitelist):
     return PurchaserInfo(
@@ -113,6 +113,14 @@ class WhitelistService(CRUDBase[Whitelist, WhitelistCreate, WhitelistUpdate]):
 
         _apr = apr if apr else supplier.apr
         _tenor_in_days = tenor_in_days if tenor_in_days else supplier.tenor_in_days
+
+        # if purchaser doesnt exist yet, create it. For now this is how new purchasers are entered
+        # into the DB via the frontend
+        purchaser_entry = crud.purchaser.get(db, purchaser.id)
+        if purchaser_entry is None:
+            crud.purchaser.insert_new_purchaser(
+                db, PurchaserCreate(purchaser_id=purchaser.id, credit_limit=creditline_size)
+            )
 
         new_whitelist_entry = WhitelistCreate(
             supplier_id=supplier_id,

@@ -49,6 +49,10 @@ class InsufficientCreditException(BaseException):
 class DuplicateSupplierEntryException(BaseException):
     pass
 
+
+class DuplicatePurchaserEntryException(BaseException):
+    pass
+
 class NoInvoicesToBeTokenized(BaseException):
     pass
 

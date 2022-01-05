@@ -189,6 +189,10 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
     def get_all_invoices_from_purchaser(self, purchaser_id: str, db: Session):
         return db.query(Invoice).filter(Invoice.purchaser_id == purchaser_id).all()
 
+    def get_sum_of_live_invoices_from_purchaser(self, purchaser_id, db: Session):
+        invoices = self.get_all_invoices_from_purchaser(purchaser_id, db)
+        return sum([invoice_to_principal(i)  for i in invoices if i.status == FinanceStatus.FINANCED])
+
     def get_all_invoices_from_supplier(self, supplier_id: str, db: Session):
         return db.query(Invoice).filter(Invoice.supplier_id == supplier_id).all()
 
@@ -288,11 +292,10 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         # 2) receiver limit not crossed
         purchaser_invoices = crud.invoice.get_all_invoices_from_purchaser(purchaser_id, db)
         total_value_financed = sum(invoice_to_principal(i) for i in purchaser_invoices if i.finance_status == FinanceStatus.FINANCED)
-        purchaser = crud.whitelist.get(db, supplier_id, purchaser_id)
-        print('pl', DEFAULT_PURCHASER_LIMIT)
-        if DEFAULT_PURCHASER_LIMIT < value + total_value_financed:
+        purchaser = crud.purchaser.get(db, purchaser_id)
+        if purchaser.credit_limit < value + total_value_financed:
             msg = f"Purchaser limit exceeded: Funded ({total_value_financed}) and invoice of value {value} \
-                exceed limit ({purchaser.creditline_size})."
+                exceed limit ({purchaser.credit_limit})."
             assert False, msg
             raise PurchaserLimitException(msg=msg)
 

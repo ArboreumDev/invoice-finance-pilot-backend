@@ -47,6 +47,7 @@ class Whitelist(Base):
     __tablename__ = "whitelist"
     supplier_id = Column(String(50), primary_key=True)
     purchaser_id = Column(String(50), primary_key=True)
+    # TODO move purchaser details to purchaser table
     location_id = Column(String(50), nullable=False, index=True) # NOTE: tuskers order will use this in the receiver.id field
     name = Column(String(50), nullable=False)
     phone = Column(String(50), nullable=False)
@@ -56,10 +57,11 @@ class Whitelist(Base):
     tenor_in_days = Column(Integer, nullable=True)
 
 
-# TODO move purchaser into its own table
-# class Purchaser(Base):
-#     purchaser_id = Column(String(50), primary_key=True)
-#     credit_limit = Column(Integer, nullable=False)
+class Purchaser(Base):
+    __tablename__ = "purchaser"
+    purchaser_id = Column(String(50), primary_key=True)
+    credit_limit = Column(Integer, nullable=False)
+
 
 class User(Base): #TUSKER
     """ used to look up usernames and their passwords """

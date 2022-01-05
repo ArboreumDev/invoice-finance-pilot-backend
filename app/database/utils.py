@@ -6,7 +6,7 @@ def reset_db(db: Session, tables=[]):
     if tables:
         db.execute("TRUNCATE " + ",".join(tables))
     else: 
-        db.execute("TRUNCATE invoice, users, supplier, whitelist")
+        db.execute("TRUNCATE invoice, users, supplier, whitelist, purchaser")
 
 
 def remove_none_entries(d: Dict):
