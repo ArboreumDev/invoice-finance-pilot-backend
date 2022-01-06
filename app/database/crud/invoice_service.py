@@ -278,7 +278,7 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         supplier_id=raw_order.get('cust').get('id')
         purchaser_id = crud.whitelist.get_whitelisted_purchaser_from_location_id(db, supplier_id, target_location_id)
 
-        value=raw_order_to_price(raw_order)
+        value=raw_order_to_price(raw_order) * INVOICE_FUNDING_RATE
         supplier_relationships = self.get_credit_line_info(supplier_id, db)
 
         # 1) relationship limit
