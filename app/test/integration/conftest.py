@@ -3,8 +3,8 @@ import os
 import pytest
 from database import crud
 from database.models import Base, User
-from database.schemas.supplier import SupplierCreate
 from database.schemas.purchaser import PurchaserCreate
+from database.schemas.supplier import SupplierCreate
 from database.utils import reset_db
 from main import app
 from routes.dependencies import get_db
@@ -94,7 +94,7 @@ def auth_user(db_session):
 
     yield auth_header
 
-    db_session.connection().execute("delete from users") 
+    db_session.connection().execute("delete from users")
 
 
 @pytest.fixture(scope="function")
@@ -118,7 +118,6 @@ def supplier_x_auth_user(db_session, auth_user):
 
     crud.supplier.remove_if_there(db_session, CUSTOMER_ID)
     reset_db(db_session)
-
 
 
 @pytest.fixture(scope="function")

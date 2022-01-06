@@ -4,8 +4,7 @@ from database import crud
 from database.crud.invoice_service import invoice_to_terms
 from database.exceptions import (CreditLimitException,
                                  DuplicateInvoiceException,
-                                 UnknownPurchaserException, WhitelistException,
-                                 PurchaserLimitException, SupplierLimitException)
+                                 UnknownPurchaserException, WhitelistException)
 from fastapi import APIRouter, Depends, HTTPException
 from invoice.tusker_client import tusker_client
 from invoice.utils import db_invoice_to_frontend_info, raw_order_to_invoice

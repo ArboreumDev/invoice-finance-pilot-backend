@@ -2,36 +2,31 @@ from test.integration.conftest import client
 
 import pytest
 from database.crud.purchaser_service import purchaser as purchaser_service
-from routes.v1.purchaser import PurchaserUpdateInput
-from starlette.status import HTTP_200_OK, HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED
-from utils.constant import GURUGRUPA_CUSTOMER_DATA, MAX_TUSKER_CREDIT
+from database.schemas import PurchaserCreate
 from database.utils import reset_db
-from database.schemas import PurchaserCreate, PurchaserUpdate
-
-
+from routes.v1.purchaser import PurchaserUpdateInput
+from starlette.status import (HTTP_200_OK, HTTP_401_UNAUTHORIZED)
 
 NEW_PURCHASER = PurchaserCreate(purchaser_id="p1", name="name", credit_limit=1000)
 
-purchaser_update = PurchaserUpdateInput(
-    purchaser_id=NEW_PURCHASER.purchaser_id,
-    credit_limit=50000
-)
+purchaser_update = PurchaserUpdateInput(purchaser_id=NEW_PURCHASER.purchaser_id, credit_limit=50000)
 
 
 # for now purchasers are created by making a new whitelist entry
 @pytest.mark.skip()
 def test_post_new_purchaser_entry_success(auth_user, clean_supplier_table):
-
-    response = client.post("v1/supplier/new", json={"input": new_supplier_input}, headers=auth_user)
-    assert response.status_code == HTTP_200_OK
+    # response = client.post("v1/supplier/new", json={"input": new_supplier_input}, headers=auth_user)
+    # assert response.status_code == HTTP_200_OK
+    pass
 
 
 @pytest.mark.skip()
 def test_post_new_purchaser_duplicate_entry_failure(auth_user, clean_supplier_table):
-    response = client.post("v1/supplier/new", json={"input": new_supplier_input}, headers=auth_user)
-    assert response.status_code == HTTP_200_OK
-    response = client.post("v1/supplier/new", json={"input": new_supplier_input}, headers=auth_user)
-    assert response.status_code == HTTP_400_BAD_REQUEST
+    # response = client.post("v1/supplier/new", json={"input": new_supplier_input}, headers=auth_user)
+    # assert response.status_code == HTTP_200_OK
+    # response = client.post("v1/supplier/new", json={"input": NEW}, headers=auth_user)
+    # assert response.status_code == HTTP_400_BAD_REQUEST
+    pass
 
 
 def test_get_purchasers(purchaser_x_auth_user):
@@ -42,10 +37,11 @@ def test_get_purchasers(purchaser_x_auth_user):
 
     data = response.json()
 
-    purchaser_from_response = [p for p in data if p['id'] == purchaser.purchaser_id][0]
+    purchaser_from_response = [p for p in data if p["id"] == purchaser.purchaser_id][0]
 
-    assert purchaser_from_response['creditLimit'] == purchaser.credit_limit
-    assert purchaser_from_response['creditUsed'] == 0 # TODO test taht
+    assert purchaser_from_response["creditLimit"] == purchaser.credit_limit
+    assert purchaser_from_response["creditUsed"] == 0  # TODO test taht
+
 
 def test_purchaser_update(purchaser_x_auth_user, db_session):
     purchaser, auth_user = purchaser_x_auth_user
