@@ -9,7 +9,7 @@ from invoice.utils import invoice_to_principal
 from database.test.fixtures import get_new_raw_order
 from routes.v1.supplier import SupplierUpdateInput
 from routes.v1.purchaser import PurchaserUpdateInput
-from utils.constant import DEFAULT_PURCHASER_LIMIT
+from utils.constant import DEFAULT_PURCHASER_LIMIT, INVOICE_FUNDING_RATE
 from app.database.exceptions import (
     RelationshipLimitException, SupplierLimitException, PurchaserLimitException, CreditLimitException
 )
@@ -62,7 +62,7 @@ def test_credit_line_breakdown_invalid_customer_id(db_session: Session):
 def test_relationship_limit(whitelisted_purchasers):
     supplier, p1, _, db_session = whitelisted_purchasers
 
-    new_invoice_value =p1.creditline_size + 1 
+    new_invoice_value =(p1.creditline_size / INVOICE_FUNDING_RATE)  + 10
     # first assert that the new invoice value will be
     # ... below the supplier limit:
     assert supplier.creditline_size > new_invoice_value
@@ -92,7 +92,7 @@ def test_supplier_limit(whitelisted_purchasers):
     )
 
     # try create invoice that breaks supplier limit
-    new_invoice_value =supplier.creditline_size + 1 
+    new_invoice_value =(supplier.creditline_size / INVOICE_FUNDING_RATE) + 10
     # with pytest.raises(SupplierLimitException):
     with pytest.raises(AssertionError, match=r".*Supplier limit*" ):
         invoice_service.check_credit_limit(
