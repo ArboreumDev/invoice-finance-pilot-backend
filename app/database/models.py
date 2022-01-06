@@ -60,6 +60,7 @@ class Whitelist(Base):
 class Purchaser(Base):
     __tablename__ = "purchaser"
     purchaser_id = Column(String(50), primary_key=True)
+    name = Column(String(50), nullable=False)
     credit_limit = Column(Integer, nullable=False)
 
 

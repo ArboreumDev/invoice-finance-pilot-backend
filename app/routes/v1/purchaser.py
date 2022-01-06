@@ -23,7 +23,8 @@ class PurchaserUpdateInput(CamelModel):
     credit_limit: Optional[int]
 
 class PurchaserFrontendInfo(CamelModel):
-    purchaser_id: str
+    id: str
+    name: str
     credit_limit: int
     credit_used: int
 
@@ -36,7 +37,8 @@ def _get_purchasers(
     purchasers = crud.purchaser.get_all(db)
     return [
         PurchaserFrontendInfo(
-            purchaser_id=p.purchaser_id,
+            id=p.purchaser_id,
+            name=p.name,
             credit_limit=p.credit_limit,
             credit_used=crud.invoice.get_sum_of_live_invoices_from_purchaser(p.purchaser_id, db)
         )

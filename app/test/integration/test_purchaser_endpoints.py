@@ -10,7 +10,7 @@ from database.schemas import PurchaserCreate, PurchaserUpdate
 
 
 
-NEW_PURCHASER = PurchaserCreate(purchaser_id="p1", credit_limit=1000)
+NEW_PURCHASER = PurchaserCreate(purchaser_id="p1", name="name", credit_limit=1000)
 
 purchaser_update = PurchaserUpdateInput(
     purchaser_id=NEW_PURCHASER.purchaser_id,
@@ -42,9 +42,10 @@ def test_get_purchasers(purchaser_x_auth_user):
 
     data = response.json()
 
-    assert data[0]['creditLimit'] == purchaser.credit_limit
-    assert data[0]['purchaserId'] == purchaser.purchaser_id
-    assert data[0]['creditUsed'] == 0 # TODO test taht
+    purchaser_from_response = [p for p in data if p['id'] == purchaser.purchaser_id][0]
+
+    assert purchaser_from_response['creditLimit'] == purchaser.credit_limit
+    assert purchaser_from_response['creditUsed'] == 0 # TODO test taht
 
 def test_purchaser_update(purchaser_x_auth_user, db_session):
     purchaser, auth_user = purchaser_x_auth_user

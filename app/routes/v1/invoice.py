@@ -4,7 +4,8 @@ from database import crud
 from database.crud.invoice_service import invoice_to_terms
 from database.exceptions import (CreditLimitException,
                                  DuplicateInvoiceException,
-                                 UnknownPurchaserException, WhitelistException)
+                                 UnknownPurchaserException, WhitelistException,
+                                 PurchaserLimitException, SupplierLimitException)
 from fastapi import APIRouter, Depends, HTTPException
 from invoice.tusker_client import tusker_client
 from invoice.utils import db_invoice_to_frontend_info, raw_order_to_invoice
@@ -119,6 +120,9 @@ def _add_new_invoice(order_reference_number: str, db: Session = Depends(get_db))
         raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Reciever not whitelisted")
     except UnknownPurchaserException:
         raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Invalid recipient")
+    except AssertionError as e:
+        # TODO somehow raising the correct exceptions is not working in the tests (see credit-limit-exceptions)
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail=f"Limit Exception: {str(e)}")
     except Exception as e:
         print(e)
         raise HTTPException(

@@ -119,7 +119,7 @@ class WhitelistService(CRUDBase[Whitelist, WhitelistCreate, WhitelistUpdate]):
         purchaser_entry = crud.purchaser.get(db, purchaser.id)
         if purchaser_entry is None:
             crud.purchaser.insert_new_purchaser(
-                db, PurchaserCreate(purchaser_id=purchaser.id, credit_limit=creditline_size)
+                db, PurchaserCreate(purchaser_id=purchaser.id, name=purchaser.name, credit_limit=creditline_size)
             )
 
         new_whitelist_entry = WhitelistCreate(

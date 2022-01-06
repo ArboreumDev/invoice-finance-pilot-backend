@@ -125,7 +125,7 @@ def supplier_x_auth_user(db_session, auth_user):
 def purchaser_x_auth_user(db_session, auth_user):
     """ one user and one supplier registered """
 
-    NEW_PURCHASER = PurchaserCreate(purchaser_id="p1", credit_limit=1000)
+    NEW_PURCHASER = PurchaserCreate(purchaser_id="p1", name="pname", credit_limit=1000)
     crud.purchaser.remove_if_there(db_session, NEW_PURCHASER.purchaser_id)
 
     purchaser_in_db = crud.purchaser.insert_new_purchaser(db_session, NEW_PURCHASER)

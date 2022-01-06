@@ -97,6 +97,7 @@ crud.supplier.create(db_session, obj_in=test_supplier)
 
 
 # insert whitelist seeds
+# (creating purchaser entries in the process)
 for purchaser in GURUGRUPA_RECEIVERS:
 	crud.whitelist.insert_whitelist_entry(
 		db=db_session,

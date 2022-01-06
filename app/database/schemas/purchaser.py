@@ -9,6 +9,7 @@ from utils.constant import DEFAULT_PURCHASER_LIMIT
 
 class PurchaserBase(BaseModel):
     purchaser_id: str 
+    name: str 
     credit_limit: int = DEFAULT_PURCHASER_LIMIT
     # TODO move those from whitelist to here
     # location_id: str 

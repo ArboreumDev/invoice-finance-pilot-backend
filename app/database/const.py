@@ -1,18 +1,19 @@
 import os 
 from dotenv import load_dotenv
 
+load_dotenv()
+
 # TODO get those from .env
 # POSTGRES SETUP
-TEST_DB_USER = "MwJ59dpuQT4ypdnXt"
+TEST_DB_USER = os.getenv("TEST_DB_USER") #"MwJ59dpuQT4ypdnXt"
 TEST_DB_HOST = "localhost"
 TEST_DB_PORT = os.getenv("POSTGRES_TEST_PORT")
-TEST_DB_PASSWORD = "Fj01gToHm4uv4f1LpBdvZn1RSR8wOWuRTClxBkdw4VQGKm0"
-TEST_DB_NAME = "arboreum_backend_test"
+TEST_DB_PASSWORD = os.getenv("TEST_DB_PASSWORD")
+TEST_DB_NAME = "arboreum_backend_prod"
 TEST_DB_URL = (
     f"postgresql://{TEST_DB_USER}:{TEST_DB_PASSWORD}@{TEST_DB_HOST}:{TEST_DB_PORT}/{TEST_DB_NAME}"
 )
 
-load_dotenv()
 POSTGRES_USER = os.getenv("POSTGRES_USER")
 POSTGRES_HOST = os.getenv("POSTGRES_HOST")
 POSTGRES_PORT = os.getenv("POSTGRES_PORT")

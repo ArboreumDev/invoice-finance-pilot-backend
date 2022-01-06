@@ -191,7 +191,7 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
 
     def get_sum_of_live_invoices_from_purchaser(self, purchaser_id, db: Session):
         invoices = self.get_all_invoices_from_purchaser(purchaser_id, db)
-        return sum([invoice_to_principal(i)  for i in invoices if i.status == FinanceStatus.FINANCED])
+        return sum([invoice_to_principal(i)  for i in invoices if i.finance_status == FinanceStatus.FINANCED])
 
     def get_all_invoices_from_supplier(self, supplier_id: str, db: Session):
         return db.query(Invoice).filter(Invoice.supplier_id == supplier_id).all()
@@ -287,7 +287,7 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
             msg = f"Relationship limit exceeded: {supplier_relationships[purchaser_id].available} not enough \
                     to fund invoice of value {value}"
             assert False, msg
-            # raise RelationshipLimitException(msg) # TODO
+            raise RelationshipLimitException(msg) # TODO
 
         # 2) receiver limit not crossed
         purchaser_invoices = crud.invoice.get_all_invoices_from_purchaser(purchaser_id, db)

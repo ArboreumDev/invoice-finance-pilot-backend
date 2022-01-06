@@ -14,7 +14,7 @@ from database.utils import reset_db
 # from database.test.fixtures import CUSTOMER_ID, p1, p2, OTHER_CUSTOMER_ID, OTHER_PURCHASER_ID, OTHER_LOCATION_ID
 from database.exceptions import DuplicatePurchaserEntryException, UnknownPurchaserException
 
-NEW_PURCHASER = PurchaserCreate(purchaser_id="p1", credit_limit=1000)
+NEW_PURCHASER = PurchaserCreate(purchaser_id="p1", name="pname", credit_limit=1000)
 
 @pytest.fixture(scope='function')
 def db(db_session):
