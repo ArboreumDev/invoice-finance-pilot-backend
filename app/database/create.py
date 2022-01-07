@@ -15,7 +15,7 @@ print ("Choose env: 1. production, 2. test")
 env = int(input())
 print('you chose: ', "production" if env==1 else "TEST")
 db_url = PROD_DB_URL if env==1 else TEST_DB_URL
-
+print('creating at', db_url)
 
 
 engine = create_engine(db_url, echo=True)

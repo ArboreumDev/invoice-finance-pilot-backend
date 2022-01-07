@@ -22,6 +22,15 @@ class UnknownPurchaserException(BaseException):
 class CreditLimitException(BaseException):
     pass
 
+class SupplierLimitException(CreditLimitException):
+    pass
+
+class PurchaserLimitException(CreditLimitException):
+    pass
+
+class RelationshipLimitException(BaseException):
+    pass
+
 class DuplicateInvoiceException(BaseException):
     pass
 
@@ -39,4 +48,33 @@ class InsufficientCreditException(BaseException):
 
 class DuplicateSupplierEntryException(BaseException):
     pass
+
+
+class DuplicatePurchaserEntryException(BaseException):
+    pass
+
+class NoInvoicesToBeTokenized(BaseException):
+    pass
+
+class InvoicesAlreadyTokenized(BaseException):
+    pass
+
+
+class InvoicesNotFinancable(BaseException):
+    pass
+
+class TokenizationException(BaseException):
+    pass
+
+class AssetLogException(BaseException):
+    pass
+
+class AssetCreationException(BaseException):
+    pass
+
+
+
+
+
+
 

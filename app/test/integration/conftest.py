@@ -3,6 +3,7 @@ import os
 import pytest
 from database import crud
 from database.models import Base, User
+from database.schemas.purchaser import PurchaserCreate
 from database.schemas.supplier import SupplierCreate
 from database.utils import reset_db
 from main import app
@@ -116,4 +117,19 @@ def supplier_x_auth_user(db_session, auth_user):
     yield supplier_in_db, auth_user
 
     crud.supplier.remove_if_there(db_session, CUSTOMER_ID)
+    reset_db(db_session)
+
+
+@pytest.fixture(scope="function")
+def purchaser_x_auth_user(db_session, auth_user):
+    """ one user and one supplier registered """
+
+    NEW_PURCHASER = PurchaserCreate(purchaser_id="p1", name="pname", credit_limit=1000)
+    crud.purchaser.remove_if_there(db_session, NEW_PURCHASER.purchaser_id)
+
+    purchaser_in_db = crud.purchaser.insert_new_purchaser(db_session, NEW_PURCHASER)
+
+    yield purchaser_in_db, auth_user
+
+    crud.purchaser.remove_if_there(db_session, NEW_PURCHASER.purchaser_id)
     reset_db(db_session)

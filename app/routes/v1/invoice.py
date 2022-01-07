@@ -5,7 +5,7 @@ from database.crud.invoice_service import invoice_to_terms
 from database.exceptions import (CreditLimitException,
                                  DuplicateInvoiceException,
                                  UnknownPurchaserException, WhitelistException)
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException
 from invoice.tusker_client import tusker_client
 from invoice.utils import db_invoice_to_frontend_info, raw_order_to_invoice
 from routes.dependencies import get_db
@@ -15,9 +15,9 @@ from starlette.status import (HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED,
                               HTTP_500_INTERNAL_SERVER_ERROR)
 from utils.common import (CamelModel, CreditLineInfo, InvoiceFrontendInfo,
                           PaymentDetails)
+from utils.image import image_blob_to_base64_html
 from utils.logger import get_logger
 from utils.security import check_jwt_token_role
-from utils.image import image_blob_to_base64_html
 
 # ===================== routes ==========================
 invoice_app = APIRouter()
@@ -31,9 +31,9 @@ class OrderRequest(CamelModel):
 
 @invoice_app.get("/order/{order_reference_number}", response_model=InvoiceFrontendInfo, tags=["orders"])
 def _get_order(
-        order_reference_number: str,
-        user_info: Tuple[str, str] = Depends(check_jwt_token_role),
-        db: Session = Depends(get_db),
+    order_reference_number: str,
+    user_info: Tuple[str, str] = Depends(check_jwt_token_role),
+    db: Session = Depends(get_db),
 ):
     """ read raw order data from tusker """
     username, role = user_info
@@ -119,6 +119,9 @@ def _add_new_invoice(order_reference_number: str, db: Session = Depends(get_db))
         raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Reciever not whitelisted")
     except UnknownPurchaserException:
         raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Invalid recipient")
+    except AssertionError as e:
+        # TODO somehow raising the correct exceptions is not working in the tests (see credit-limit-exceptions)
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail=f"Limit Exception: {str(e)}")
     except Exception as e:
         print(e)
         raise HTTPException(
@@ -142,10 +145,10 @@ def _get_creditSummary(user_info: Tuple[str, str] = Depends(check_jwt_token_role
 
 @invoice_app.post("/invoice/verification/{invoice_id}/{verified}", tags=["invoice"])
 def _mark_invoice_verification_status(
-        invoice_id: str,
-        verified: bool,
-        user_info: Tuple[str, str] = Depends(check_jwt_token_role),
-        db: Session = Depends(get_db),
+    invoice_id: str,
+    verified: bool,
+    user_info: Tuple[str, str] = Depends(check_jwt_token_role),
+    db: Session = Depends(get_db),
 ):
     username, role = user_info
     # if role != 'tusker':
@@ -159,7 +162,7 @@ def _mark_invoice_verification_status(
 
 @invoice_app.get("/invoice/image/{invoice_id}")
 def _get_invoice_image_from_tusker(
-        invoice_id: str, db: Session = Depends(get_db), user_info: Tuple[str, str] = Depends(check_jwt_token_role)
+    invoice_id: str, db: Session = Depends(get_db), user_info: Tuple[str, str] = Depends(check_jwt_token_role)
 ):
     if user_info[1] != "loanAdmin":
         raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Invalid Credentials")
@@ -181,8 +184,10 @@ def _get_invoice_image_from_tusker(
     if isinstance(image_filenames, str):
         image_filenames_list = image_filenames.split(",")
         # TODO: Needs tests and some error handling
-        images = [image_blob_to_base64_html(tusker_client.get_invoice_image(filename.strip()).content) for filename in
-                  image_filenames_list]
+        images = [
+            image_blob_to_base64_html(tusker_client.get_invoice_image(filename.strip()).content)
+            for filename in image_filenames_list
+        ]
         return {"images": images}
     else:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Invalid image link")

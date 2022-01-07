@@ -1,6 +1,6 @@
 import pytest
 from database import crud
-from database.exceptions import CreditLimitException, InsufficientCreditException, UnknownPurchaserException, WhitelistException
+from database.exceptions import CreditLimitException, InsufficientCreditException, UnknownPurchaserException, WhitelistException, RelationshipLimitException
 from utils.common import PurchaserInfo
 from typing import Tuple
 from database.test.fixtures import get_new_raw_order, OTHER_CUSTOMER_ID, OTHER_PURCHASER_ID
@@ -39,7 +39,8 @@ def test_insert_whitelisted_fail_unknown_purchaser(whitelist_entry: Tuple[Purcha
 
 def test_insert_whitelisted_fail_credit_limit(whitelist_entry: Tuple[PurchaserInfo, str, Session]):
     _p1, _supplier_id, db = whitelist_entry
-    with pytest.raises(CreditLimitException):
+    # with pytest.raises(RelationshipLimitException):
+    with pytest.raises(AssertionError, match=r".*Relationship*" ):
         invoice_service.check_credit_limit(
             raw_order=get_new_raw_order(
                 purchaser_name=_p1.name,

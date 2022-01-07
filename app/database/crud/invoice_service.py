@@ -1,7 +1,9 @@
 from database.crud import whitelist_service
 from database.schemas import whitelist
 from database.schemas import InvoiceCreate
-from database.exceptions import CreditLimitException, DuplicateInvoiceException, UnknownInvoiceException
+from database.exceptions import (
+    RelationshipLimitException, PurchaserLimitException, SupplierLimitException, 
+    DuplicateInvoiceException, UnknownInvoiceException, CreditLimitException)
 from database.db import SessionLocal, session
 import datetime as dt
 from database.models import Invoice, User, Supplier
@@ -12,7 +14,7 @@ from sqlalchemy.orm import Session
 import json
 from utils.common import LoanTerms, CreditLineInfo, PaymentDetails, PurchaserInfo, RealizedTerms
 from utils.constant import DISBURSAL_EMAIL, ARBOREUM_DISBURSAL_EMAIL
-from invoice.utils import raw_order_to_price
+from invoice.utils import raw_order_to_price, invoice_to_principal
 import uuid
 from database.crud.whitelist_service import  whitelist_entry_to_receiverInfo
 from database import crud
@@ -21,8 +23,8 @@ from database.models import Invoice
 from database.schemas import InvoiceCreate, InvoiceUpdate
 from utils.common import FinanceStatus
 from utils.loan import principal_to_interest
-from utils.constant import INVOICE_FUNDING_RATE
-
+from utils.constant import INVOICE_FUNDING_RATE, DEFAULT_PURCHASER_LIMIT
+from algorand.algo_service import algo_service
 
 
 
@@ -123,7 +125,7 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
     ):
         invoice = self.get(db, invoice_id)
         update = {}
-        if new_status == "FINANCED":
+        if new_status == FinanceStatus.FINANCED:
             if not all([loan_id, tx_id, disbursal_time]):
                 raise AssertionError("All extra finance info must be there")
             financed_on = dt.datetime.fromtimestamp(disbursal_time)
@@ -136,6 +138,30 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
                 }),
             }
             update['financed_on'] = financed_on
+
+        if new_status == FinanceStatus.REPAID:
+            self._logger.info(f"trying to log repayment of {invoice_id} on algorand chain")
+            if not tx_id:
+                raise AssertionError("All extra finance info must be there")
+            try:
+                new_tx_entry = algo_service.log_invoice_repayment(invoice_id, tx_id, db)
+                # update the list of transactions associated with the asset
+                # NOTE storing all that in the payment-details is starting to get messy
+                # we should start using pydantics JSON-support or create a proper table for this
+                # (or maybe just its own entry in the table)
+                tokenization_info = json.loads(invoice.payment_details).get('tokenization', {}) # this should not empty
+                # print('current tokenization', tokenization_info)
+                # print('old tokenization', len(tokenization_info['transactions']))
+                # print('new tx', new_tx_entry)
+                tokenization_info.get('transactions').update(new_tx_entry)
+                # print('new tokenization', tokenization_info)
+                # print('new tokenization', len(tokenization_info['transactions']))
+                crud.invoice.update_invoice_payment_details(
+                    invoice_id=invoice_id, new_data={"tokenization": tokenization_info}, db=db
+                )
+            except Exception as e:
+                self._logger.exception(f"ERROR logging payment to chain: {str(e)}")
+
         update['finance_status'] = new_status
         return self.update_and_log(db, invoice, update)
 
@@ -153,11 +179,22 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         invoice = self.get(db, invoice_id)
         payment_details = json.loads(invoice.payment_details)
         payment_details.update(new_data)
+        print('new data', new_data)
         self.update_and_log(db, invoice, {'payment_details': json.dumps(payment_details)})
 
     def get_all_invoices(self, db: Session):
         # TODO use skip & limit for pagination
         return self.get_multi(db)
+    
+    def get_all_invoices_from_purchaser(self, purchaser_id: str, db: Session):
+        return db.query(Invoice).filter(Invoice.purchaser_id == purchaser_id).all()
+
+    def get_sum_of_live_invoices_from_purchaser(self, purchaser_id, db: Session):
+        invoices = self.get_all_invoices_from_purchaser(purchaser_id, db)
+        return sum([invoice_to_principal(i)  for i in invoices if i.finance_status == FinanceStatus.FINANCED])
+
+    def get_all_invoices_from_supplier(self, supplier_id: str, db: Session):
+        return db.query(Invoice).filter(Invoice.supplier_id == supplier_id).all()
 
     def update_invoice_db(self, db: Session):
         """ get latest data for all invoices in db from tusker, compare shipment status,
@@ -216,7 +253,7 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
 
     def mark_as_paid(self, order_id: str):
         # mark as paid and reduce
-        pass
+        raise NotImplementedError('TODO')
 
     def prepare_disbursal(self, invoice: Invoice, db: Session):
         self._logger.info(f"Updating Invoice {invoice.id} with calculated terms...")
@@ -231,17 +268,46 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
 
 
     def check_credit_limit(self, raw_order, db: Session):
+        """
+        verify that:
+        1) Relationship limit is not crossed
+        2) receiver limit is not crossed
+        2) purchaser limit is not crossed
+        """
         target_location_id=raw_order.get('rcvr').get('id')
         supplier_id=raw_order.get('cust').get('id')
         purchaser_id = crud.whitelist.get_whitelisted_purchaser_from_location_id(db, supplier_id, target_location_id)
 
-        value=raw_order_to_price(raw_order)
-        credit = self.get_credit_line_info(supplier_id, db)
+        value=raw_order_to_price(raw_order) * INVOICE_FUNDING_RATE
+        supplier_relationships = self.get_credit_line_info(supplier_id, db)
 
-        if credit[purchaser_id].available < value:
-            raise CreditLimitException(
-                f"Not enough Credit available {credit[purchaser_id].available} to fund invoice of value {value}"
-            )
+        # 1) relationship limit
+        if supplier_relationships[purchaser_id].available < value:
+            # raise RelationshipLimitException(
+            msg = f"Relationship limit exceeded: {supplier_relationships[purchaser_id].available} not enough \
+                    to fund invoice of value {value}"
+            assert False, msg
+            raise RelationshipLimitException(msg) # TODO
+
+        # 2) receiver limit not crossed
+        purchaser_invoices = crud.invoice.get_all_invoices_from_purchaser(purchaser_id, db)
+        total_value_financed = sum(invoice_to_principal(i) for i in purchaser_invoices if i.finance_status == FinanceStatus.FINANCED)
+        purchaser = crud.purchaser.get(db, purchaser_id)
+        if purchaser.credit_limit < value + total_value_financed:
+            msg = f"Purchaser limit exceeded: Funded ({total_value_financed}) and invoice of value {value} \
+                exceed limit ({purchaser.credit_limit})."
+            assert False, msg
+            raise PurchaserLimitException(msg=msg)
+
+         # 3) supplier limit not crossed
+        supplier_invoices = crud.invoice.get_all_invoices_from_supplier(supplier_id, db)
+        total_value_financed = sum(invoice_to_principal(i) for i in supplier_invoices if i.finance_status == FinanceStatus.FINANCED)
+        supplier = crud.supplier.get(db, supplier_id)
+        if supplier.creditline_size < value + total_value_financed:
+            msg = f"Supplier limit exceeded: Funded ({total_value_financed}) and invoice of value {value} \
+                exceed limit ({supplier.creditline_size})."
+            assert False, msg
+            raise SupplierLimitException(msg)
 
         return True
 
@@ -253,8 +319,8 @@ class InvoiceService(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
             credit_line_size  = w_entry.creditline_size if w_entry.creditline_size != 0 else 0
 
             invoices = db.query(Invoice).filter(Invoice.purchaser_id == w_entry.purchaser_id).all()
-            to_be_repaid = sum(i.value for i in invoices if i.finance_status == FinanceStatus.FINANCED)
-            requested = sum(i.value for i in invoices if i.finance_status in [ FinanceStatus.DISBURSAL_REQUESTED, FinanceStatus.INITIAL])
+            to_be_repaid = sum(invoice_to_principal(i) for i in invoices if i.finance_status == FinanceStatus.FINANCED)
+            requested = sum(invoice_to_principal(i) for i in invoices if i.finance_status in [ FinanceStatus.DISBURSAL_REQUESTED, FinanceStatus.INITIAL])
             n_of_invoices = len(invoices)
 
             credit_line_breakdown[w_entry.purchaser_id] = CreditLineInfo(**{

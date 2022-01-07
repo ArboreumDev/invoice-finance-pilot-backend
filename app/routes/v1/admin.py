@@ -1,12 +1,13 @@
 from typing import Optional, Tuple
 
 import pendulum
+from algorand.algo_service import algo_service
 from database.crud.invoice_service import invoice as invoice_service
 from fastapi import APIRouter, Body, Depends, HTTPException
 from routes.dependencies import get_db
 from sqlalchemy.orm import Session
 from starlette.status import HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED
-from utils.common import CamelModel
+from utils.common import CamelModel, FinanceStatus
 from utils.security import check_jwt_token_role
 
 # ===================== routes ==========================
@@ -38,11 +39,11 @@ def update_invoice_finance_status(
 
     if update.signature_verification_result:
         invoice_service.update_invoice_payment_details(
-            update.invoice_id, {"verification_result": update.signature_verification_result}, db
+            update.invoice_id, {"signature_verification_result": update.signature_verification_result}, db
         )
 
     if update.new_status:
-        if update.new_status == "FINANCED":
+        if update.new_status == FinanceStatus.FINANCED:
             if not update.loan_id:
                 raise HTTPException(HTTP_400_BAD_REQUEST, "Missing value for loan_id")
 
@@ -74,3 +75,20 @@ def update_invoice_finance_status(
                 tx_id=update.tx_id,
             )
             return {"OK"}
+
+
+@admin_app.post("/asset/new/{loan_id}")
+def _create_new_asset_for_loan_id(
+    loan_id: str,
+    db: Session = Depends(get_db),
+    user_info: Tuple[str, str] = Depends(check_jwt_token_role),
+):
+    _, role = user_info
+    if role != "loanAdmin":
+        raise HTTPException(HTTP_401_UNAUTHORIZED, "Missing admin credentials")
+
+    try:
+        return algo_service.tokenize_loan(loan_id, db)
+    except Exception as e:
+        print(e)
+        raise HTTPException(HTTP_400_BAD_REQUEST, str(e))

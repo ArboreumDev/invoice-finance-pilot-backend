@@ -37,10 +37,14 @@ def test_insert_whitelist_entry(supplier_entry):
     extended_credit_after = crud.supplier.get_extended_creditline(db_session, CUSTOMER_ID)
     assert extended_credit_after == extended_credit_before + 50000
 
+# NOTE: it is no allowed for a supplier to create creditlines that sum up to a higher volume than their total credit 
+# limit. Compliance will only be measure against actually financed invoices
+@pytest.mark.xfail()
 def test_insert_whitelist_entry_failure_credit_limit(supplier_entry):
     supplier, db_session = supplier_entry
 
-    with pytest.raises(InsufficientCreditException):
+    with pytest.raises(InsufficientCreditException): # TODO why does it work here but not in test_credit_limit?
+    # with pytest.raises(AssertionError, match=r".*Relationship*" ):
         whitelist_service.insert_whitelist_entry(
             db_session,
             supplier_id=CUSTOMER_ID,

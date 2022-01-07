@@ -184,3 +184,52 @@ def invoice_x_supplier(supplier_entry) -> Tuple[Invoice, Session]:
     reset_db(db_session)
 
 
+@pytest.fixture(scope="function")
+def whitelisted_purchasers(db_session: Session):
+    """
+    create one supplier with two receivers with one invoice each
+    """
+    purchaser_limit = 2000
+    supplier_limit = 5000
+
+    reset_db(db_session)
+    insert_base_user(db_session)
+
+    _supplier_id=CUSTOMER_ID
+    supplier = crud.supplier.create(
+        db=db_session,
+        obj_in=SupplierCreate(
+            supplier_id=_supplier_id,
+            name="TestSupplier",
+            creditline_size=supplier_limit,
+            default_apr=0.142,
+            default_tenor_in_days=90,
+            data=""
+        ),
+    )
+
+    # create two whitelist entry for supplier
+    whitelist_service.insert_whitelist_entry(
+        db_session,
+        supplier_id=_supplier_id,
+        purchaser=p1,
+        creditline_size=purchaser_limit,
+        apr=0.1,
+        tenor_in_days=90
+    )
+    p1_obj = whitelist_service.get(db_session, _supplier_id, p1.id)
+
+    whitelist_service.insert_whitelist_entry(
+        db_session,
+        supplier_id=_supplier_id,
+        purchaser=p2,
+        creditline_size=purchaser_limit,
+        apr=0.1,
+        tenor_in_days=90
+    )
+    p2_obj = whitelist_service.get(db_session, _supplier_id, p2.id)
+
+    yield supplier, p1_obj, p2_obj, db_session
+
+    reset_db(db_session)
+

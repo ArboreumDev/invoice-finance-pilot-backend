@@ -12,6 +12,7 @@ from database.test.conftest import (db_session, insert_base_user,  # noqa: 401
 from database.test.fixtures import p1
 from invoice.tusker_client import tusker_client
 from main import app
+from routes.dependencies import get_db
 from sqlalchemy.orm import Session
 from starlette.status import (HTTP_200_OK, HTTP_400_BAD_REQUEST,
                               HTTP_401_UNAUTHORIZED)
@@ -144,3 +145,8 @@ def test_only_admin_can_update(db_session: Session):  # noqa: F811
     res = client.post("v1/admin/update", json={"update": {"invoice_id": "id1"}}, headers=auth_header)
 
     assert res.status_code == HTTP_401_UNAUTHORIZED
+
+
+@pytest.mark.skip()
+def test_tokenize_loan():
+    get_db()
