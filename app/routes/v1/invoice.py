@@ -181,13 +181,9 @@ def _get_invoice_image_from_tusker(
 
     # most test data wont have an image... for debugging purpose here is one that exists
     # image_link = "doc_fcdf7709-0436-40ce-a77e-629bee25fee8.jpeg"
-    if isinstance(image_filenames, str):
-        image_filenames_list = image_filenames.split(",")
+    if isinstance(image_filenames, list):
+        image_uri_list = [image['uri'] for image in image_filenames]
         # TODO: Needs tests and some error handling
-        images = [
-            image_blob_to_base64_html(tusker_client.get_invoice_image(filename.strip()).content)
-            for filename in image_filenames_list
-        ]
-        return {"images": images}
+        return {"images": image_uri_list}
     else:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Invalid image link")
