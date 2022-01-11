@@ -16,7 +16,6 @@ from starlette.status import (HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED,
                               HTTP_500_INTERNAL_SERVER_ERROR)
 from utils.common import (CamelModel, CreditLineInfo, InvoiceFrontendInfo,
                           PaymentDetails)
-from utils.image import image_blob_to_base64_html
 from utils.logger import get_logger
 from utils.security import check_jwt_token_role
 
@@ -190,19 +189,19 @@ def _get_invoice_image_from_tusker(
     documents = [d for d in raw_order.get("documents", []) if d.get("template_code", 0) == 1]
     if len(documents) == 0:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="No documents attached")
-    image_filenames = documents[0].get("particulars", {}).get("doc_image", "")
-    if not image_filenames:
-        raise HTTPException(status_code=HTTP_412_PRECONDITION_FAILED, detail="Empty doc_image link")
+    doc_list = documents[0].get("particulars", {}).get("doc_image", [])
+    image_uris = [i.get("uri", "") for i in doc_list]
 
+    if not len(image_uris) > 0 and len(image_uris[0]) > 0:
+        raise HTTPException(status_code=HTTP_412_PRECONDITION_FAILED, detail="Empty doc_image.uri fields")
+    return {"images": image_uris}
+
+    # old code I keep around as a working example how to prepare an image blob
     # most test data wont have an image... for debugging purpose here is one that exists
     # image_link = "doc_fcdf7709-0436-40ce-a77e-629bee25fee8.jpeg"
-    if isinstance(image_filenames, str):
-        image_filenames_list = image_filenames.split(",")
-        # TODO: Needs tests and some error handling
-        images = [
-            image_blob_to_base64_html(tusker_client.get_invoice_image(filename.strip()).content)
-            for filename in image_filenames_list
-        ]
-        return {"images": images}
-    else:
-        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail=f"Invalid image link for id {invoice_id}")
+    # if isinstance(image_filenames, str):
+    # image_filenames_list = image_filenames.split(",")
+    # images = [
+    #     # image_blob_to_base64_html(tusker_client.get_invoice_image(filename.strip()).content)
+    #     for filename in image_filenames_list
+    # ]
