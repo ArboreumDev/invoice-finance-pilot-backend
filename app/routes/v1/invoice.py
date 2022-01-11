@@ -49,7 +49,10 @@ def _get_order(
             supplier = crud.supplier.get(db, supplier_id)
             supplier_desc = ""
             if supplier:
-                phone = json.loads(supplier.data)['phone']
+                try: 
+                    phone = json.loads(supplier.data)['phone']
+                except Exception as e: 
+                    phone = "could not fetch"
                 supplier_desc = f"{supplier.name} ({phone})"
             else: 
                 supplier_desc = "NO MATCHING IN DB"

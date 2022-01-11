@@ -167,7 +167,12 @@ class WhitelistService(CRUDBase[Whitelist, WhitelistCreate, WhitelistUpdate]):
         for whitelist_entry in self.get_whitelist(db, supplier_id):
             self.update_whitelist_entry( db, supplier_id, whitelist_entry.purchaser_id, update)
 
-
+    def remove_if_there(self, db: Session, supplier_id: str, purchaser_id: str):
+        obj = self.get(db, supplier_id, purchaser_id)
+        if obj:
+            db.delete(obj)
+            db.commit()
+ 
 
 
 whitelist = WhitelistService(Whitelist)

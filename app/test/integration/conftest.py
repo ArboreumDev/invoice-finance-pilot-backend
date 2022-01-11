@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from starlette.testclient import TestClient
 from utils.constant import GURUGRUPA_CUSTOMER_DATA, GURUGRUPA_CUSTOMER_ID
 from utils.logger import get_logger
+from database.test.fixtures import p1
 
 TEST_DB_USER = os.getenv("POSTGRES_USER")
 TEST_DB_HOST = os.getenv("POSTGRES_TEST_HOST")
@@ -122,14 +123,17 @@ def supplier_x_auth_user(db_session, auth_user):
 
 @pytest.fixture(scope="function")
 def purchaser_x_auth_user(db_session, auth_user):
-    """ one user and one supplier registered """
+    """ whitelist_entry, one purchaser and one supplier registered """
 
-    NEW_PURCHASER = PurchaserCreate(purchaser_id="p1", name="pname", credit_limit=1000)
+    NEW_PURCHASER = PurchaserCreate(purchaser_id=p1.id, name=p1.name, credit_limit=1000)
     crud.purchaser.remove_if_there(db_session, NEW_PURCHASER.purchaser_id)
+    crud.whitelist.remove_if_there(db_session, 's1', NEW_PURCHASER.purchaser_id)
 
-    purchaser_in_db = crud.purchaser.insert_new_purchaser(db_session, NEW_PURCHASER)
+    crud.whitelist.insert_whitelist_entry(db_session, supplier_id='s1', purchaser=p1, creditline_size=100000, apr=.1, tenor_in_days=90)
+    purchaser_in_db = crud.purchaser.get(db_session, NEW_PURCHASER.purchaser_id)
 
     yield purchaser_in_db, auth_user
 
     crud.purchaser.remove_if_there(db_session, NEW_PURCHASER.purchaser_id)
+    crud.whitelist.remove_if_there(db_session, 's1', NEW_PURCHASER.purchaser_id)
     reset_db(db_session)
