@@ -47,7 +47,7 @@ def _get_purchasers(
                 credit_used=crud.invoice.get_sum_of_live_invoices_from_purchaser(p.purchaser_id, db),
                 phone=whitelist_entry.phone,
                 city=whitelist_entry.city,
-                location_id=whitelist_entry.location_id
+                location_id=whitelist_entry.location_id,
             )
         )
     return ret

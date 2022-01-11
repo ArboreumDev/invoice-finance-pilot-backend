@@ -5,7 +5,7 @@ from database.crud.purchaser_service import purchaser as purchaser_service
 from database.schemas import PurchaserCreate
 from database.utils import reset_db
 from routes.v1.purchaser import PurchaserUpdateInput
-from starlette.status import (HTTP_200_OK, HTTP_401_UNAUTHORIZED)
+from starlette.status import HTTP_200_OK, HTTP_401_UNAUTHORIZED
 
 NEW_PURCHASER = PurchaserCreate(purchaser_id="p1", name="name", credit_limit=1000)
 

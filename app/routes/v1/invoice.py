@@ -1,5 +1,5 @@
-from typing import Dict, List, Tuple
 import json
+from typing import Dict, List, Tuple
 
 from database import crud
 from database.crud.invoice_service import invoice_to_terms
@@ -49,16 +49,16 @@ def _get_order(
             supplier = crud.supplier.get(db, supplier_id)
             supplier_desc = ""
             if supplier:
-                try: 
-                    phone = json.loads(supplier.data)['phone']
-                except Exception as e: 
+                try:
+                    phone = json.loads(supplier.data)["phone"]
+                except Exception:
                     phone = "could not fetch"
                 supplier_desc = f"{supplier.name} ({phone})"
-            else: 
+            else:
                 supplier_desc = "NO MATCHING IN DB"
             msg = f"""
                 Target location {raw_order.get('rcvr')} not whitelisted for supplier {supplier_desc}.
-                You might need to add other locations of the purchaser/supplier (see phone numbers in search details) 
+                You might need to add other locations of the purchaser/supplier (see phone numbers in search details)
             """
             raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail=msg)
         else:

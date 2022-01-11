@@ -1,12 +1,11 @@
 # %%
 import copy
+import json
 import os
 from typing import List
-import json
 
 import requests
 from dotenv import load_dotenv
-from utils.common import PurchaserInfo
 from utils.constant import GURUGRUPA_CUSTOMER_ID, TUSKER_DEFAULT_NEW_ORDER
 
 load_dotenv()
@@ -156,8 +155,8 @@ class TuskerClient:
                 "phone": phone,
                 "city": city,
                 "locationId": loc_id,
-                "data": json.dumps(user)
-            } 
+                "data": json.dumps(user),
+            }
             found.append(rr)
 
         return {"results": found, "status": "OK"}
