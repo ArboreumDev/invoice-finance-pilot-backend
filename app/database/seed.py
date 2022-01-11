@@ -1,5 +1,6 @@
 
 from utils.common import PurchaserInfo, WhiteListEntry
+import json
 from utils.constant import MAX_CREDIT, DEFAULT_LOAN_TENOR, MONTHLY_INTEREST , OTHER_CUSTOMER_ID
 from database.models import User, Supplier
 from database.schemas.supplier import SupplierCreate
@@ -60,13 +61,15 @@ GURUGRUPA_RECEIVERS = [
 tusker_user = User(
 	email = "tusker@mail.india",
 	username = "tusker",
-	hashed_password = "$2b$12$8t8LDzm.Ag68n6kv8pZoI.Oqd1x1rczNfe8QUcZwp6wnX8.dse0Ni", # pw=tusker
+	hashed_password = "$2b$12$bCK8z1u481RV1y/S.8lEm.c7n2.m2.FigzHzkxdfIWy2Ou0lu6nii",
+	# hashed_password = "$2b$12$8t8LDzm.Ag68n6kv8pZoI.Oqd1x1rczNfe8QUcZwp6wnX8.dse0Ni", # pw=tusker
 	role = "tusker",
 )
 loan_admin = User(
 	email = "avinash@arboreum.dev",
 	username = "avinash",
-	hashed_password = "$2b$12$NuzME53eqmA211BN3CQI.eMfaiQwVkV5JAy/9qDuyDQXoqRDtpmBC", # pw=singh
+	hashed_password = "$2b$12$rui/rXspT/Nn98Qdl8EqlOCbe5JeNTkpVHJOjWLOyrT211Z.FQsjy",
+	# hashed_password = "$2b$12$NuzME53eqmA211BN3CQI.eMfaiQwVkV5JAy/9qDuyDQXoqRDtpmBC", # pw=singh
 	role = "loanAdmin",
 )
 
@@ -76,12 +79,12 @@ db_session.add(loan_admin)
 # insert gurugrupa and test customer into Supplier DB
 gurugrupa = SupplierCreate(
 	supplier_id=GURUGRUPA_CUSTOMER_ID,
-	name='Gurugrupa',
+	name='Gurukrupa',
 	creditline_size=MAX_CREDIT * (len(GURUGRUPA_RECEIVERS) + 3),
 	default_apr=MONTHLY_INTEREST,
 	# default_apr=.3,
 	default_tenor_in_days=DEFAULT_LOAN_TENOR,
-	data=GURUGRUPA_CUSTOMER_DATA
+	data=json.dumps(GURUGRUPA_CUSTOMER_DATA)
 )
 crud.supplier.create(db_session, obj_in=gurugrupa)
 

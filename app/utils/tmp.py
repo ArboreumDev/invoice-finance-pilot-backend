@@ -9,5 +9,7 @@ pwd_context = CryptContext(schemes=["bcrypt"])
 def get_hashed_password(password: str):
     return pwd_context.hash(password)
 
-
-print(get_hashed_password("singh"))
+tp = "tuskerpassworkd"
+at = "avinashpw"
+print(get_hashed_password(tp))
+print(get_hashed_password(at))

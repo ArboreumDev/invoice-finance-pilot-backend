@@ -1,3 +1,4 @@
+import json
 from test.integration.conftest import client
 
 import pytest
@@ -12,7 +13,7 @@ new_supplier_input = SupplierInput(
     creditline_size=50000,
     default_apr=0.1,
     default_tenor_in_days=90,
-    data=GURUGRUPA_CUSTOMER_DATA,
+    data=json.dumps(GURUGRUPA_CUSTOMER_DATA),
 ).dict()
 
 
