@@ -24,6 +24,9 @@ class PurchaserFrontendInfo(CamelModel):
     name: str
     credit_limit: int
     credit_used: int
+    city: str = ""
+    location_id: str = ""
+    phone: str = ""
 
 
 @purchaser_app.get("/purchaser", response_model=List[PurchaserFrontendInfo], tags=["purchaser"])
@@ -32,15 +35,22 @@ def _get_purchasers(
     db: Session = Depends(get_db),
 ):
     purchasers = crud.purchaser.get_all(db)
-    return [
-        PurchaserFrontendInfo(
-            id=p.purchaser_id,
-            name=p.name,
-            credit_limit=p.credit_limit,
-            credit_used=crud.invoice.get_sum_of_live_invoices_from_purchaser(p.purchaser_id, db),
+    ret = []
+    for p in purchasers:
+        # TODO its stupid that those are stored on the whitelist entry
+        whitelist_entry = crud.whitelist.get_from_purchaser_id(db, p.purchaser_id)
+        ret.append(
+            PurchaserFrontendInfo(
+                id=p.purchaser_id,
+                name=p.name,
+                credit_limit=p.credit_limit,
+                credit_used=crud.invoice.get_sum_of_live_invoices_from_purchaser(p.purchaser_id, db),
+                phone=whitelist_entry.phone,
+                city=whitelist_entry.city,
+                location_id=whitelist_entry.location_id
+            )
         )
-        for p in purchasers
-    ]
+    return ret
 
 
 @purchaser_app.post("/purchaser/update", response_model=Dict, tags=["purchaser"])

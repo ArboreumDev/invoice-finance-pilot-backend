@@ -2,6 +2,7 @@
 import copy
 import os
 from typing import List
+import json
 
 import requests
 from dotenv import load_dotenv
@@ -149,13 +150,14 @@ class TuskerClient:
             city = user.get("loc").get("addr").get("city")
             phone = user.get("cntct").get("p_mob")
             loc_id = user.get("loc").get("id")
-            rr = PurchaserInfo(
-                id=user.get("id"),
-                name=user.get("cntct").get("name"),
-                phone=phone,
-                city=city,
-                location_id=loc_id,
-            )
+            rr = {
+                "id": user.get("id"),
+                "name": user.get("cntct").get("name"),
+                "phone": phone,
+                "city": city,
+                "locationId": loc_id,
+                "data": json.dumps(user)
+            } 
             found.append(rr)
 
         return {"results": found, "status": "OK"}

@@ -38,12 +38,15 @@ class WhitelistService(CRUDBase[Whitelist, WhitelistCreate, WhitelistUpdate]):
         else: 
             raise UnknownPurchaserException("unknown location id")
 
-    def purchaser_id_to_location(self, db: Session, _purchaser_id: str):
-        l = db.query(Whitelist.location_id).filter_by(purchaser_id=_purchaser_id).first()
+    def get_from_purchaser_id(self, db: Session, _purchaser_id: str):
+        l = db.query(Whitelist).filter_by(purchaser_id=_purchaser_id).first()
         if l: 
-            return l[0]
+            return l
         else: 
             raise UnknownPurchaserException("unkwown purchaser id")
+
+    def purchaser_id_to_location(self, db: Session, _purchaser_id: str):
+        return self.get_from_purchaser_id(db, _purchaser_id).location_id
 
     def get_whitelisted_purchaser_ids(self, db: Session, supplier_id: str):
         res_tuples = db.query(Whitelist.purchaser_id).filter_by(supplier_id = supplier_id).all()

@@ -1,4 +1,5 @@
 from typing import Dict, List, Tuple
+import json
 
 from database import crud
 from database.crud.invoice_service import invoice_to_terms
@@ -45,7 +46,18 @@ def _get_order(
         supplier_id = raw_order.get("cust").get("id")
         target_location_id = raw_order.get("rcvr").get("id")
         if not whitelist_service.location_is_whitelisted(db, supplier_id, target_location_id):
-            raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Target not whitelisted for supplier")
+            supplier = crud.supplier.get(db, supplier_id)
+            supplier_desc = ""
+            if supplier:
+                phone = json.loads(supplier.data)['phone']
+                supplier_desc = f"{supplier.name} ({phone})"
+            else: 
+                supplier_desc = "NO MATCHING IN DB"
+            msg = f"""
+                Target location {raw_order.get('rcvr')} not whitelisted for supplier {supplier_desc}.
+                You might need to add other locations of the purchaser/supplier (see phone numbers in search details) 
+            """
+            raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail=msg)
         else:
             # get hypothetical terms
             invoice = raw_order_to_invoice(raw_order)
@@ -190,4 +202,4 @@ def _get_invoice_image_from_tusker(
         ]
         return {"images": images}
     else:
-        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Invalid image link")
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail=f"Invalid image link for id {invoice_id}")

@@ -50,6 +50,7 @@ def _get_suppliers(user_info: Tuple[str, str] = Depends(check_jwt_token_role), d
                 "creditline_size": s.creditline_size,
                 "creditline_id": s.creditline_id,
                 "default_terms": {"apr": s.default_apr, "tenor_in_days": s.default_tenor_in_days, "creditline_size": 0},
+                'data': s.data
             }
         ).dict()
         for s in suppliers

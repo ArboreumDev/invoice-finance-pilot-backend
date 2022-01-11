@@ -79,6 +79,7 @@ class SupplierInfo(CamelModel):
     creditline_id: str = ""
     creditline_size: int = 0
     default_terms: Terms = Terms()
+    data: str = ""
 
 
 class Invoice(BaseInvoice):
