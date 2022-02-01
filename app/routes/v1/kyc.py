@@ -48,22 +48,23 @@ class UserUpdateInput(CamelModel):
     business_bank_verification_dump: Optional[str] = None
 
 class ImageUpdateInput(CamelModel):
-    bank_statement: str
-    pan_image: str
-    aadhar_image: str
-    proprietor_itr: str
-    gst_certificate: str
-    business_bank_statement: str
-    business_itr: str
-    partnership_deed: str
-    aoa_moa_certificate: str
+    bank_statement: Optional[str] = None
+    pan_image: Optional[str] = None
+    aadhar_image: Optional[str] = None
+    proprietor_itr: Optional[str] = None
+    gst_certificate: Optional[str] = None
+    business_bank_statement: Optional[str] = None
+    business_itr: Optional[str] = None
+    partnership_deed: Optional[str] = None
+    aoa_moa_certificate: Optional[str] = None
 
 kyc_app = APIRouter()
 
 @kyc_app.post("/notification/new")
-def _notify_user(
+def _notify_manual_verifier(
     documentType: ManualVerification,
     # phone_number: str = Body(...)
+    summary="Sends an email to the loan admin with info on the document to be manually verified"
 ):
     # send email to loan manager to check latest thing! as background task
     return {'status': "success"}
