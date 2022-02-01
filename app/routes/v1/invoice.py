@@ -42,8 +42,11 @@ def _get_order(
     # check against whitelist
     if raw_orders:
         raw_order = raw_orders[0]
+        # supplier_id = raw_order.get("shipper_contact").get("o_id")
         supplier_id = raw_order.get("cust").get("id")
         target_location_id = raw_order.get("rcvr").get("id")
+        print('supplier_id', supplier_id)
+        print('target_id', target_location_id)
         if not whitelist_service.location_is_whitelisted(db, supplier_id, target_location_id):
             supplier = crud.supplier.get(db, supplier_id)
             supplier_desc = ""
@@ -192,7 +195,7 @@ def _get_invoice_image_from_tusker(
     doc_list = documents[0].get("particulars", {}).get("doc_image", [])
     image_uris = [i.get("uri", "") for i in doc_list]
 
-    if not len(image_uris) > 0 and len(image_uris[0]) > 0:
+    if len(image_uris) == 0 or len(image_uris[0]) > 0:
         raise HTTPException(status_code=HTTP_412_PRECONDITION_FAILED, detail="Empty doc_image.uri fields")
     return {"images": image_uris}
 

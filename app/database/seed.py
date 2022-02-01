@@ -73,8 +73,16 @@ loan_admin = User(
 	role = "loanAdmin",
 )
 
+gupshup_user = User(
+	email = "",
+	username = "gupshup",
+	hashed_password = "$2b$12$BVA3CzV0YznzfVaobNXhG.rB6z.moH2LyMKTFmhfKsTXJYLpblDWS", # pw=gupshup
+	role = "gupshup",
+)	
+
 db_session.add(tusker_user)
 db_session.add(loan_admin)
+db_session.add(gupshup_user)
 
 # insert gurugrupa and test customer into Supplier DB
 gurugrupa = SupplierCreate(
