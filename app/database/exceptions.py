@@ -73,6 +73,11 @@ class AssetCreationException(BaseException):
     pass
 
 
+class UnknownPhoneNumberException(BaseException):
+    pass
+
+
+
 
 
 

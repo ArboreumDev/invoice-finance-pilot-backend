@@ -9,54 +9,10 @@ from fastapi import APIRouter, Body, Depends, HTTPException
 from starlette.status import HTTP_400_BAD_REQUEST
 from utils.common import CamelModel
 from utils.security import check_jwt_token_role, RoleChecker
+from database.crud.kycuser_service import (
+    ImageUpdateInput, UserUpdateInput, ManualVerification, BusinessType
+)
 
-
-class BusinessType(str, Enum):
-    PROPRIETOR = "PROPRIETOR"
-    PARTNERSHIP = "PARTNERSHIP"
-    LIMITED = "LIMITED"
-
-class ManualVerification(str, Enum):
-    AOAMOA = "AOAMOA"
-    PARTNERSHIP = "PARTNERSHIP"
-    ITR = "ITR"
-    BUSINESSITR = "BUSINESSITR"
-    GST = "GST"
-    BANKSTATEMENT = "BANKSTATEMENT"
-    BUSINESSBANKSTATEMENT = "BUSINESSBANKSTATEMENT"
-    COMPLETED = "COMPLETED"
-
-class UserUpdateInput(CamelModel):
-    phone_number: Optional[str] = None
-    email: Optional[str] = None
-    business_type: Optional[BusinessType] = None
-    pan_number: Optional[str] = None
-    residential_address: Optional[str] = None
-    pan_verification_dump: Optional[str] = None
-    aadhar_number: Optional[str] = None
-    aadhar_verification_dump: Optional[str] = None
-    bank_account: Optional[str] = None
-    bank_verification_dump: Optional[str] = None
-    ifsc: Optional[str] = None
-    gst_number: Optional[str] = None
-    gst_verification_dump: Optional[str] = None
-    business_pan_number: Optional[str] = None
-    business_pan_verification_dump: Optional[str] = None
-    business_address: Optional[str] = None
-    business_bank_account: Optional[str] = None
-    business_ifsc: Optional[str] = None
-    business_bank_verification_dump: Optional[str] = None
-
-class ImageUpdateInput(CamelModel):
-    bank_statement: Optional[str] = None
-    pan_image: Optional[str] = None
-    aadhar_image: Optional[str] = None
-    proprietor_itr: Optional[str] = None
-    gst_certificate: Optional[str] = None
-    business_bank_statement: Optional[str] = None
-    business_itr: Optional[str] = None
-    partnership_deed: Optional[str] = None
-    aoa_moa_certificate: Optional[str] = None
 
 kyc_app = APIRouter()
 
@@ -94,7 +50,7 @@ def _update_user_data(
     description="upload user images, appending to existing data"
     )
 def _update_user_images(
-    update: UserUpdateInput,
+    update: ImageUpdateInput,
 ):
     # TODO either implement scoped security or write callable dependancy instance that checks the user role
     return {'status': "success"}
