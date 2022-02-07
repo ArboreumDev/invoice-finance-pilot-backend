@@ -1,8 +1,16 @@
 from database.exceptions import (UnknownPhoneNumberException)
+import json
+import pendulum
+import copy
+from enum import Enum
+from fastapi.encoders import jsonable_encoder
 from database.db import SessionLocal, session
 import datetime as dt
+from utils.common import CamelModel
+from utils.common import CamelModel
+from database.utils import serialize
 # from database.models import Invoice, User, Supplier
-from typing import Dict
+from typing import Dict, Optional
 # from utils.email import EmailClient, terms_to_email_body
 from sqlalchemy.orm import Session
 import json
@@ -31,7 +39,7 @@ class ManualVerification(str, Enum):
     COMPLETED = "COMPLETED"
 
 class UserUpdateInput(CamelModel):
-    phone_number: Optional[str] = None
+    phone_number: str
     email: Optional[str] = None
     business_type: Optional[BusinessType] = None
     pan_number: Optional[str] = None
@@ -52,6 +60,7 @@ class UserUpdateInput(CamelModel):
     business_bank_verification_dump: Optional[str] = None
 
 class ImageUpdateInput(CamelModel):
+    phone_number: str
     bank_statement: Optional[str] = None
     pan_image: Optional[str] = None
     aadhar_image: Optional[str] = None
@@ -63,35 +72,103 @@ class ImageUpdateInput(CamelModel):
     aoa_moa_certificate: Optional[str] = None
 
 
+class VerificationStatus(str, Enum):
+    UNVERIFIED = "UNVERIFIED"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+    NOT_REQUIRED = "NOT_REQUIRED"
+
+
+AUTO_CHECK_DOCS = ["pan_image", "aadhar_image"]
+
+def requires_manual_check(doc_name: str):
+    return doc_name not in AUTO_CHECK_DOCS
+
+
+
+
 class KYCUserService(CRUDBase[KYCUser, KYCUserCreate, KYCUserUpdate]):
-    def get_user(self, phone_number: str, db: Session):
-        # return none if not found
-        pass
+    def get(self, phone_number: str, db: Session):
+        return db.query(KYCUser).filter(KYCUser.phone_number == phone_number).first()
 
-    def insert_new_user(self, args, db: Session):
-        # insert new user with status initial
-        # empty data & images
-        pass
+    def insert_new_user(self, phone_number: str, db: Session):
+        """ insert new user with status initial, empty data & images """
+        user_entry = self.get(phone_number, db)
 
-    def _update_user_data(self, db):
-        # fetch user object, decode, find relevant key and replace
-        # then recode and store
-        # see how to turn it into a string
-        # https://fastapi.tiangolo.com/tutorial/encoder/
-        # see this how to intelligably update
-        # https://fastapi.tiangolo.com/tutorial/body-updates/
-        pass
+        if user_entry:
+            self._logger.error(f"Update target not found: {phone_number}")
+            raise UnknownPhoneNumberException("KYC User already exists")
 
-    def _update_user_image(self, db):
-        # fetch user object, decode, find relevant key and append
-        # TODO LEVEL 1: just store the image link in the []
+        init_data = json.dumps(jsonable_encoder({'data': {}, 'images': {}}))
+        new_user = KYCUserCreate(
+            phone_number=phone_number,
+            status=KYCStatus.INITIAL,
+            data=init_data
+        )
+        kyc_user = self.create(db, obj_in=new_user)
+        return kyc_user
 
-        # TODO LEVEL 2: download image from link and store in file-path
-        file = requests.get(filename)
-        filepath = create_filepath()
-        image_service.store(file)
-        # append filepath to object
+    def _update_user_data(self, update: UserUpdateInput, db: Session):
+        user_entry = self.get(update.phone_number, db)
+        if not user_entry:
+            msg = f"Update target not found: {update.phone_number}"
+            self._logger.error(msg)
+            raise UnknownPhoneNumberException(msg)
 
-        # then recode and store
-        pass
+        # fetch user object, decode, find relevant keys and replace
+        new_data = copy.deepcopy(user_entry.data)
+        new_data.get('data',{}).update(update.dict(exclude_unset=True))
+        return super().update(
+            db=db,
+            db_obj=user_entry,
+            obj_in=KYCUserUpdate(
+                phone_number=update.phone_number,
+                status=KYCStatus.IN_PROGRESS,
+                data=serialize(new_data)
+            )
+        )
 
+    def _update_user_image(self, update: ImageUpdateInput, db: Session):
+        user_entry = self.get(update.phone_number, db)
+        if not user_entry:
+            msg = f"Update target not found: {update.phone_number}"
+            self._logger.error(msg)
+            raise UnknownPhoneNumberException(msg)
+
+        # LEVEL 1: just store the image link in the []
+        # - fetch user object, decode, find relevant key and append
+        # create new data object to be stored and append updates
+        new_user_data = copy.deepcopy(user_entry.data)
+        for key, filename in update.dict(exclude_unset=True).items():
+            if key == "phone_number": continue
+            print('appending', filename, 'at ', key)
+            # TODO LEVEL 2: download image from link and store in file-path
+            # file = requests.get(filename)
+            # filepath = create_filepath()
+            # image_service.store(file)
+
+            # create new object with existing & new filepaths
+            new_image_data = new_user_data['images'].get(
+                key,
+                {
+                    "filenames": [],
+                    "upload_dates": [],
+                    "verification": VerificationStatus.UNVERIFIED if requires_manual_check(doc_name=key) else VerificationStatus.NOT_REQUIRED
+                }
+             )
+            new_image_data['filenames'].append(filename)
+            new_image_data['upload_dates'].append(pendulum.now().int_timestamp)
+            # store under new data object
+            new_user_data['images'][key] = new_image_data
+
+        return super().update(
+            db=db,
+            db_obj=user_entry,
+            obj_in=KYCUserUpdate(
+                phone_number=update.phone_number,
+                status=KYCStatus.IN_PROGRESS,
+                data=serialize(new_user_data),
+            )
+        )
+
+kyc_user = KYCUserService(KYCUser)

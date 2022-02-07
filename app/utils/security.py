@@ -1,6 +1,6 @@
 import time
-from typing import Tuple
 from datetime import datetime, timedelta
+from typing import Tuple
 
 import jwt
 from database.models import User
@@ -94,4 +94,3 @@ class RoleChecker:
             if role != self.role:
                 raise HTTPException(HTTP_401_UNAUTHORIZED, "Missing credentials")
         return True
-

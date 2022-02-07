@@ -45,8 +45,8 @@ def _get_order(
         # supplier_id = raw_order.get("shipper_contact").get("o_id")
         supplier_id = raw_order.get("cust").get("id")
         target_location_id = raw_order.get("rcvr").get("id")
-        print('supplier_id', supplier_id)
-        print('target_id', target_location_id)
+        print("supplier_id", supplier_id)
+        print("target_id", target_location_id)
         if not whitelist_service.location_is_whitelisted(db, supplier_id, target_location_id):
             supplier = crud.supplier.get(db, supplier_id)
             supplier_desc = ""

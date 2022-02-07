@@ -1,5 +1,6 @@
 from typing import List, Optional, Dict
 from pydantic import BaseModel
+from enum import Enum
 
 class KYCStatus(str, Enum):
     INITIAL = "INITIAL"
@@ -10,8 +11,9 @@ class KYCStatus(str, Enum):
 class KYCUserBase(BaseModel):
     phone_number: str 
     status: KYCStatus
-    # data: Dict # is this the way to tell pydantic that we store a jsonb?
-    data: str # if we go with just encoding the string
+    data: str # is this the way to tell pydantic that we store a jsonb?
+    class Config:
+        orm_mode = True
 
 
 class KYCUserCreate(KYCUserBase):
