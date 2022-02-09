@@ -18,9 +18,11 @@ import json
 # from utils.constant import DISBURSAL_EMAIL, ARBOREUM_DISBURSAL_EMAIL
 import uuid
 from database import crud
+from database.image_service import image_service
 from database.crud.base import CRUDBase
 from database.models import KYCUser
 from database.schemas import KYCUserCreate, KYCUserUpdate, KYCStatus
+
 
 
 class BusinessType(str, Enum):
@@ -139,27 +141,23 @@ class KYCUserService(CRUDBase[KYCUser, KYCUserCreate, KYCUserUpdate]):
         # - fetch user object, decode, find relevant key and append
         # create new data object to be stored and append updates
         new_user_data = copy.deepcopy(user_entry.data)
-        for key, filename in update.dict(exclude_unset=True).items():
-            if key == "phone_number": continue
-            print('appending', filename, 'at ', key)
+        for doc_name, image_url in update.dict(exclude_unset=True).items():
+            if doc_name == "phone_number": continue
             # TODO LEVEL 2: download image from link and store in file-path
-            # file = requests.get(filename)
-            # filepath = create_filepath()
-            # image_service.store(file)
-
-            # create new object with existing & new filepaths
+            path = image_service.fetch_and_store(image_url=image_url, doc_name=doc_name, phone_number=update.phone_number)
+           # create new object with existing & new filepaths
             new_image_data = new_user_data['images'].get(
-                key,
+                doc_name,
                 {
                     "filenames": [],
                     "upload_dates": [],
-                    "verification": VerificationStatus.UNVERIFIED if requires_manual_check(doc_name=key) else VerificationStatus.NOT_REQUIRED
+                    "verification": VerificationStatus.UNVERIFIED if requires_manual_check(doc_name=doc_name) else VerificationStatus.NOT_REQUIRED
                 }
              )
-            new_image_data['filenames'].append(filename)
+            new_image_data['filenames'].append(path)
             new_image_data['upload_dates'].append(pendulum.now().int_timestamp)
             # store under new data object
-            new_user_data['images'][key] = new_image_data
+            new_user_data['images'][doc_name] = new_image_data
 
         return super().update(
             db=db,
@@ -170,5 +168,27 @@ class KYCUserService(CRUDBase[KYCUser, KYCUserCreate, KYCUserUpdate]):
                 data=serialize(new_user_data),
             )
         )
+
+    def get_all_user_images(self, phone_number: str, db: Session):
+        user_entry = self.get(phone_number, db)
+        if not user_entry:
+            msg = f"User not found: {phone_number}"
+            self._logger.error(msg)
+            raise UnknownPhoneNumberException(msg)
+
+        all_filenames = []
+        for image_obj in user_entry.data['images'].values():
+            # print('img-ob', image_obj)
+            all_filenames += image_obj['filenames']
+        return all_filenames
+
+    def create_zip_file(self, phone_number: str, db: Session):
+        user_entry = self.get(phone_number, db)
+        if not user_entry:
+            msg = f"User not found: {phone_number}"
+            self._logger.error(msg)
+            raise UnknownPhoneNumberException(msg)
+
+
 
 kyc_user = KYCUserService(KYCUser)

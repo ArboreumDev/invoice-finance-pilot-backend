@@ -28,7 +28,12 @@ app = FastAPI()
 # app.include_router(purchaser_app, prefix="/v1", dependencies=[Depends(log_request)])
 # app.include_router(purchaser_app, prefix="/v1", dependencies=[Depends(check_jwt_token_role), Depends(log_request)])
 # app.include_router(test_app, prefix="/v1/test", dependencies=[])
-# app.include_router(admin_app, prefix="/v1/admin", dependencies=[])
+app.include_router(
+    admin_app,
+    prefix="/v1/admin",
+    dependencies=[Depends(RoleChecker('loanAdmin'))],
+    tags=['admin']
+)
 app.include_router(
     kyc_app, 
     prefix="/v1/kyc",

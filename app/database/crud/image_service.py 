@@ -1,4 +1,0 @@
-# class to provide facilites to take an url-link, download the file
-# store it on the harddrive, under a location that makes sense.
-# Moreover, it should be able to retrieve those files in a way
-# that they can be served over api, either individually or as a zip-file

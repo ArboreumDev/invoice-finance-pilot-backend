@@ -8,6 +8,8 @@ from routes.dependencies import get_db
 from sqlalchemy.orm import Session
 from starlette.status import HTTP_404_NOT_FOUND
 
+# import StringIO
+
 kyc_app = APIRouter()
 
 

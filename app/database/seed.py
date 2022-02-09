@@ -68,8 +68,8 @@ tusker_user = User(
 loan_admin = User(
 	email = "avinash@arboreum.dev",
 	username = "avinash",
-	hashed_password = "$2b$12$rui/rXspT/Nn98Qdl8EqlOCbe5JeNTkpVHJOjWLOyrT211Z.FQsjy",
-	# hashed_password = "$2b$12$NuzME53eqmA211BN3CQI.eMfaiQwVkV5JAy/9qDuyDQXoqRDtpmBC", # pw=singh
+	# hashed_password = "$2b$12$rui/rXspT/Nn98Qdl8EqlOCbe5JeNTkpVHJOjWLOyrT211Z.FQsjy",
+	hashed_password = "$2b$12$NuzME53eqmA211BN3CQI.eMfaiQwVkV5JAy/9qDuyDQXoqRDtpmBC", # pw=singh
 	role = "loanAdmin",
 )
 
