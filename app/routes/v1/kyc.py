@@ -1,7 +1,7 @@
 from database.crud import kyc_user as kycuser_service
 from database.crud.kycuser_service import (ImageUpdateInput,
                                            ManualVerification, UserUpdateInput)
-from database.exceptions import UnknownPhoneNumberException, NoDocumentsException
+from database.exceptions import UnknownPhoneNumberException, NoDocumentsException, DuplicatePhoneNumberException
 # from database.exceptions import UnknownPurchaserException
 from fastapi import APIRouter, Body, Depends, HTTPException
 from routes.dependencies import get_db
@@ -16,7 +16,7 @@ kyc_app = APIRouter()
 @kyc_app.post("/notification/new")
 def _notify_manual_verifier(
     documentType: ManualVerification,
-    phone_number: str = Body(...),
+    phoneNumber: str = Body(..., embed=True),
     summary="Sends an email to the loan admin with info on the document to be manually verified",
 ):
     # send email to loan manager to check latest thing! as background task
