@@ -7,6 +7,7 @@ class KYCStatus(str, Enum):
     IN_PROGRESS = "IN_PROGRESS"
     AWAITING_REVIEW = "AWAITING_REVIEW"
     APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
 
 class KYCUserBase(BaseModel):
     phone_number: str 

@@ -1,4 +1,4 @@
-from database.exceptions import (UnknownPhoneNumberException)
+from database.exceptions import (UnknownPhoneNumberException, NoDocumentsException)
 import json
 import pendulum
 import copy
@@ -39,6 +39,23 @@ class ManualVerification(str, Enum):
     BANKSTATEMENT = "BANKSTATEMENT"
     BUSINESSBANKSTATEMENT = "BUSINESSBANKSTATEMENT"
     COMPLETED = "COMPLETED"
+
+    def _to_lookup_key(self):
+        if self.value == "AOAMOA":
+            return "aoa_moa_certificate"
+        if self.value == "BANKSTATEMENT":
+            return "bank_statement"
+        if self.value == "ITR":
+            return "proprietor_itr"
+        if self.value == "BUSINESSBANKSTATEMENT":
+            return "business_bank_statement"
+        if self.value == "PARTNERSHIP":
+            return "partnership_deed"
+        if self.value == "BUSINESSITR":
+            return "business_itr"
+        if self.value == "GST":
+            return "gst_certificate"
+        else: raise AssertionError("Unknown document type (should not happen fix typo)")
 
 class UserUpdateInput(CamelModel):
     phone_number: str
@@ -87,8 +104,6 @@ def requires_manual_check(doc_name: str):
     return doc_name not in AUTO_CHECK_DOCS
 
 
-
-
 class KYCUserService(CRUDBase[KYCUser, KYCUserCreate, KYCUserUpdate]):
     def get(self, phone_number: str, db: Session):
         return db.query(KYCUser).filter(KYCUser.phone_number == phone_number).first()
@@ -109,6 +124,17 @@ class KYCUserService(CRUDBase[KYCUser, KYCUserCreate, KYCUserUpdate]):
         )
         kyc_user = self.create(db, obj_in=new_user)
         return kyc_user
+
+    def delete_user(self, phone_number: str, db: Session):
+        obj = self.get(phone_number, db)
+        if not obj:
+            msg = f"Deletion target not found: {phone_number}"
+            self._logger.error(msg)
+            raise UnknownPhoneNumberException(msg)
+
+        db.delete(obj)
+        db.commit()
+        return obj
 
     def _update_user_data(self, update: UserUpdateInput, db: Session):
         user_entry = self.get(update.phone_number, db)
@@ -169,6 +195,62 @@ class KYCUserService(CRUDBase[KYCUser, KYCUserCreate, KYCUserUpdate]):
             )
         )
 
+    
+    def update_document_verification_status(
+        self,
+        phone_number: str, 
+        doc_type: ManualVerification, 
+        new_status: VerificationStatus,
+        db: Session
+    ):
+        user_entry = self.get(phone_number, db)
+        if not user_entry:
+            msg = f"Update target not found: {phone_number}"
+            self._logger.error(msg)
+            raise UnknownPhoneNumberException(msg)
+
+        # create new data object to be stored and change status
+        # find existing image and change status:
+        print('doc', doc_type)
+        document_key = doc_type._to_lookup_key()
+        new_user_data = copy.deepcopy(user_entry.data)
+        new_image_data = new_user_data['images'].get(document_key, None)
+        if not new_image_data or not new_image_data['filenames']:
+            raise NoDocumentsException(f"no docs uploaded for {document_key}")
+        new_image_data['verification'] = new_status
+
+        # store under new data object
+        new_user_data['images'][document_key] = new_image_data
+
+        return super().update(
+            db=db,
+            db_obj=user_entry,
+            obj_in=KYCUserUpdate(
+                phone_number=phone_number,
+                status=KYCStatus.IN_PROGRESS,
+                data=serialize(new_user_data),
+            )
+        )
+
+    def update_user_verification_status(self, phone_number: str, new_status: KYCStatus, db: Session):
+        user_entry = self.get(phone_number, db)
+        if not user_entry:
+            msg = f"Update target not found: {phone_number}"
+            self._logger.error(msg)
+            raise UnknownPhoneNumberException(msg)
+
+        return super().update(
+            db=db,
+            db_obj=user_entry,
+            obj_in=KYCUserUpdate(
+                phone_number=phone_number,
+                data=serialize(user_entry.data),
+                status=new_status
+            )
+        )
+
+
+
     def get_all_user_images(self, phone_number: str, db: Session):
         user_entry = self.get(phone_number, db)
         if not user_entry:
@@ -188,6 +270,8 @@ class KYCUserService(CRUDBase[KYCUser, KYCUserCreate, KYCUserUpdate]):
             msg = f"User not found: {phone_number}"
             self._logger.error(msg)
             raise UnknownPhoneNumberException(msg)
+
+    
 
 
 
