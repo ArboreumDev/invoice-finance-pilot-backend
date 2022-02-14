@@ -1,6 +1,7 @@
 from datetime import datetime
 from sqlalchemy import (Column, DateTime, Float, ForeignKey, Integer, String,
                         Table, Text)
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import  create_engine
 from sqlalchemy.orm import  relationship
@@ -88,7 +89,13 @@ class Supplier(Base):
     # invoices = relationship("Invoice", back_populates="supplier")
     
 
-
+class KYCUser(Base):
+    __tablename__ = "kycuser"
+    phone_number = Column(String(50), primary_key=True) # matches customer_id in tuskers system 
+    status = Column(String(50), nullable=True) # used to interface with liquiloans ID
+    # data = Column(JSONB, nullable=False) # like this?
+    data = Column(Text(), nullable=False)
+ 
 
  
 

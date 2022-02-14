@@ -3,6 +3,7 @@ from typing import Dict, Tuple
 
 import pytest
 from database.crud.invoice_service import invoice as invoice_service
+from database.crud.kycuser_service import kyc_user as kycuser_service
 from database.crud.supplier_service import supplier as supplier_service
 from database.crud.whitelist_service import whitelist as whitelist_service
 from database.models import User
@@ -34,6 +35,17 @@ def insert_admin_user(db: Session):
     # TODO use crudUser
     db.add(tusker_user)
     db.commit()
+
+
+@pytest.fixture(scope="function")
+def kyc_user(db_session):
+    try:
+        user = kycuser_service.insert_new_user("123", db_session)
+        yield user
+    except:
+        pass
+    finally:
+        reset_db(db_session)
 
 
 # TODO figure out why these fixtures can not be imported from the other conftest file
@@ -150,3 +162,15 @@ def test_only_admin_can_update(db_session: Session):  # noqa: F811
 @pytest.mark.skip()
 def test_tokenize_loan():
     get_db()
+
+
+def test_zip_folder(db_session):
+    # insert_admin_user(db_session)
+    auth_header = get_auth_header(username="admin", password="tusker")
+    res = client.get(
+        "v1/admin/user/zip/123",
+        headers=auth_header,
+    )
+    assert res.status_code == HTTP_200_OK
+
+    reset_db(db_session)

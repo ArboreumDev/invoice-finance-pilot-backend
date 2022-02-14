@@ -1,5 +1,6 @@
 import time
 from datetime import datetime, timedelta
+from typing import Tuple
 
 import jwt
 from database.models import User
@@ -83,3 +84,13 @@ def check_jwt_token_role(token: str = Depends(oauth_schema), db: Session = Depen
 #         return True
 #     else:
 #         return auth_level == role
+class RoleChecker:
+    def __init__(self, role: str):
+        self.role = role
+
+    def __call__(self, user_info: Tuple[str, str] = Depends(check_jwt_token_role)):
+        if user_info:
+            _, role = user_info
+            if role != self.role:
+                raise HTTPException(HTTP_401_UNAUTHORIZED, "Missing credentials")
+        return True

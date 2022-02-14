@@ -73,6 +73,15 @@ class AssetCreationException(BaseException):
     pass
 
 
+class UnknownPhoneNumberException(BaseException):
+    pass
+
+class NoDocumentsException(BaseException):
+    pass
+
+
+
+
 
 
 
