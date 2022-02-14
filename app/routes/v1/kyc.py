@@ -16,7 +16,7 @@ kyc_app = APIRouter()
 @kyc_app.post("/notification/new")
 def _notify_manual_verifier(
     documentType: ManualVerification,
-    # phone_number: str = Body(...)
+    phone_number: str = Body(...),
     summary="Sends an email to the loan admin with info on the document to be manually verified",
 ):
     # send email to loan manager to check latest thing! as background task
@@ -24,9 +24,12 @@ def _notify_manual_verifier(
 
 
 @kyc_app.post("/user/new", summary="Create a new user by a unique phone number")
-def _create_new_user(phonenumber: str = Body(..., embed=True), db: Session = Depends(get_db)):
-    new_user = kycuser_service.insert_new_user(phone_number=phonenumber, db=db)
-    return new_user
+def _create_new_user(phoneNumber: str = Body(..., embed=True), db: Session = Depends(get_db)):
+    try:
+        new_user = kycuser_service.insert_new_user(phone_number=phoneNumber, db=db)
+        return new_user
+    except DuplicatePhoneNumberException as e:
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @kyc_app.post("/user/data", description="add user data overwriting old data in case of conflict")

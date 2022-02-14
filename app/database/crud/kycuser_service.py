@@ -1,4 +1,4 @@
-from database.exceptions import (UnknownPhoneNumberException, NoDocumentsException)
+from database.exceptions import (UnknownPhoneNumberException, NoDocumentsException, DuplicatePhoneNumberException)
 import json
 import pendulum
 import copy
@@ -114,9 +114,9 @@ class KYCUserService(CRUDBase[KYCUser, KYCUserCreate, KYCUserUpdate]):
 
         if user_entry:
             self._logger.error(f"Update target not found: {phone_number}")
-            raise UnknownPhoneNumberException("KYC User already exists")
+            raise DuplicatePhoneNumberException("KYC User already exists")
 
-        init_data = json.dumps(jsonable_encoder({'data': {}, 'images': {}}))
+        init_data = jsonable_encoder({'data': {}, 'images': {}})
         new_user = KYCUserCreate(
             phone_number=phone_number,
             status=KYCStatus.INITIAL,
@@ -166,6 +166,7 @@ class KYCUserService(CRUDBase[KYCUser, KYCUserCreate, KYCUserUpdate]):
         # LEVEL 1: just store the image link in the []
         # - fetch user object, decode, find relevant key and append
         # create new data object to be stored and append updates
+        # new_user_data = json.loads(copy.deepcopy(user_entry.data))
         new_user_data = copy.deepcopy(user_entry.data)
         for doc_name, image_url in update.dict(exclude_unset=True).items():
             if doc_name == "phone_number": continue

@@ -93,8 +93,8 @@ class KYCUser(Base):
     __tablename__ = "kycuser"
     phone_number = Column(String(50), primary_key=True) # matches customer_id in tuskers system 
     status = Column(String(50), nullable=True) # used to interface with liquiloans ID
-    # data = Column(JSONB, nullable=False) # like this?
-    data = Column(Text(), nullable=False)
+    data = Column(JSONB, nullable=False) # like this?
+    # data = Column(Text(), nullable=False)
  
 
  

@@ -15,7 +15,9 @@ def remove_none_entries(d: Dict):
     return {k:v for k,v in d.items() if v != None}
 
 def serialize(obj):
-    return json.dumps(jsonable_encoder(obj))
+    # return json.dumps(jsonable_encoder(obj))
+    return jsonable_encoder(obj)
 
 def deserialize(obj):
+    # return json.loads(jsonable_encoder(obj))
     return json.loads(jsonable_encoder(obj))

@@ -12,7 +12,7 @@ class KYCStatus(str, Enum):
 class KYCUserBase(BaseModel):
     phone_number: str 
     status: KYCStatus
-    data: str # is this the way to tell pydantic that we store a jsonb?
+    data: Dict # is this the way to tell pydantic that we store a jsonb?
     class Config:
         orm_mode = True
 
