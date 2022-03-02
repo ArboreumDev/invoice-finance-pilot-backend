@@ -57,6 +57,26 @@ class ManualVerification(str, Enum):
             return "gst_certificate"
         else: raise AssertionError("Unknown document type (should not happen fix typo)")
 
+    def _to_airtable_key(self):
+        if self.value == "AOAMOA":
+            return "AOA_verification_status"
+        if self.value == "BANKSTATEMENT":
+            return "BS_verification_status"
+        if self.value == "ITR":
+            return "PITR_verification_status"
+        if self.value == "BUSINESSBANKSTATEMENT":
+            return "BBS_verification_status"
+        if self.value == "PARTNERSHIP":
+            return "PD_verification_status"
+            return "partnership_deed"
+        if self.value == "BUSINESSITR":
+            return "BITR_verification_status"
+        if self.value == "GST":
+            return "GST_verification_status"
+        else: raise AssertionError("Unknown document type (should not happen fix typo)")
+
+
+
 class UserUpdateInput(CamelModel):
     phone_number: str
     email: Optional[str] = None
