@@ -82,6 +82,7 @@ class UserUpdateInput(CamelModel):
     email: Optional[str] = None
     business_type: Optional[BusinessType] = None
     pan_number: Optional[str] = None
+    proprietor_name: Optional[str] = None
     residential_address: Optional[str] = None
     pan_verification_dump: Optional[str] = None
     aadhar_number: Optional[str] = None

@@ -11,10 +11,22 @@ load_dotenv()
 api_key = os.getenv("AIRTABLE_API_SECRET")
 base_id  = os.getenv("AIRTABLE_BASE_ID")
 
+def custom_payment_message (r):
+    purpose = r.get('NEXT_REPAY_PURPOSE_MESSAGE', ['??'])
+    next_amount = round(r.get('NEXT_REPAY_AMT', ['??'])[0],2)
+    next_date = r.get('NEXT_DUE_DATE', ['??'])[0]
+    target_name = r.get('SUPPLIER', ['??'])[0]
+    full_amount = round(r.get('NEXT_REPAY_AMT', ['??'])[0],2)
+    print(purpose, next_amount, next_date, target_name, full_amount )
+    return f"""
+    Your next payment to {target_name} in order to {purpose} is {next_amount} and is due by {next_date}.\
+    If you want to repay everything today, the full amount to repay is: {full_amount} \
+    """
 
 class AirtableService():
     def __init__(self, api_key: str, base_id: str):
         self.kyc_table = Table(api_key, base_id=base_id, table_name='KYCUser')
+        self.accounts_table = Table(api_key, base_id=base_id, table_name='VirtualAccounts')
 
     def insert_new(self, phone_number: str):
         # TODO throw error if already exists
@@ -51,7 +63,6 @@ class AirtableService():
             formatted_update[key] = current + [{'url': value, 'filename': filename}]
         return self.kyc_table.update(r['id'], formatted_update)
 
-
     def mark_as_ready(self, phone_number: str, docType: ManualVerification):
         r = self.get_record_from_phone_number(phone_number)
         if not r:
@@ -59,6 +70,16 @@ class AirtableService():
         update = {docType._to_airtable_key(): "AWAITING_VERIFICATION"}
         print('u', update)
         return self.kyc_table.update(r['id'], update)
+
+    def get_user_payments(self, phone_number: str):
+        all_records = self.accounts_table.all()
+        print('all virt', all_records[0]['fields'].get('MOBILE')[0])
+        repayments = [r for r in all_records if r['fields'].get('MOBILE', [None])[0] == int(phone_number)]
+        print('found ', len(repayments), 'things to repay')
+        msg = ""
+        for r in repayments:
+            msg += custom_payment_message(r['fields'])
+        return msg
 
 
 air_service = AirtableService(api_key, base_id)

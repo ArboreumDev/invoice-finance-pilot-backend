@@ -43,6 +43,13 @@ def _update_user_data(update: UserUpdateInput = Body(...), db: Session = Depends
     except UnknownPhoneNumberException as e:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail=str(e))
 
+@kyc_app.post("/user/help",)
+def _move_to_manual_entry(phoneNumber: str):
+    try:
+        air_service.update_user_data(phoneNumber, {'status': 'MANUAL_ENTRY'})
+        return {'status': 'MANUAL_ENTRY'}
+    except UnknownPhoneNumberException as e:
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail=str(e))
 
 
 @kyc_app.post("/user/image", description="upload user images, appending to existing data")
@@ -61,3 +68,10 @@ def _delete_user(phone_number: str, db: Session = Depends(get_db)):
     #     return kycuser_service.delete_user(phone_number, db)
     # except UnknownPhoneNumberException as e:
     #     raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail=str(e))
+
+@kyc_app.get("/user/payments")
+def _get_user_bill(phoneNumber: str):
+    try:
+       return air_service.get_user_payments(phoneNumber)
+    except UnknownPhoneNumberException as e:
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail=str(e))
