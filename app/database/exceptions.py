@@ -76,6 +76,9 @@ class AssetCreationException(BaseException):
 class UnknownPhoneNumberException(BaseException):
     pass
 
+class UserNotKYCedException(BaseException):
+    pass
+
 class DuplicatePhoneNumberException(BaseException):
     pass
 
