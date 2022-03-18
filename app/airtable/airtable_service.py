@@ -43,7 +43,6 @@ class AirtableService():
         return self.kyc_table.create(
             {
                 "mobile_number": int(phone_number),
-                'status': "INITIAL",
                 'ENTRY_METHOD': "WHATSAPP",
                 'KYC_STATUS': "CREATED"
             }
