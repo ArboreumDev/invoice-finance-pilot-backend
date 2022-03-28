@@ -13,7 +13,9 @@ from routes.v1.test import test_app
 from starlette.status import HTTP_401_UNAUTHORIZED
 from utils.common import JWTUser
 from utils.constant import TOKEN_DESCRIPTION, FRONTEND_URL
-from utils.security import authenticate_user, create_jwt_token, check_jwt_token_role, RoleChecker
+from utils.security import (
+    authenticate_user, create_jwt_token, check_jwt_token_role, RoleChecker, check_authorization
+)
 from sqlalchemy.orm import Session
 from routes.dependencies import get_db, log_request, get_air
 
@@ -45,7 +47,7 @@ app.include_router(
 app.include_router(
     accounts_app,
     prefix="/v1/account",
-    # dependencies=[Depends(RoleChecker('loanAdmin'))],
+    dependencies=[Depends(check_authorization)],
     tags=['account']
 )
 

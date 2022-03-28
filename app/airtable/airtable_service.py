@@ -78,9 +78,7 @@ class AirtableService():
             else: 
                 raise AssertionError(f"table value of invalid type for comparison with string")
 
-        print('all_acc',[ r['fields'].get(lookup) for r in records])
-
-
+        # print('all_acc',[ r['fields'].get(lookup) for r in records])
         record = [r for r in records if compare(r['fields'].get(lookup, ""), phone_number)]
         if len(record) > 0: return record[0]
         return None
