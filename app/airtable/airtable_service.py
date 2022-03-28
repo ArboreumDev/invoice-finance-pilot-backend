@@ -1,4 +1,5 @@
 import os
+from starlette.status import HTTP_200_OK
 import pendulum
 from typing import Dict
 from pyairtable import Table
@@ -6,12 +7,25 @@ from dotenv import load_dotenv
 from database.crud.kycuser_service import (ImageUpdateInput,
                                            ManualVerification, UserUpdateInput)
 from database.exceptions import (
-    UnknownPhoneNumberException, NoDocumentsException, DuplicatePhoneNumberException, UserNotKYCedException
+    UnknownPhoneNumberException, NoDocumentsException, DuplicatePhoneNumberException, UserNotKYCedException,
+    AirtableError
 )
+import requests
+
+
+
 
 load_dotenv()
 api_key = os.getenv("AIRTABLE_API_SECRET")
 base_id  = os.getenv("AIRTABLE_BASE_ID")
+
+# to trigger running airtable script
+va_fetch_webhook_URL  = os.getenv("VA_FETCH_WEBHOOK_URL")
+payload = {"company": "squirrels backend inc."}
+headers = {
+    # "cookie": "AWSALB=76J5rOHaa6VHtGwPJjm5Ez6iweWoMJgxK3RH5qj%2Fw1JQtd9Ilb57fZ22YBJwgeNeXwfwZwCaQWe9IaKpgqDVY1wvm1hXFt9R%2BtLioC18VwWcST2np28%2FlM8fFHQb; AWSALBCORS=76J5rOHaa6VHtGwPJjm5Ez6iweWoMJgxK3RH5qj%2Fw1JQtd9Ilb57fZ22YBJwgeNeXwfwZwCaQWe9IaKpgqDVY1wvm1hXFt9R%2BtLioC18VwWcST2np28%2FlM8fFHQb; brw=brwOp3r9hZXQS2vpi",
+    "Content-Type": "application/json"
+}
 
 def custom_payment_message (r):
     purpose = r.get('NEXT_REPAY_PURPOSE_MESSAGE', ['??'])
@@ -55,16 +69,25 @@ class AirtableService():
     #     return None
 
     def get_record_from_key(self, phone_number: str, records: Dict, lookup: str):
-        print(records[0]['fields'])
-        record = [r for r in records if r['fields'].get(lookup, "") == int(phone_number)]
+        def compare(table_value, lookup_value):
+            """ compare with the correct type """
+            if isinstance(table_value, int):
+                return table_value == int(lookup)
+            if isinstance(table_value, str):
+                return table_value == lookup_value
+            else: 
+                raise AssertionError(f"table value of invalid type for comparison with string")
+
+        print('all_acc',[ r['fields'].get(lookup) for r in records])
+
+
+        record = [r for r in records if compare(r['fields'].get(lookup, ""), phone_number)]
         if len(record) > 0: return record[0]
         return None
 
 
     def get_kyc_user(self, phone_number: str):
         return self.get_record_from_key(phone_number, self.kyc_table.all(), "mobile_number")
-
-
 
     def update_user_data(self, phone_number: str, update: Dict):
         # TODO throw error if not exists
@@ -113,6 +136,21 @@ class AirtableService():
             return {"link": customer['fields']['retailer_repay_dashboard'], 'password': ""}
         else:
             return {"link": customer['fields']['remittance_dashboard'], 'password': ""}
+
+    def set_fetch_needed(self, account_number: str):
+        account = self.get_record_from_key(account_number, self.accounts_table.all(), "ACCOUNT_NUM")
+        if not account:
+            raise UnknownPhoneNumberException(f"unknown account number {account_number}")
+        self.accounts_table.update(account['id'], {'NEEDS_FETCH': True})
+        # return self.trigger_account_update()
+
+    def trigger_account_update(self, data: Dict = {}):
+        ''' make a call to airtable virtual-accounts script webhook '''
+        # payload['originalData'] 
+        res = requests.request("POST", va_fetch_webhook_URL, json=payload, headers=headers)
+        if not res.status_code == HTTP_200_OK:
+            raise AirtableError("Could not update airtable")
+        return res 
 
 
 air_service = AirtableService(api_key, base_id)

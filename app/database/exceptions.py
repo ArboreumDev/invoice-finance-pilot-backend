@@ -85,6 +85,9 @@ class DuplicatePhoneNumberException(BaseException):
 class NoDocumentsException(BaseException):
     pass
 
+class AirtableError(BaseException):
+    pass
+
 
 
 
