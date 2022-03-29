@@ -1,6 +1,7 @@
 from database.exceptions import (
     UnknownPhoneNumberException, NoDocumentsException, DuplicatePhoneNumberException, UserNotKYCedException
 )
+from typing import Dict
 from pydantic import BaseModel
 # from database.exceptions import UnknownPurchaserException
 from fastapi import APIRouter, Body, Depends, HTTPException
@@ -61,8 +62,11 @@ accounts_app = APIRouter()
 
 @accounts_app.post("/update")
 # def fetch_statement(update: AccountCallback)
-def fetch_statement(air: AirtableService = Depends(get_air)):
-    update = SAMPLEBODY
-    return air.set_fetch_needed(account_number= update.accountNumber)
+def fetch_statement(update: Dict, air: AirtableService = Depends(get_air)):
+    # update = SAMPLEBODY
+    account_number = update.get('accountNumber', "")
+    if not account_number:
+        raise HTTPException(HTTP_400_BAD_REQUEST, detail="missing key accountNumber with the input")
+    return air.set_fetch_needed(account_number=account_number)
 
 
