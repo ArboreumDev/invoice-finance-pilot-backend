@@ -140,15 +140,17 @@ class AirtableService():
         if not account:
             raise UnknownPhoneNumberException(f"unknown account number {account_number}")
         self.accounts_table.update(account['id'], {'NEEDS_FETCH': True})
-        # return self.trigger_account_update()
+        return self.trigger_account_update()
 
     def trigger_account_update(self, data: Dict = {}):
         ''' make a call to airtable virtual-accounts script webhook '''
         # payload['originalData'] 
         res = requests.request("POST", va_fetch_webhook_URL, json=payload, headers=headers)
-        if not res.status_code == HTTP_200_OK:
-            raise AirtableError("Could not update airtable")
-        return res 
+        # print('res', res, res.status_code, res.json())
+        # return 2
+        if res.status_code != HTTP_200_OK:
+            raise AirtableError(f"Could not update airtable {str(res.json())}")
+        return res.json()
 
 
 air_service = AirtableService(api_key, base_id)
