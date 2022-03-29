@@ -140,7 +140,8 @@ class AirtableService():
         if not account:
             raise UnknownPhoneNumberException(f"unknown account number {account_number}")
         self.accounts_table.update(account['id'], {'NEEDS_FETCH': True})
-        return self.trigger_account_update()
+        return {'status': 'success'}
+        # return self.trigger_account_update()
 
     def trigger_account_update(self, data: Dict = {}):
         ''' make a call to airtable virtual-accounts script webhook '''
