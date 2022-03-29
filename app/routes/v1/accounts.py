@@ -1,7 +1,7 @@
 from database.exceptions import (
     UnknownPhoneNumberException, NoDocumentsException, DuplicatePhoneNumberException, UserNotKYCedException
 )
-from typing import Dict
+from typing import Dict, Optional
 from pydantic import BaseModel
 # from database.exceptions import UnknownPurchaserException
 from fastapi import APIRouter, Body, Depends, HTTPException
@@ -10,30 +10,30 @@ from sqlalchemy.orm import Session
 from starlette.status import HTTP_404_NOT_FOUND, HTTP_400_BAD_REQUEST
 from airtable.airtable_service import AirtableService
 
-class AccountCallback(BaseModel):
-    attempt: int 
-    timestamp: str
-    callbackTxnId: str 
-    originalCallbackTxnId: str 
-    accountNumber: str 
-    balance: int 
-    transactionMessage: str
-    type: str 
-    transferType: str 
-    transactionAmount: float 
-    decentroTxnId: str 
-    payeeAccountNumber: str 
-    payeeAccountIfsc: str 
-    providerCode: str 
-    payeeVpa: str 
-    payerAccountNumber: str 
-    payerAccountIfsc: str 
-    payerVpa: str 
-    bankReferenceNumber: str 
-    payerMobileNumber: str 
+class AccountCallbackData(BaseModel):
+    attempt: Optional[int]
+    timestamp: Optional[str]
+    callbackTxnId: Optional[str ]
+    originalCallbackTxnId: Optional[str ]
+    balance: Optional[int ]
+    accountNumber: str
+    transactionMessage: Optional[str]
+    type: Optional[str ]
+    transferType: Optional[str ]
+    transactionAmount: Optional[float ]
+    decentroTxnId: Optional[str ]
+    payeeAccountNumber: Optional[str ]
+    payeeAccountIfsc: Optional[str ]
+    providerCode: Optional[str ]
+    payeeVpa: Optional[str ]
+    payerAccountNumber: Optional[str ]
+    payerAccountIfsc: Optional[str ]
+    payerVpa: Optional[str ]
+    bankReferenceNumber: Optional[str ]
+    payerMobileNumber: Optional[str ]
 	
 
-SAMPLEBODY = AccountCallback(**{
+SAMPLEBODY = AccountCallbackData(**{
     "attempt": 1,
     "timestamp": "2020-09-16 23:23:23",
     "callbackTxnId": "CLBACKxx",
@@ -62,7 +62,7 @@ accounts_app = APIRouter()
 
 @accounts_app.post("/update")
 # def fetch_statement(update: AccountCallback)
-def fetch_statement(update: Dict, air: AirtableService = Depends(get_air)):
+def fetch_statement(update: AccountCallbackData, air: AirtableService = Depends(get_air)):
     # update = SAMPLEBODY
     account_number = update.get('accountNumber', "")
     if not account_number:
