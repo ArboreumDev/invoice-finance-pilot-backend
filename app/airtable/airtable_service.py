@@ -137,7 +137,7 @@ class AirtableService():
             return {"link": customer['fields']['remittance_dashboard'], 'password': ""}
 
     def set_fetch_needed(self, account_number: str):
-        account = self.get_record_from_key(account_number, self.accounts_table.all(), "ACCOUNT_NUM")
+        account = self.get_record_from_key(account_number, self.accounts_table.all(), "ACCOUNT_NUM_IN")
         if not account:
             raise UnknownPhoneNumberException(f"unknown account number {account_number}")
         self.accounts_table.update(account['id'], {'NEEDS_FETCH': True})
