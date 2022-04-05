@@ -72,7 +72,7 @@ class AirtableService():
         def compare(table_value, lookup_value):
             """ compare with the correct type """
             if isinstance(table_value, int):
-                return table_value == int(lookup)
+                return table_value == int(lookup_value)
             if isinstance(table_value, str):
                 return table_value == lookup_value
             else: 

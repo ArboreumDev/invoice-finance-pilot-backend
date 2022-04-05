@@ -36,7 +36,7 @@ def _check_health(air_service: AirtableService = Depends(get_air)):
 @kyc_app.post("/user/new", summary="Create a new user by a unique phone number")
 def _create_new_user(phoneNumber: int = Body(..., embed=True), air_service: AirtableService = Depends(get_air)):
     try:
-        new_user = air_service.insert_new(phone_number=phoneNumber)
+        new_user = air_service.insert_new(phone_number=str(phoneNumber))
         return new_user
     except DuplicatePhoneNumberException as e:
         raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail=str(e))
