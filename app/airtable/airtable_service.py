@@ -44,6 +44,7 @@ class AirtableService():
         self.kyc_table = Table(api_key, base_id=base_id, table_name='KYC')
         self.accounts_table = Table(api_key, base_id=base_id, table_name='VirtualAccounts')
         self.customer_table = Table(api_key, base_id=base_id, table_name='Customer')
+        self.leads_table = Table(api_key, base_id=base_id, table_name='Leads')
     
     def health(self):
         n_kyc = len(self.kyc_table.all())
@@ -142,6 +143,18 @@ class AirtableService():
         self.accounts_table.update(account['id'], {'NEEDS_FETCH': True})
         return {'status': 'success'}
         # return self.trigger_account_update()
+
+    def set_lead_response(self, phone_number: str, response: str):
+        lead = self.get_record_from_key(phone_number, self.leads_table.all(), "PHONE")
+        if not lead:
+            # raise UnknownPhoneNumberException(f"unknown phone number {phone_number}")
+            self.leads_table.create({'PHONE': int(phone_number), 'RESPONSE': response, 'WABA_OPT_IN': 'SUCCESS'})
+        else: 
+            self.leads_table.update(lead['id'], {'RESPONSE': response, 'RESPONSE_RAW': 'todo'})
+        return {'status': 'success'}
+        # return self.trigger_account_update()
+
+
 
     def trigger_account_update(self, data: Dict = {}):
         ''' make a call to airtable virtual-accounts script webhook '''

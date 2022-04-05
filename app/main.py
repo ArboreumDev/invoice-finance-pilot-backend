@@ -6,6 +6,7 @@ from routes.v1.invoice import invoice_app
 from routes.v1.whitelist import whitelist_app
 from routes.v1.kyc import kyc_app
 from routes.v1.supplier import supplier_app
+from routes.v1.chat import chat_app
 from routes.v1.accounts import accounts_app
 from routes.v1.purchaser import purchaser_app
 from routes.v1.admin import admin_app
@@ -42,6 +43,13 @@ app.include_router(
     prefix="/v1/kyc",
     dependencies=[Depends(log_request), Depends(RoleChecker('gupshup'))],
     tags=['kyc']
+)
+
+app.include_router(
+    chat_app, 
+    prefix="/v1/chat",
+    dependencies=[Depends(log_request), Depends(RoleChecker('gupshup'))],
+    tags=['chat']
 )
 
 app.include_router(
