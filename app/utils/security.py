@@ -1,10 +1,12 @@
+import os
 import time
 from datetime import datetime, timedelta
 from typing import Tuple
-from argon2 import PasswordHasher
 
 import jwt
+from argon2 import PasswordHasher
 from database.models import User
+from dotenv import load_dotenv
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
@@ -15,23 +17,20 @@ from utils.common import JWTUser
 from utils.constant import (JWT_ALGORITHM, JWT_EXPIRATION_TIME_MINUTES,
                             JWT_SECRET_KEY)
 from utils.logger import get_logger
-from dotenv import load_dotenv
-import os
 
 load_dotenv()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="")
 
+
 async def check_authorization(token: str = Depends(oauth2_scheme)):
-    """ check whether Authorization Bearer token matches simple password """ 
+    """ check whether Authorization Bearer token matches simple password """
     try:
         ph = PasswordHasher()
         secret = os.getenv("HASHED_API_SECRET")
         ph.verify(secret, token)
     except Exception:
         raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Invalid Token")
-
-
 
 
 oauth_schema = OAuth2PasswordBearer(tokenUrl="/token")

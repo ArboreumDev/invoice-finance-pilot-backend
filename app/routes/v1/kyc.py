@@ -1,15 +1,13 @@
-from database.crud import kyc_user as kycuser_service
+from airtable.airtable_service import AirtableService
 from database.crud.kycuser_service import (ImageUpdateInput,
                                            ManualVerification, UserUpdateInput)
-from database.exceptions import (
-    UnknownPhoneNumberException, NoDocumentsException, DuplicatePhoneNumberException, UserNotKYCedException
-)
+from database.exceptions import (DuplicatePhoneNumberException,
+                                 UnknownPhoneNumberException,
+                                 UserNotKYCedException)
 # from database.exceptions import UnknownPurchaserException
 from fastapi import APIRouter, Body, Depends, HTTPException
-from routes.dependencies import get_db, get_air
-from sqlalchemy.orm import Session
-from starlette.status import HTTP_404_NOT_FOUND, HTTP_400_BAD_REQUEST
-from airtable.airtable_service import AirtableService
+from routes.dependencies import get_air
+from starlette.status import HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND
 
 # import StringIO
 
@@ -20,18 +18,18 @@ kyc_app = APIRouter()
 def _notify_manual_verifier(
     documentType: ManualVerification,
     phoneNumber: str = Body(..., embed=True),
-    summary="Marks a document as ready to be reviewed"
+    summary="Marks a document as ready to be reviewed",
 ):
     # will mark a document as ready to be reviewed
     return air_service.mark_as_ready(phone_number=phoneNumber, docType=documentType)
     # return {"status": "success"}
 
 
-
 @kyc_app.get("/health", summary="check connectivity")
 def _check_health(air_service: AirtableService = Depends(get_air)):
     # check airtable connection
-    return {'status': air_service.health()}
+    return {"status": air_service.health()}
+
 
 @kyc_app.post("/user/new", summary="Create a new user by a unique phone number")
 def _create_new_user(phoneNumber: int = Body(..., embed=True), air_service: AirtableService = Depends(get_air)):
@@ -46,16 +44,19 @@ def _create_new_user(phoneNumber: int = Body(..., embed=True), air_service: Airt
 def _update_user_data(update: UserUpdateInput = Body(...), air_service: AirtableService = Depends(get_air)):
     try:
         u = update.dict(exclude_unset=True)
-        del u['phone_number']
+        del u["phone_number"]
         return air_service.update_user_data(update.phone_number, u)
     except UnknownPhoneNumberException as e:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail=str(e))
 
-@kyc_app.post("/user/help",)
+
+@kyc_app.post(
+    "/user/help",
+)
 def _move_to_manual_entry(phoneNumber: str, air_service: AirtableService = Depends(get_air)):
     try:
-        air_service.update_user_data(phoneNumber, {'status': 'MANUAL_ENTRY'})
-        return {'status': 'MANUAL_ENTRY'}
+        air_service.update_user_data(phoneNumber, {"status": "MANUAL_ENTRY"})
+        return {"status": "MANUAL_ENTRY"}
     except UnknownPhoneNumberException as e:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail=str(e))
 
@@ -77,12 +78,12 @@ def _delete_user(phone_number: str, air_service: AirtableService = Depends(get_a
     # except UnknownPhoneNumberException as e:
     #     raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail=str(e))
 
+
 @kyc_app.get("/user/account")
 def _get_user_account(phoneNumber: str, air_service: AirtableService = Depends(get_air)):
     try:
-       return air_service.get_user_account(phoneNumber)
+        return air_service.get_user_account(phoneNumber)
     except UnknownPhoneNumberException as e:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail=str(e))
     except UserNotKYCedException as e:
         raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail=str(e))
-
