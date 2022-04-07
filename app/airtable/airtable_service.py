@@ -144,13 +144,29 @@ class AirtableService():
         return {'status': 'success'}
         # return self.trigger_account_update()
 
-    def set_lead_response(self, phone_number: str, response: str):
+    def set_lead_response(self, phone_number: str, response: str, raw: Dict):
         lead = self.get_record_from_key(phone_number, self.leads_table.all(), "PHONE")
         if not lead:
             # raise UnknownPhoneNumberException(f"unknown phone number {phone_number}")
-            self.leads_table.create({'PHONE': int(phone_number), 'RESPONSE': response, 'WABA_OPT_IN': 'SUCCESS'})
+            self.leads_table.create({
+                'PHONE': int(phone_number),
+                'RESPONSE': "UNKNOWN_NUMBER", 
+                'RESPONSE_RAW': raw, 
+                'WABA_OPT_IN': 'SUCCESS'
+            })
         else: 
-            self.leads_table.update(lead['id'], {'RESPONSE': response, 'RESPONSE_RAW': 'todo'})
+            # look at first words
+            start = response.lower()[:4]
+            if start == 'sign':
+                resp = "SIGNUP"
+            elif start == 'call':
+                resp = "CALL"
+            elif start == 'stop':
+                resp = "STOP"
+            else: 
+                resp = "UNKNOWN"
+            print('setting to ', resp)
+            self.leads_table.update(lead['id'], {'RESPONSE': resp, 'RESPONSE_RAW': response})
         return {'status': 'success'}
         # return self.trigger_account_update()
 

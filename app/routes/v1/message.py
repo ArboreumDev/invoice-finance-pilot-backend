@@ -41,7 +41,7 @@ def record_answer(data=Body(...), air: AirtableService = Depends(get_air)):
     # update = SAMPLEBODY
     print("data", data)
     # phone_number = update.phone_number
-    # return air.set_lead_response(phone_number, update.answer)
+    return air.set_lead_response(phone_number, update.answer)
     return {"status": "success"}
 
 
@@ -57,7 +57,7 @@ class InboundCallbackData(BaseModel):
 InboundCallbackData(
     **{
         "waNumber": "919999999999",
-        "mobile": "919999999999",
+        "mobile": "8861652973",
         "name": "Test Name",
         "text": "Hello Sign me Up",
         "type": "text",
@@ -69,4 +69,8 @@ InboundCallbackData(
 @message_app.post("/inbound")
 def record_inbound_message(data=Body(...), air: AirtableService = Depends(get_air)):
     print("data", data)
-    return {"status": "success"}
+    phone_number =data.get('mobile', "")
+    # trim down to 10 numbers
+    phone_number = phone_number[2:] if len(phone_number) > 10  else phone_number
+    return air.set_lead_response(phone_number=phone_number, response=data.get('text'), raw=data)
+    # return {"status": "success"}
