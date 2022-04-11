@@ -46,9 +46,9 @@ class ManualVerification(str, Enum):
 
     def _to_lookup_key(self):
         if self.value == "AOAMOA":
-            return "aoa_moa_certificate"
+            return "business_incorporation_doc"
         if self.value == "PARTNERSHIP":
-            return "partnership_deed"
+            return "business_incorporation_doc"
         
         if self.value == "BANKSTATEMENT":
             return "individual_bank_stmt"
@@ -98,11 +98,11 @@ class UserUpdateInput(CamelModel):
     individual_address_city: Optional[str] = None
     individual_address_pin: Optional[str] = None
     
-    business_bank_account_num: Optional[str] = None # business_account_num
+    business_bank_account: Optional[str] = None # business_account_num
     business_bank_ifsc: Optional[str] = None # business_ifsc
     business_bank_response: Optional[str] = None
    
-    individual_bank_account_num: Optional[str] = None # individual_account_num
+    individual_bank_account: Optional[str] = None # individual_account_num
     individual_bank_ifsc: Optional[str] = None # individual_ifsc
     individual_bank_response: Optional[str] = None
 
@@ -117,7 +117,7 @@ class ImageUpdateInput(CamelModel):
     business_bank_stmt: Optional[str] = None
     individual_bank_stmt: Optional[str] = None
     
-    proprietor_itr: Optional[str] = None
+    individual_itr: Optional[str] = None
     business_itr: Optional[str] = None
 
     business_incorporation_doc: Optional[str] = None
