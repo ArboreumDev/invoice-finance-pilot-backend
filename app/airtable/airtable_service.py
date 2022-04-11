@@ -165,8 +165,15 @@ class AirtableService():
                 resp = "STOP"
             else: 
                 resp = "UNKNOWN"
-            print('setting to ', resp)
-            self.leads_table.update(lead['id'], {'RESPONSE': resp, 'RESPONSE_RAW': response})
+            prior_response_count = lead['fields'].get("RESPONSE_COUNT")
+            all_responses = lead['fields'].get("ALL_RESPONSES") 
+            self.leads_table.update(lead['id'], {
+                'RESPONSE_TYPE': resp,
+                'RESPONSE_TEXT': response, 
+                'RESPONSE_RAW': str(raw),
+                'ALL_RESPONSES':  all_responses +"," + response if isinstance(all_responses, str) else response,
+                'RESPONSE_COUNT': prior_response_count + 1 if isinstance(prior_response_count , int) else 1
+            })
         return {'status': 'success'}
         # return self.trigger_account_update()
 
