@@ -48,8 +48,8 @@ app.include_router(
 app.include_router(
     message_app, 
     prefix="/v1/message",
-    # dependencies=[Depends(log_request), Depends(check_authorization)],
-    dependencies=[Depends(check_authorization)],
+    dependencies=[Depends(log_request), Depends(check_authorization)],
+    # dependencies=[Depends(check_authorization)],
     # dependencies=[Depends(log_request), Depends(RoleChecker('gupshup'))],
     tags=['message']
 )
