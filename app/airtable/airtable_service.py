@@ -139,13 +139,14 @@ class AirtableService():
             return {"link": customer['fields']['remittance_dashboard'], 'password': ""}
         
     def get_user_type(self, phone_number: str):
+        phone_number = phone_number[-10:]
         lead = self.leads_table.first(formula=f"PHONE={phone_number}")
         if not lead:
             raise UnknownPhoneNumberException(f"unknown phone number {phone_number}")
         else: 
             # note: only non-empty fields will be returned
             return {
-                'whatsAppOptIn': lead['fields'].get("USER_OPT_IN", [False])[0],
+                'whatsAppOptIn': lead['fields'].get("GUPSHUP_WHITELISTED", ["NO"])[0] == "SUCCESS",
                 'userType': lead['fields'].get('customer_type', "UNKNWOWN")
             }
 
