@@ -5,7 +5,8 @@ from airtable.airtable_service import AirtableService
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from routes.dependencies import get_air
-from starlette.status import HTTP_400_BAD_REQUEST
+from starlette.status import HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND
+from database.exceptions import ( UnknownPhoneNumberException)
 
 
 class AccountCallbackData(BaseModel):
@@ -64,8 +65,12 @@ accounts_app = APIRouter()
 @accounts_app.post("/update")
 # def fetch_statement(update: AccountCallback)
 def fetch_statement(update: AccountCallbackData, air: AirtableService = Depends(get_air)):
-    # update = SAMPLEBODY
-    account_number = update.get("accountNumber", "")
-    if not account_number:
-        raise HTTPException(HTTP_400_BAD_REQUEST, detail="missing key accountNumber with the input")
-    return air.set_fetch_needed(account_number=account_number)
+    try:
+        # update = SAMPLEBODY
+        # account_number = update.get("accountNumber", "")
+        account_number = update.accountNumber
+        if not account_number:
+            raise HTTPException(HTTP_400_BAD_REQUEST, detail="missing key accountNumber with the input")
+        return air.set_fetch_needed(account_number=account_number)
+    except UnknownPhoneNumberException as e:
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail=str(e))
