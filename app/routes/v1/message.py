@@ -1,4 +1,5 @@
 from airtable.airtable_service import AirtableService
+import json
 # from database.exceptions import UnknownPurchaserException
 from fastapi import APIRouter, Body, Depends
 from pydantic import BaseModel
@@ -39,9 +40,10 @@ SAMPLE_DELIVERY_DATA = [SAMPLE_MESSAGE_DELIVERY]
 def record_answer(data=Body(...), air: AirtableService = Depends(get_air)):
     # def record_answer(data: List[MessageCallbackData], air: AirtableService = Depends(get_air)):
     # update = SAMPLEBODY
-    print("data", data)
+    # print("data", data)
     # phone_number = update.phone_number
-    return air.set_lead_response(phone_number, update.answer)
+    # return air.set_lead_response(phone_number, update.answer)
+    print('delivery report: ', data)
     return {"status": "success"}
 
 

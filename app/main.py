@@ -41,7 +41,8 @@ app.include_router(
 app.include_router(
     kyc_app, 
     prefix="/v1/kyc",
-    dependencies=[Depends(log_request), Depends(RoleChecker('gupshup'))],
+    # dependencies=[Depends(log_request), Depends(RoleChecker('gupshup'))],
+    dependencies=[Depends(RoleChecker('gupshup'))],
     tags=['kyc']
 )
 

@@ -1,6 +1,7 @@
 import os
 from starlette.status import HTTP_200_OK
 import pendulum
+import json
 from typing import Dict
 from pyairtable import Table
 from dotenv import load_dotenv
@@ -145,14 +146,15 @@ class AirtableService():
         # return self.trigger_account_update()
 
     def set_lead_response(self, phone_number: str, response: str, raw: Dict):
-        lead = self.get_record_from_key(phone_number, self.leads_table.all(), "PHONE")
+        lead = self.leads_table.first(formula=f"PHONE={phone_number}")
         if not lead:
             # raise UnknownPhoneNumberException(f"unknown phone number {phone_number}")
             self.leads_table.create({
                 'PHONE': int(phone_number),
-                'RESPONSE': "UNKNOWN_NUMBER", 
-                'RESPONSE_RAW': raw, 
-                'WABA_OPT_IN': 'SUCCESS'
+                'RESPONSE_TYPE': "UNKNOWN", 
+                'RESPONSE_TEXT': response, 
+                'RESPONSE_RAW': str(raw), 
+                'WABA_OPT_IN': 'REACH_OUT'
             })
         else: 
             # look at first words
@@ -166,17 +168,16 @@ class AirtableService():
             else: 
                 resp = "UNKNOWN"
             prior_response_count = lead['fields'].get("RESPONSE_COUNT")
-            all_responses = lead['fields'].get("ALL_RESPONSES") 
+            all_responses_text = lead['fields'].get("ALL_RESPONSES_TEXT")
+            # code to try storing all response raw data in one big object -> see below
             self.leads_table.update(lead['id'], {
                 'RESPONSE_TYPE': resp,
                 'RESPONSE_TEXT': response, 
                 'RESPONSE_RAW': str(raw),
-                'ALL_RESPONSES':  all_responses +"," + response if isinstance(all_responses, str) else response,
+                'ALL_RESPONSES_TEXT': (response +"," + all_responses_text) if isinstance(all_responses_text, str) else response,
                 'RESPONSE_COUNT': prior_response_count + 1 if isinstance(prior_response_count , int) else 1
             })
         return {'status': 'success'}
-        # return self.trigger_account_update()
-
 
 
     def trigger_account_update(self, data: Dict = {}):
@@ -211,3 +212,12 @@ air_service = AirtableService(api_key, base_id)
 
 # r = air_service.get_record_from_phone_number(phone_number)
 # print(r)
+
+# code to try storing all response raw data in one big object -> fails becasue long text can't handle it on aritable side
+# all_responses = json.loads(lead['fields'].get("ALL_RESPONSES", "{}"))
+# print('all ', all_responses)
+# if not all_responses:
+# all_responses = {}
+# all_responses.update({raw.get('timestamp', "0"): raw})
+# updated_all_responses = json.dumps(all_responses),
+# print('all new', updated_all_responses)
