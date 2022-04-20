@@ -46,6 +46,7 @@ class AirtableService():
         self.accounts_table = Table(api_key, base_id=base_id, table_name='VirtualAccounts')
         self.customer_table = Table(api_key, base_id=base_id, table_name='Customer')
         self.leads_table = Table(api_key, base_id=base_id, table_name='Leads')
+        self.optin_table = Table(api_key, base_id=base_id, table_name='OptIn')
     
     def health(self):
         n_kyc = len(self.kyc_table.all())
@@ -136,6 +137,18 @@ class AirtableService():
             return {"link": customer['fields']['retailer_repay_dashboard'], 'password': ""}
         else:
             return {"link": customer['fields']['remittance_dashboard'], 'password': ""}
+        
+    def get_user_type(self, phone_number: str):
+        lead = self.leads_table.first(formula=f"PHONE={phone_number}")
+        if not lead:
+            raise UnknownPhoneNumberException(f"unknown phone number {phone_number}")
+        else: 
+            # note: only non-empty fields will be returned
+            return {
+                'whatsAppOptIn': lead['fields'].get("USER_OPT_IN", [False])[0],
+                'userType': lead['fields'].get('customer_type', "UNKNWOWN")
+            }
+
 
     def set_fetch_needed(self, account_number: str):
         account = self.get_record_from_key(account_number, self.accounts_table.all(), "ACCOUNT_NUM_IN")

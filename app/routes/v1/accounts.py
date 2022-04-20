@@ -66,11 +66,18 @@ accounts_app = APIRouter()
 # def fetch_statement(update: AccountCallback)
 def fetch_statement(update: AccountCallbackData, air: AirtableService = Depends(get_air)):
     try:
-        # update = SAMPLEBODY
-        # account_number = update.get("accountNumber", "")
         account_number = update.accountNumber
         if not account_number:
             raise HTTPException(HTTP_400_BAD_REQUEST, detail="missing key accountNumber with the input")
         return air.set_fetch_needed(account_number=account_number)
     except UnknownPhoneNumberException as e:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail=str(e))
+
+@accounts_app.get("/type")
+def _get_user_type(phoneNumber: str, air_service: AirtableService = Depends(get_air)):
+    try:
+        print('here')
+        return air_service.get_user_type(phoneNumber)
+    except UnknownPhoneNumberException as e:
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail=str(e))
+
