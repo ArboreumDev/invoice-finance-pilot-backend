@@ -7,7 +7,7 @@ from database.exceptions import (DuplicatePhoneNumberException,
 # from database.exceptions import UnknownPurchaserException
 from fastapi import APIRouter, Body, Depends, HTTPException
 from routes.dependencies import get_air
-from starlette.status import HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND
+from starlette.status import HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR
 
 # import StringIO
 
@@ -48,6 +48,9 @@ def _update_user_data(update: UserUpdateInput = Body(...), air_service: Airtable
         return air_service.update_user_data(update.phone_number, u)
     except UnknownPhoneNumberException as e:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail=str(e))
+    except Exception as e:
+        print("WEIRD ERROR:", str(e))
+        raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="PLEASE NOTIFY ARBOREUM: " + str(e))
 
 
 @kyc_app.post(
