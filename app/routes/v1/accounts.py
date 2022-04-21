@@ -1,12 +1,18 @@
-from typing import Optional
+from typing import Optional, List
 
-from airtable.airtable_service import AirtableService
+from airtable.airtable_service import AirtableService, UserTypeInfo
 # from database.exceptions import UnknownPurchaserException
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from routes.dependencies import get_air
 from starlette.status import HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND
 from database.exceptions import ( UnknownPhoneNumberException)
+# from enum import Enum
+
+# class CustomerType(str, Enum):
+#     INITIAL = "INITIAL"
+#     IN_PROGRESS = "IN_PROGRESS"
+ 
 
 
 class AccountCallbackData(BaseModel):
@@ -73,7 +79,7 @@ def fetch_statement(update: AccountCallbackData, air: AirtableService = Depends(
     except UnknownPhoneNumberException as e:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail=str(e))
 
-@accounts_app.get("/type")
+@accounts_app.get("/type", response_model=List[UserTypeInfo])
 def _get_user_type(phoneNumber: str, air_service: AirtableService = Depends(get_air)):
     try:
         print('here')

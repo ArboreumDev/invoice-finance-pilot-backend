@@ -1,4 +1,5 @@
 import os
+from pydantic import BaseModel
 from starlette.status import HTTP_200_OK
 import pendulum
 import json
@@ -13,6 +14,11 @@ from database.exceptions import (
 )
 import requests
 
+
+class UserTypeInfo(BaseModel):
+    whatsAppOptIn: bool 
+    customerType: str
+    businessType: str
 
 
 
@@ -140,15 +146,16 @@ class AirtableService():
         
     def get_user_type(self, phone_number: str):
         phone_number = phone_number[-10:]
-        lead = self.leads_table.first(formula=f"PHONE={phone_number}")
-        if not lead:
+        leads = self.leads_table.all(formula=f"PHONE={phone_number}")
+        if not leads:
             raise UnknownPhoneNumberException(f"unknown phone number {phone_number}")
         else: 
             # note: only non-empty fields will be returned
-            return {
+            return [UserTypeInfo(**{
                 'whatsAppOptIn': lead['fields'].get("GUPSHUP_WHITELISTED", ["NO"])[0] == "SUCCESS",
-                'userType': lead['fields'].get('customer_type', "UNKNWOWN")
-            }
+                'customerType': lead['fields'].get('customer_type', "UNKNWOWN"),
+                'businessType': lead['fields'].get('business_type', "UNKNWOWN")
+            }) for lead in leads]
 
 
     def set_fetch_needed(self, account_number: str):
