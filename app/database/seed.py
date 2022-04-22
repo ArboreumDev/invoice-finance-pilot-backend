@@ -66,7 +66,7 @@ tusker_user = User(
 	role = "tusker",
 )
 loan_admin = User(
-	email = "avinash@arboreum.dev",
+	email = "dev@arboreum.dev",
 	username = "avinash",
 	# hashed_password = "$2b$12$rui/rXspT/Nn98Qdl8EqlOCbe5JeNTkpVHJOjWLOyrT211Z.FQsjy",
 	hashed_password = "$2b$12$NuzME53eqmA211BN3CQI.eMfaiQwVkV5JAy/9qDuyDQXoqRDtpmBC", # pw=singh
@@ -74,11 +74,25 @@ loan_admin = User(
 )
 
 gupshup_user = User(
-	email = "",
+	email = "fake",
 	username = "gupshup",
 	hashed_password = "$2b$12$BVA3CzV0YznzfVaobNXhG.rB6z.moH2LyMKTFmhfKsTXJYLpblDWS", # pw=gupshup
 	role = "gupshup",
 )	
+
+# do the same for production
+gupshup_user_prod = User(
+	email = "",
+	username = "gupshup_prod",
+	hashed_password ="$2b$12$pTTaOSz2gRoPehQ3s0XtGufqbA.oqJ2FaeHjZRLSHAGnR65V4hKS2",
+	role = "gupshupProd",
+)
+loan_admin_prod = User(
+	email = "avinash@arboreum.dev",
+	username = "avinash_prod",
+	hashed_password = "$2b$12$oCzc7om/me9X8giaDNai6eAFSGm9/H7eHzzOG4xda5kV7vlZd5XsS",
+	role = "loanAdminProd",
+)
 
 # airtable_user = User(
 # 	email = "airtable",
@@ -90,6 +104,8 @@ gupshup_user = User(
 db_session.add(tusker_user)
 db_session.add(loan_admin)
 db_session.add(gupshup_user)
+db_session.add(gupshup_user_prod)
+db_session.add(loan_admin_prod)
 # db_session.add(airtable_user)
 
 # insert gurugrupa and test customer into Supplier DB

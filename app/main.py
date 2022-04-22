@@ -19,7 +19,13 @@ from utils.security import (
 )
 from sqlalchemy.orm import Session
 from routes.dependencies import get_db, log_request, get_air
+import os
+from dotenv import load_dotenv
 
+load_dotenv()
+ADMIN_ROLE = os.getenv("LOAN_ADMIN_ROLE")
+GUPSHUP_ROLE = os.getenv("GUPSHUP_ROLE")
+print('gupshup role', GUPSHUP_ROLE)
 
 origins = [
     FRONTEND_URL
@@ -35,14 +41,14 @@ app = FastAPI()
 app.include_router(
     admin_app,
     prefix="/v1/admin",
-    dependencies=[Depends(RoleChecker('loanAdmin'))],
+    dependencies=[Depends(RoleChecker(ADMIN_ROLE))],
     tags=['admin']
 )
 app.include_router(
     kyc_app, 
     prefix="/v1/kyc",
     # dependencies=[Depends(log_request), Depends(RoleChecker('gupshup'))],
-    dependencies=[Depends(RoleChecker('gupshup'))],
+    dependencies=[Depends(RoleChecker(GUPSHUP_ROLE))],
     tags=['kyc']
 )
 
