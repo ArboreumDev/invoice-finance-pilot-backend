@@ -34,8 +34,11 @@ def log_request(request: Request):
 
     if hasattr(request, "_json"):
         logger.debug("Body:")
-        for name, value in request._json.items():
-            logger.debug(f"\t{name}: {value}")
+        try: 
+            for name, value in request._json.items():
+                logger.debug(f"\t{name}: {value}")
+        except:
+            print("error logging body", request._json)
 
     logger.debug("Headers:")
     for name, value in request.headers.items():
