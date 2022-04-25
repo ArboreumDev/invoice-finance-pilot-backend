@@ -122,7 +122,7 @@ class AirtableService():
     def mark_as_ready(self, phone_number: str, docType: ManualVerification):
         r = self.get_kyc_user(phone_number)
         if not r:
-            raise UnknownPhoneNumberException()("KYC User does not exist")
+            raise UnknownPhoneNumberException("KYC User does not exist")
         update = {docType._to_airtable_key(): "AWAITING_VERIFICATION"}
         print('u', update)
         return self.kyc_table.update(r['id'], update)
