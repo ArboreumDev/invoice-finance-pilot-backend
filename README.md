@@ -22,6 +22,7 @@ A typical invoice lifecycle looks like this:
 ## Stack & libraries
 
 - A [fastAPI](https://fastapi.tiangolo.com/)-backend
+- [JWT-authentication schema](/app/utils/security.py) with different roles to implement [protected-routes](/app/main.py#L34)
 - A postgres DB, using MySQLAlchemy to define [schemas](/app/database/schemas/) for invoices & customers and credit-relationships
 - dedicated classes to do CRUD-updates to the DB (e.g. [invoice-service](/app/database/crud/invoice_service.py))
 - [pydantic models](/app/database/models.py) to specify the API-datamodels (openAPI/swagger docs)
