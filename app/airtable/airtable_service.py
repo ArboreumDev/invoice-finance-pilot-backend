@@ -30,7 +30,6 @@ base_id  = os.getenv("AIRTABLE_BASE_ID")
 va_fetch_webhook_URL  = os.getenv("VA_FETCH_WEBHOOK_URL")
 payload = {"company": "squirrels backend inc."}
 headers = {
-    # "cookie": "AWSALB=76J5rOHaa6VHtGwPJjm5Ez6iweWoMJgxK3RH5qj%2Fw1JQtd9Ilb57fZ22YBJwgeNeXwfwZwCaQWe9IaKpgqDVY1wvm1hXFt9R%2BtLioC18VwWcST2np28%2FlM8fFHQb; AWSALBCORS=76J5rOHaa6VHtGwPJjm5Ez6iweWoMJgxK3RH5qj%2Fw1JQtd9Ilb57fZ22YBJwgeNeXwfwZwCaQWe9IaKpgqDVY1wvm1hXFt9R%2BtLioC18VwWcST2np28%2FlM8fFHQb; brw=brwOp3r9hZXQS2vpi",
     "Content-Type": "application/json"
 }
 
