@@ -22,12 +22,12 @@ origins = [
 ]
 app = FastAPI()
 
-# app.include_router(invoice_app, prefix="/v1", dependencies=[Depends(check_jwt_token_role), Depends(log_request)])
-# app.include_router(whitelist_app, prefix="/v1", dependencies=[Depends(check_jwt_token_role), Depends(log_request)])
-# app.include_router(supplier_app, prefix="/v1", dependencies=[Depends(check_jwt_token_role), Depends(log_request)])
-# app.include_router(purchaser_app, prefix="/v1", dependencies=[Depends(log_request)])
-# app.include_router(purchaser_app, prefix="/v1", dependencies=[Depends(check_jwt_token_role), Depends(log_request)])
-# app.include_router(test_app, prefix="/v1/test", dependencies=[])
+app.include_router(invoice_app, prefix="/v1", dependencies=[Depends(check_jwt_token_role), Depends(log_request)])
+app.include_router(whitelist_app, prefix="/v1", dependencies=[Depends(check_jwt_token_role), Depends(log_request)])
+app.include_router(supplier_app, prefix="/v1", dependencies=[Depends(check_jwt_token_role), Depends(log_request)])
+app.include_router(purchaser_app, prefix="/v1", dependencies=[Depends(log_request)])
+app.include_router(purchaser_app, prefix="/v1", dependencies=[Depends(check_jwt_token_role), Depends(log_request)])
+app.include_router(test_app, prefix="/v1/test", dependencies=[])
 app.include_router(
     admin_app,
     prefix="/v1/admin",
