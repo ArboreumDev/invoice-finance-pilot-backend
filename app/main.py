@@ -6,15 +6,19 @@ from routes.v1.invoice import invoice_app
 from routes.v1.whitelist import whitelist_app
 from routes.v1.kyc import kyc_app
 from routes.v1.supplier import supplier_app
+from routes.v1.message import message_app
+from routes.v1.accounts import accounts_app
 from routes.v1.purchaser import purchaser_app
 from routes.v1.admin import admin_app
 from routes.v1.test import test_app
 from starlette.status import HTTP_401_UNAUTHORIZED
 from utils.common import JWTUser
 from utils.constant import TOKEN_DESCRIPTION, FRONTEND_URL
-from utils.security import authenticate_user, create_jwt_token, check_jwt_token_role, RoleChecker
+from utils.security import (
+    authenticate_user, create_jwt_token, check_jwt_token_role, RoleChecker, check_authorization
+)
 from sqlalchemy.orm import Session
-from routes.dependencies import get_db, log_request
+from routes.dependencies import get_db, log_request, get_air
 
 
 origins = [
@@ -37,8 +41,25 @@ app.include_router(
 app.include_router(
     kyc_app, 
     prefix="/v1/kyc",
-    dependencies=[Depends(log_request), Depends(RoleChecker('gupshup'))],
+    # dependencies=[Depends(log_request), Depends(RoleChecker('gupshup'))],
+    dependencies=[Depends(RoleChecker('gupshup'))],
     tags=['kyc']
+)
+
+app.include_router(
+    message_app, 
+    prefix="/v1/message",
+    dependencies=[Depends(log_request), Depends(check_authorization)],
+    # dependencies=[Depends(check_authorization)],
+    # dependencies=[Depends(log_request), Depends(RoleChecker('gupshup'))],
+    tags=['message']
+)
+
+app.include_router(
+    accounts_app,
+    prefix="/v1/account",
+    dependencies=[Depends(check_authorization)],
+    tags=['account']
 )
 
 app.add_middleware(
@@ -51,8 +72,15 @@ app.add_middleware(
 
 
 @app.get("/", tags=["health"])
-def read_root():
-    return {"Hello": "World"}
+def read_root(air = Depends(get_air)):
+    air_data = air.health()
+    try:
+        c = air_data['accounts'] + air_data['kyc_entries']
+        msg = 'be nice'
+    except Exception as e:
+        c = 0
+        msg = str(e)
+    return {"Hello": "World", 'health': c, 'msg': msg} 
 
 
 @app.post("/token", description=TOKEN_DESCRIPTION, summary="JWT Auth", tags=["auth"])

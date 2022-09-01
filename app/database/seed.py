@@ -80,9 +80,17 @@ gupshup_user = User(
 	role = "gupshup",
 )	
 
+# airtable_user = User(
+# 	email = "airtable",
+# 	username = "airtable",
+# 	hashed_password = "$2b$12$doK78rvx55liUK4rV25JSutX492rtBBM3NBX6VR/oufYvzLKEvXz6", # pw=airtableFetch
+# 	role = "airtableFetch",
+# )
+
 db_session.add(tusker_user)
 db_session.add(loan_admin)
 db_session.add(gupshup_user)
+# db_session.add(airtable_user)
 
 # insert gurugrupa and test customer into Supplier DB
 gurugrupa = SupplierCreate(

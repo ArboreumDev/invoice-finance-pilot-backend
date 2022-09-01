@@ -13,6 +13,8 @@ def get_hashed_password(password: str):
 tp = "tuskerpassworkd"
 at = "avinashpw"
 gp = "gupshupPilotv0"
+ap = "airtableFetch"
 print(get_hashed_password(tp))
 print(get_hashed_password(at))
 print(get_hashed_password(gp))
+print(get_hashed_password(ap))

@@ -24,11 +24,15 @@ from database.models import KYCUser
 from database.schemas import KYCUserCreate, KYCUserUpdate, KYCStatus
 
 
-
 class BusinessType(str, Enum):
     PROPRIETOR = "PROPRIETOR"
     PARTNERSHIP = "PARTNERSHIP"
     LIMITED = "LIMITED"
+    
+class LanguagePref(str, Enum):
+    ENGLISH = "ENGLISH"
+    HINDI = "HINDI"
+    KANNADA = "KANNADA"
 
 class ManualVerification(str, Enum):
     AOAMOA = "AOAMOA"
@@ -43,58 +47,107 @@ class ManualVerification(str, Enum):
     def _to_lookup_key(self):
         if self.value == "AOAMOA":
             return "aoa_moa_certificate"
-        if self.value == "BANKSTATEMENT":
-            return "bank_statement"
-        if self.value == "ITR":
-            return "proprietor_itr"
-        if self.value == "BUSINESSBANKSTATEMENT":
-            return "business_bank_statement"
         if self.value == "PARTNERSHIP":
             return "partnership_deed"
+        
+        if self.value == "BANKSTATEMENT":
+            return "individual_bank_stmt"
+        if self.value == "BUSINESSBANKSTATEMENT":
+            return "business_bank_stmt"
+        
+        if self.value == "ITR":
+            return "individual_itr"
         if self.value == "BUSINESSITR":
             return "business_itr"
         if self.value == "GST":
             return "gst_certificate"
         else: raise AssertionError("Unknown document type (should not happen fix typo)")
 
+    def _to_airtable_key(self):
+        if self.value == "AOAMOA":
+            return "AOA_verification_status"
+        if self.value == "BANKSTATEMENT":
+            return "BS_verification_status"
+        if self.value == "ITR":
+            return "PITR_verification_status"
+        if self.value == "BUSINESSBANKSTATEMENT":
+            return "BBS_verification_status"
+        if self.value == "PARTNERSHIP":
+            return "PD_verification_status"
+            return "partnership_deed"
+        if self.value == "BUSINESSITR":
+            return "BITR_verification_status"
+        if self.value == "GST":
+            return "GST_verification_status"
+        else: raise AssertionError("Unknown document type (should not happen fix typo)")
+
+
+
 class UserUpdateInput(CamelModel):
-    phone_number: str
-    email: Optional[str] = None
+    phone_number: str # applicant_phone_number
+    email: Optional[str] = None # email 
+   
+    business_phone: Optional[str] = None
+    individual_phone: Optional[str] = None
+    business_email: Optional[str] = None
+    individual_email: Optional[str] = None
+    
     business_type: Optional[BusinessType] = None
-    pan_number: Optional[str] = None
-    residential_address: Optional[str] = None
-    pan_verification_dump: Optional[str] = None
-    aadhar_number: Optional[str] = None
-    aadhar_verification_dump: Optional[str] = None
-    bank_account: Optional[str] = None
-    bank_verification_dump: Optional[str] = None
-    ifsc: Optional[str] = None
-    gst_number: Optional[str] = None
-    gst_verification_dump: Optional[str] = None
-    business_pan_number: Optional[str] = None
-    business_pan_verification_dump: Optional[str] = None
+    gstin: Optional[str] = None #gst_number
+    gstin_response: Optional[str] = None
+    
+    business_pan: Optional[str] = None
+    business_name: Optional[str] = None
     business_address: Optional[str] = None
-    business_bank_account: Optional[str] = None
-    business_ifsc: Optional[str] = None
-    business_bank_verification_dump: Optional[str] = None
+    business_pan_response: Optional[str] = None
+
+    business_address_state: Optional[str] = None
+    business_address_city: Optional[str] = None
+    business_address_pin: Optional[str] = None
+        
+    individual_pan: Optional[str] = None
+    individual_name: Optional[str] = None
+    individual_dob: Optional[str] = None
+    individual_pan_response: Optional[str] = None
+    
+    aadhar_number: Optional[str] = None
+    individual_address: Optional[str] = None
+    aadhar_response: Optional[str] = None
+    
+    individual_address_state: Optional[str] = None
+    individual_address_city: Optional[str] = None
+    individual_address_pin: Optional[str] = None
+    
+    business_bank_account_num: Optional[str] = None # business_account_num
+    business_bank_ifsc: Optional[str] = None # business_ifsc
+    business_bank_response: Optional[str] = None
+   
+    individual_bank_account_num: Optional[str] = None # individual_account_num
+    individual_bank_ifsc: Optional[str] = None # individual_ifsc
+    individual_bank_response: Optional[str] = None
 
 class ImageUpdateInput(CamelModel):
     phone_number: str
-    bank_statement: Optional[str] = None
-    pan_image: Optional[str] = None
-    aadhar_image: Optional[str] = None
-    proprietor_itr: Optional[str] = None
+    
     gst_certificate: Optional[str] = None
-    business_bank_statement: Optional[str] = None
+    business_pan_image: Optional[str] = None
+    individual_pan_image: Optional[str] = None
+    aadhar_image: Optional[str] = None
+        
+    business_bank_stmt: Optional[str] = None
+    individual_bank_stmt: Optional[str] = None
+    
+    proprietor_itr: Optional[str] = None
     business_itr: Optional[str] = None
-    partnership_deed: Optional[str] = None
-    aoa_moa_certificate: Optional[str] = None
+
+    business_incorporation_doc: Optional[str] = None
 
 
 class VerificationStatus(str, Enum):
-    UNVERIFIED = "UNVERIFIED"
+    PENDING = "PENDING"
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
+    CREATED = "CREATED"
     NOT_REQUIRED = "NOT_REQUIRED"
 
 

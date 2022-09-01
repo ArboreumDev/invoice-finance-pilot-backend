@@ -1,4 +1,3 @@
-
 from database.models import User
 from database.test.conftest import (db_session, insert_base_user,  # noqa: 401
                                     reset_db)

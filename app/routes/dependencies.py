@@ -1,8 +1,15 @@
+import os
 from typing import Generator
 
+from airtable.airtable_service import AirtableService
 from database.db import SessionLocal
+from dotenv import load_dotenv
 from fastapi import Request
 from utils.logger import get_logger
+
+load_dotenv()
+api_key = os.getenv("AIRTABLE_API_SECRET")
+base_id = os.getenv("AIRTABLE_BASE_ID")
 
 
 def get_db() -> Generator:
@@ -11,6 +18,10 @@ def get_db() -> Generator:
         yield db
     finally:
         db.close()
+
+
+def get_air() -> Generator:
+    yield AirtableService(api_key, base_id)
 
 
 def log_request(request: Request):

@@ -76,10 +76,16 @@ class AssetCreationException(BaseException):
 class UnknownPhoneNumberException(BaseException):
     pass
 
+class UserNotKYCedException(BaseException):
+    pass
+
 class DuplicatePhoneNumberException(BaseException):
     pass
 
 class NoDocumentsException(BaseException):
+    pass
+
+class AirtableError(BaseException):
     pass
 
 
