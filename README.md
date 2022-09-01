@@ -1,4 +1,4 @@
-# Stack
+# Invoice Financing Backend
 
 A backend that manages creditlines between suppliers & purchasers. Each creditline is limited by
 
@@ -19,18 +19,7 @@ A typical invoice lifecycle looks like this:
 - The dashboards will show the invoice-status, the total credit that is left and the amounts to be repaid (live and at the end of the term)
 - The Admin can use the admin-dashboard to mark invoices as fully repaid, freeing the respective amounts from the creditlines.
 
-## Setup
-
-rename .example.env to `.env` and add the missing variables
-
-```
-JWT_SECRET_KEY="someSecretKey"
-EMAIL_PASSWORD=""
-
-...and more
-```
-
-## Backend
+## Stack & libraries
 
 - A [fastAPI](https://fastapi.tiangolo.com/)-backend
 - A postgres DB, using MySQLAlchemy to define [schemas](/app/database/schemas/) for invoices & customers and credit-relationships
@@ -43,6 +32,15 @@ EMAIL_PASSWORD=""
 - [docker-compose commands](/Makefile) to run backend & db & test_db as local-containers, or bind-mounted to the local folder
 
 ## Setup
+
+rename .example.env to `.env` and add the missing variables
+
+```
+JWT_SECRET_KEY="someSecretKey"
+EMAIL_PASSWORD=""
+
+...and more
+```
 
 ### Virtualenv
 
