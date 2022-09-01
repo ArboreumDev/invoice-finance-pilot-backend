@@ -141,3 +141,12 @@ its possible to use the docs link to do simple testing of the APIs via the "TRY 
 ### PRODUCTION
 
 set .env variable ENVIRONMENT=PRODUCTION
+
+> docker-compose build backend
+> docker-compose push backend
+
+test by using the image:
+
+> docker-compose up backend db
+
+(-> set # POSTGRES_HOST="localhost" in .env)
